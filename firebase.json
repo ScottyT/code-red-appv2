@@ -1,0 +1,96 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs14"
+  },
+  "hosting": [{
+    "target": "live",
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "nuxtssr"        
+      }
+    ],
+    "headers": [{
+      "source": "**/*.@(jpg|png|gif)",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "public, max-age=300, s-maxage=3600"
+      }]
+    }, {
+      "source": "https://firebasestorage.googleapis.com/v0/b/code-red-app-313517.appspot.com/o/*",
+      "headers":[{
+        "key":"Cache-Control",
+        "value":"public, max-age=300, s-maxage=3600"
+      }]
+    }, {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }, {
+      "source": "/firebase-auth-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=3600"
+        }
+      ]
+    }]
+  },
+  {
+    "target": "staging",
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [{
+      "source": "**/*.@(jpg|png|gif)",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "public, max-age=300, s-maxage=3600"
+      }]
+    }, {
+      "source": "https://firebasestorage.googleapis.com/v0/b/code-red-app-313517.appspot.com/o/*",
+      "headers":[{
+        "key":"Cache-Control",
+        "value":"public, max-age=300, s-maxage=3600"
+      }]
+    }, {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }, {
+      "source": "/firebase-auth-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=3600"
+        }
+      ]
+    }]
+  }],
+  "emulators": {
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "code-red-app-313517"
+  },
+  "targets": {
+    "code-red-app-313517": {
+      "hosting": {
+        "staging": [
+          "staging-174a0"
+        ],
+        "live": [
+          "code-red-app-313517"
+        ]
+      }
+    }
+  }
+}
