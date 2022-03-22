@@ -706,7 +706,7 @@ export default {
                 }
                 
                 this.submitPsychrometic().then(result => {
-                    this.$api.$put(`/api/reports/atmospheric-readings/${this.reportId}/update`, post).then((res) => {
+                    this.$api.$put(`/api/reports/atmospheric-readings/${this.selectedJobId}/update`, post).then((res) => {
                         if (res.errors) {
                             this.errorDialog = true
                             this.submitting = false

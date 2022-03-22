@@ -9,7 +9,10 @@
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Personal Content Inventory</h2>
         <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }">
-            <h2 v-if="message.length > 0">{{message}}</h2>
+            <div v-for="item in message" :key="item">
+                <h3 v-if="message.length > 0">{{item}}</h3>
+            </div>
+            
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -271,7 +274,7 @@ export default defineComponent({
             return new Promise((resolve, reject) => {
                 compressing(uploadarr).then((result) => {
                     result[0].formData.append("JobId", selectedJobId.value)
-                    axios.put(`${process.env.serverUrl}/api/image/upload/content-inventory-image`, result[0].formData, {
+                    axios.post(`${process.env.serverUrl}/api/image/upload/content-inventory-image`, result[0].formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                             'Authorization': `${$auth.strategy.token.get()}`
@@ -279,23 +282,19 @@ export default defineComponent({
                     }).then((res) => {
                         resolve(res.data)
                         setTimeout(() => {
-                            message.value = ""
+                            message.value = []
                         }, 3000)
                     })
                 }).catch((err) => {
                     if (err.response) {
-                        errorDialog.value = true
                         reject(err.response.data)
-                        refs.form.setErrors({
-                            message: err.response.data
-                        })
                     }
                 })
             })
         }
         async function submitForm() {
             submitting.value = true
-            message.value = ""
+            message.value = []
             
             const post = {
                 JobId: selectedJobId.value,
@@ -313,19 +312,18 @@ export default defineComponent({
                 image_ids: inventoryImagesList.value
             }
 
-            await refs.form.validate().then(success => {
-                
+            await refs.form.validate().then(success => {          
                 if (!success) {
                     submitting.value = false
                     errorDialog.value = true
                     return
                 }
-                console.log("is success")
                 Promise.all([uploadFile(images.value)]).then((result) => {
-                    $api.$put(`/api/reports/${post.ReportType}/${reportId.value}/update`, post).then((res) => {
+                    console.log(result)
+                    $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
                         submitted.value = true
                         submitting.value = false
-                        message.value.push(result[0])
+                        message.value.push(result[0], res)
                         generalErrorMessages.value = []
                         setTimeout(() => {
                             window.location = "/"
@@ -334,9 +332,7 @@ export default defineComponent({
                         errorDialog.value = true
                         submitting.value = false
                         if (err.response) {
-                            refs.form.setErrors({
-                                JobId: setError(err.response.data, "JobId")
-                            })
+                            generalErrorMessages.value.push(err.response.data)
                         }
                     })
                 }).catch((err) => {

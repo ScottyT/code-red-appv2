@@ -619,7 +619,7 @@ export default {
                     this.errorDialog = true;
                     return goTo(0)
                 }
-                this.$api.$put(`/api/reports/quantity-inventory-logs/${this.reportId}/update`, post).then((res) => {
+                this.$api.$put(`/api/reports/quantity-inventory-logs/${this.selectedJobId}/update`, post).then((res) => {
                     this.submittedMessage = res
                     this.submitting = false
                     this.submitted = true

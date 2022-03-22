@@ -535,7 +535,7 @@
           if (!reports.includes(this.jobId)) {
             this.$api.$post("/api/reports/dispatch/new", post, {
                 params: {
-                    jobid: selectedJobId.value
+                    jobid: post.JobId
                 }
             }).then((res) => {
                 if (res.error) {

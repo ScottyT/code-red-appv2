@@ -912,7 +912,7 @@
             };
             this.$api.$post("/api/reports/rapid-response/new", post, {
                     params: {
-                        jobid: selectedJobId.value
+                        jobid: post.JobId
                     }
                 }).then((res) => {
                 if (res.error) {
