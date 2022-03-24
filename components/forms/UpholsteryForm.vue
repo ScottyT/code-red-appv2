@@ -4,7 +4,7 @@
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Upholstery Cleaning Pre-Inspection Form</h2>
         <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
-            <h2>{{message}}</h2>
+            <h2 v-if="message !== ''">{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -278,7 +278,6 @@ export default defineComponent({
                 }).catch((err) => {
                     errorDialog.value = true
                     message.value = err
-
                 })
             })
         }

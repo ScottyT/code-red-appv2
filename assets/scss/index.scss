@@ -321,6 +321,7 @@ button {
   display: flex;
   flex-direction: column;
   padding: 15px;
+  position:relative;
 
   &__login-page {
     max-width: 30rem;

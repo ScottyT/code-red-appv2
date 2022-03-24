@@ -1,6 +1,6 @@
 <template>
     <div class="form-wrapper form-wrapper__prop-inventory">
-        <v-overlay absolute :value="loading" v-show="loading">
+        <v-overlay :value="loading" v-show="loading" light>
             <v-progress-circular
                 indeterminate
                 size="64"
@@ -154,13 +154,12 @@ export default defineComponent({
     },
     setup(props, { emit, refs }) {
         const { $api, $auth } = useContext()
-        const { getReportPromise } = useReports()
+        const { getReportPromise, loading } = useReports()
         const store = useStore()
         const editing = ref(false)
         const hasTechSig = ref(false)
         const errorDialog = ref(false)
         const message = ref([])
-        const loading = ref(false)
         const submitted = ref(false)
         const submitting = ref(false)
         const selectedJobId = ref("")

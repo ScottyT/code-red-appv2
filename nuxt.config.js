@@ -38,6 +38,7 @@ module.exports = {
     functionsUrl: process.env.NODE_ENV !== 'production' ? 'http://192.168.1.117:8080' : process.env.FUNCTIONS_URL,
     mapboxKey: process.env.MAPBOX_API_KEY,
     userStorage: process.env.USER_STORAGE_BUCKET,
+    defaultStorage: process.env.DEFAULT_STORAGE_BUCKET,
     authClientID: process.env.AUTH0_CLIENT_ID,
     authDomain: process.env.AUTH0_DOMAIN,
     authAudience: process.env.AUTH0_AUDIENCE
@@ -151,6 +152,7 @@ module.exports = {
       name: 'Code Red',
       short_name: 'Code Red Field Forms',
       lang: 'en',
+      display: 'standalone'
     },
     meta: {
       description: 'An app that the field teams fill out.',
@@ -163,10 +165,6 @@ module.exports = {
       purpose: ['any']
     },
     workbox: {
-      importScripts: ['/firebase-auth-sw.js'],
-      dev: false, //process.env.NODE_ENV === 'development',
-      //enabled:false,
-      //cachingExtensions: '@/plugins/workbox-sync.js',
       runtimeCaching: [
         {
           urlPattern: 'https://fonts.googleapis.com/',
@@ -179,54 +177,10 @@ module.exports = {
           },
         },
         {
-          urlPattern: "https://localhost:3000/*",
-          handler: 'networkFirst',
-          method: 'GET',
-          strategyOptions: {
-            cacheableResponse: { statuses: [0, 200] }
-          },
-        },
-        /* {
-          urlPattern: "https://code-red-app-313517.web.app/*",
-          handler: 'networkFirst',
-          method: 'GET',
-          strategyOptions: {
-            cacheableResponse: { statuses: [0, 200] }
-          },
-        }, */
-        /* {
-          urlPatter: "http://localhost:8082/api/*",
+          urlPattern: 'https://fonts.gstatic.com/.*',
           handler: 'cacheFirst',
           method: 'GET',
-          strategyOptions: {
-            cacheableResponse: { statuses: [0, 200] }
-          }
-        },
-        {
-          urlPatter: "http://localhost:8081/*",
-          handler: 'cacheFirst',
-          method: 'GET',
-          strategyOptions: {
-            cacheableResponse: { statuses: [0, 200] }
-          }
-        }, */
-        {
-          urlPattern:
-            'https://firebasestorage.googleapis.com/v0/b/code-red-app-313517.appspot.com/o/',
-          handler: 'cacheFirst',
-          method: 'GET',
-          strategyOptions: {
-            cacheableResponse: { statuses: [0, 200] },
-            cacheName: 'storage-cache',
-          },
-          strategyPlugins: [
-            {
-              use: 'Expiration',
-              config: {
-                maxAgeSeconds: 7200,
-              },
-            },
-          ],
+          strategyOptions: { cacheableResponse: { statuses: [0, 200] } }
         },
         {
           urlPattern:

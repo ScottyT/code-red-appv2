@@ -629,9 +629,7 @@ export default {
                 }).catch((err) => {
                     this.submitting = false
                     if (err.response) {
-                        /* this.$refs.form.setErrors({
-                            JobId: err.response.data
-                        }) */
+                        console.error(err.response.data)
                     }
                 })
             })
