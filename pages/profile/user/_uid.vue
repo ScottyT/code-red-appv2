@@ -10,17 +10,14 @@
                 <UiImageUpload @getFiles="avatar = $event" :errorText="error" :email="userObj.email" :maxSize="1024" class="user-card__actions"
                     namechanged="avatar">
                     <template v-slot:activator>
-                        <v-avatar size="150px" v-ripple>
-                            <img :src="$auth.user.avatarurl" />
+                        <v-avatar size="150px" v-ripple v-if="Object.keys(avatar).length === 0">
+                            <img :src="$auth.user.picture" />
+                        </v-avatar>
+                        <v-avatar size="150px" v-ripple v-else-if="avatar.length > 0">
+                            <img :src="avatar[0].image.imageUrl" />
                         </v-avatar>
                         <!-- <v-avatar size="150px" v-ripple v-if="Object.keys(avatar).length === 0 && avatarurl === null" class="grey lighten-3 mb-3">
                             Click to add avatar
-                        </v-avatar>
-                        <v-avatar size="150px" v-ripple v-else-if="avatar.length > 0" class="mb-3">
-                            <img :src="avatar[0].image.imageUrl" />
-                        </v-avatar>                      
-                        <v-avatar size="150px" v-ripple v-else class="mb-3">
-                            <img :src="avatarurl" />
                         </v-avatar> -->
                     </template>
                 </UiImageUpload>
@@ -85,7 +82,6 @@
                                     <template v-slot:activator>
                                         <img v-if="badge.length > 0" class="file-listing__preview" :src="badge[0].image.imageUrl" />
                                         <button type="button" class="button button--normal">Add image</button>
-
                                     </template>
                                 </UiImageUpload>
                                 <v-btn :loading="saving" v-show="badge.length > 0" ref="uploadBtn" class="primary button--normal" type="button" @click="uploadBadge">
@@ -115,10 +111,11 @@ import 'animate.css'
 import { ref, computed, onMounted, defineComponent, useStore, useFetch, watch, useContext } from '@nuxtjs/composition-api'
 import useUsers from "@/composable/users";
 import { dateMask } from "@/data/masks";
+import { compress } from 'image-conversion';
 export default defineComponent({
     middleware: ['auth'],
     setup(props, { root, refs }) {
-        const { $axios, $auth, $fire, $certs, $userReports } = useContext()
+        const { $gcs, $auth, $certs, $userReports, $api } = useContext()
         const store = useStore()
         //const { fetchUser, userObj } = useUsers()
         const saving = ref(false)
@@ -132,8 +129,26 @@ export default defineComponent({
         const isAdding = ref(false); const deleteMode = ref(false);
         const submitting = computed(() => $certs.state.submitting)
         const tempImage = ref({}) //has imageUrl and name property
+
+
         const refreshReports = async () => {
             await $userReports.fetchReports(userObj.value.email)
+        }
+        const compressing = async (upload) => {
+            var compressedFiles = []
+            var formData = new FormData()
+            const res = await compress(upload.image.image, {
+                quality: .7,
+                scale: .8
+            })
+            let compressedImg = new File([res], upload.image.imageName, {
+                type: res.type
+            })
+            formData.append("single", compressedImg)
+            
+            //Object.assign(compressedFile, {formData, imageName: upload.image.imageName, image: compressedImg, imageUrl: upload.image.imageUrl})
+            compressedFiles.push({formData, compressedImg})
+            return compressedFiles
         }
         const animateCSS = (element, animation, prefix = 'animate__') =>
             new Promise((resolve, reject) => {
@@ -157,6 +172,9 @@ export default defineComponent({
         const uploadAvatar = async () => {
             await uploadFile().then((image) => {
                 store.commit('users/setAvatar', image.imageUrl)
+                $api.$put(`/api/employees/update/${userObj.value.sub}`, {picture: image.imageUrl, auth_id: userObj.value.sub}).then((res) => {
+                    console.log("Updated user")
+                })
                 saving.value = false
             })
             animateCSS('uploadBtn', 'hinge').then((message) => {
@@ -181,25 +199,23 @@ export default defineComponent({
             badge.value = []
         }
         async function uploadFile() {
-            var data = new FormData()
-            avatar.value[0].formData.append('user', userObj.value.email)
-            avatar.value[0].formData.append('name', 'avatar')
-            data = avatar.value[0].formData
             saving.value = true
             return new Promise((resolve, reject) => {
-                $fire.auth.currentUser.getIdToken().then((idToken) => {
-                    axios.post(`${process.env.gsutil}/upload/avatar`, data, {
+                compressing(avatar.value[0]).then((result) => {
+                    console.log(result)
+                    result[0].formData.append('user', userObj.value.email)
+                    result[0].formData.append('name', 'avatar')
+                    axios.post(`${process.env.gsutil}/upload/avatar`, result[0].formData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
-                            authorization: `Bearer ${idToken}`
+                            authorization: $auth.strategy.token.get()
                         }
                     }).then((res) => {
                         resolve(res.data)
                     }).catch((err) => {
                         error.value = err
+                        reject(err)
                     })
-                }).catch((error) => {
-                    console.log(`Not authenticated: ${error}`)
                 })
             })
         }
@@ -222,6 +238,7 @@ export default defineComponent({
                         saving.value = false
                     }).catch((err) => {
                         error.value = err
+                        reject(err)
                     })
                 }).catch((error) => {
                     console.log(`Not authenticated: ${error}`)

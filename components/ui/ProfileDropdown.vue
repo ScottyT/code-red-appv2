@@ -4,7 +4,7 @@
             <span class="text text-right" v-show="$vuetify.breakpoint.width > 500">{{$auth.user.name}}</span>
             <span class="profile-menu__pfp">
                 <!-- <v-icon size="45">mdi-account-circle</v-icon> -->
-                <img :src="$auth.user.avatarurl" />
+                <img :src="$auth.user.picture" />
             </span>
             <!-- <span class="profile-menu__pfp" v-else-if="Object.keys(avatarurl).length === 0">
                 <img :src="avatarfromauth" />
@@ -21,7 +21,7 @@
                 <v-icon>mdi-contacts</v-icon>
                 <p>Profile</p>
             </nuxt-link>
-            <nuxt-link class="profile-menu__dropdown-menu--item" :to="`/profile/create`" v-if="$auth.user.role === 'admin'">
+            <nuxt-link class="profile-menu__dropdown-menu--item" :to="`/profile/create`" v-if="$store.state.users.user.role === 'admin'">
                 <v-icon>mdi-account</v-icon>
                 <p>Create Employee</p>
             </nuxt-link>

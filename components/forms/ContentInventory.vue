@@ -84,7 +84,7 @@
                                     <UiImageUpload @getFiles="addFilesToInventory($event[0], i)" errorText="an error happened" :email="user.email" :maxSize="2048"
                                         name="item-image" :additionalData="{itemNum: inventoryList[i].item_num}">
                                         <template v-slot:activator>
-                                            <button v-show="row.cols[2].value == ''" type="button" class="button button--normal">Add image</button>
+                                            <button v-show="row.cols[2].value === ''" type="button" class="button button--normal">Add image</button>
                                         </template>
                                         <template v-slot:imagePreview="slotProps">
                                             <img v-show="slotProps.image !== ''" class="file-listing__preview" :src="slotProps.image" />
@@ -310,15 +310,13 @@ export default defineComponent({
                 totalAmount: total.value,
                 image_ids: inventoryImagesList.value
             }
-
-            await refs.form.validate().then(success => {          
+            refs.form.validate().then(success => {
                 if (!success) {
                     submitting.value = false
                     errorDialog.value = true
                     return
                 }
                 Promise.all([uploadFile(images.value)]).then((result) => {
-                    console.log(result)
                     $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
                         submitted.value = true
                         submitting.value = false
@@ -340,6 +338,7 @@ export default defineComponent({
                     }
                 })
             })
+            
         }
         function pressingDown(e, i) {
             requestAnimationFrame(function() {
@@ -497,8 +496,8 @@ export default defineComponent({
                     reportId.value = Id
 
                     result.inventoryImages.forEach((image) => {
-                        var row = result.inventory.findIndex(i => i.cols[2].value === image.img.filename)
-                        if (row > 0) {
+                        var row = inventory.findIndex(i => i.cols[2].value === image.img.filename)
+                        if (row >= 0) {
                             inventoryList.value[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
                         }
                     })
@@ -560,6 +559,7 @@ export default defineComponent({
             dateMask,
             loading,
             inventoryList,
+            inventoryImagesList,
             addRow,
             dateMask,
             currencyFormat,
