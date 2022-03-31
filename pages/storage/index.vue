@@ -40,7 +40,7 @@
     methods: {
       storageItems() {
         axios.get(`${process.env.gsutil}/list`, {
-          params: {folder: "", subfolder: "", delimiter: "/"}, headers: {"authorization": `${this.$auth.$storage.getCookie("_token.auth0")}`}
+          params: {folder: "", subfolder: "", delimiter: "/"}, headers: {"authorization": `${this.$auth.strategy.token.get()}`}
         }).then((res) => {
           res.data.folders.forEach((folder) => {
             this.storage.push({"JobId" : folder.name})

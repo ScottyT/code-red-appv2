@@ -227,14 +227,14 @@ export default defineComponent({
       const filesToDelete = selectedFiles.value.map(obj => {
         return obj.name
       })
-      /* $fire.auth.currentUser.getIdToken().then((idToken) => {
-        $axios.$post(`${process.env.gsutil}/delete-files`, {sourceFiles: filesToDelete}, {headers: {Authorization: `Bearer ${idToken}`}}).then((res) => {
-          actionSuccess.value = res
+      $gcs.$post(`/delete-files`, {
+          sourceFiles: filesToDelete
+      }).then((res) => {
+          actionSuccess.value = "Deleted images"
           deleteDialog.value = false
           let result = report.value.images.filter(obj1 => !selectedFiles.value.some(obj2 => obj1.name === obj2.name))
           report.value.images = result
-        })
-      }) */
+      })
     }
     watch(() => report.value.images, (val) => {
       uploadFilesArr.value = []
