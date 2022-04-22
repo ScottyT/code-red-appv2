@@ -24,7 +24,7 @@ export default defineComponent({
         filterConditions(["initialForms", "chart-report", "upholstery-form", "case-report", "logs-report", "sketch-report", "quality-control"])
         getReports(true, true, true)
         const fetchCerts = async () => {
-            certs.value = await $axios.$get(`${process.env.apiUrl}/api/certifications`);
+            certs.value = await $axios.$get(`${process.env.apiUrl}/api/Certifications`);
         }
         onMounted(fetchCerts)
         return { groupedReports, fetching, error, reports, certs }

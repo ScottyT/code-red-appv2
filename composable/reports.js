@@ -100,19 +100,19 @@ export default function useReports() {
     }
 
     const getReportsPromise = () => {
+        loading.value = true
         return new Promise((resolve, reject) => {
-            $fire.auth.currentUser.getIdToken().then((idToken) => {
-                $axios.$get(`${process.env.serverUrl}/api/reports`, {headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
-                    reports.value = res.data
-                    error.value = false
-                    resolve(res)
-                }).catch((err) => {
-                    error.value = true
-                    errorMessage.value = err.response.data
-                    reject(err)
-                })
-            })
-            
+            $api.$get(`${process.env.serverUrl}/api/reports`).then((res) => {
+                reports.value = res.data
+                error.value = false
+                loading.value = false
+                resolve(res)
+            }).catch((err) => {
+                error.value = true
+                errorMessage.value = err.response.data
+                loading.value = false
+                reject(err)
+            })            
         })
     }
 
@@ -144,25 +144,6 @@ export default function useReports() {
                 loading.value = false
             })
         })
-    }
-
-    const getReportsByFormType = () => {
-        loading.value = true
-        const { fetch: fetchReportsByFormType, fetchState } = useFetch(async () => {
-            const token = await $fire.auth.currentUser.getIdToken()
-            filters.value.forEach((item) => {
-                $axios.$get(`/api/reports/${item}`, {headers: {authorization: `Bearer ${token}`}}).then((res) => {
-                    reports.value = res
-                    loading.value = false
-                }).catch((err) => {
-                    error.value = true
-                    errorMessage.value = err
-                    loading.value = false
-                })
-            })
-            
-        })
-        return { fetchReportsByFormType, reports, fetchState, loading }
     }
 
     const getReportImages = (jobid, folder, subfolder, delimiter) => {
@@ -249,7 +230,7 @@ export default function useReports() {
             }
         }).save()
     }
-    return { getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportsByFormType, getReportImages, loading,
+    return { getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportImages, loading,
         getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport
     }
 }
@@ -257,7 +238,9 @@ export default function useReports() {
 export function fetchReportImages(jobid, folder, subfolder, delimiter) {
     return new Promise((resolve, reject) => {
         axios.get(`${process.env.gsutil}/list/${jobid}`,
-            { params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter }}).then((res) => {
+            { params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter }, headers: {
+                authorization: `Bearer ${this.$auth.strategy.token.get().split(' ')[1]}`
+            }}).then((res) => {
                 resolve(res.data)
             })
     }).catch((err) => {

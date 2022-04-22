@@ -41,6 +41,7 @@ module.exports = {
     defaultStorage: process.env.DEFAULT_STORAGE_BUCKET,
     authClientID: process.env.AUTH0_CLIENT_ID,
     authDomain: process.env.AUTH0_DOMAIN,
+    gcloudApiKey: process.env.GCLOUD_API_KEY,
     authAudience: process.env.AUTH0_AUDIENCE
   },
   publicRuntimeConfig: {
