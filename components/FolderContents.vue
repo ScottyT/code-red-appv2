@@ -88,6 +88,10 @@
                   </div>
                 </template>
             </UiLightbox>
+            <a class="folder-contents__content folder-contents__content--pdf" v-for="(pdf, i) in report.pdfs" :key="`pdf-${i}`" :href="pdf.imageUrl" target="_blank">
+              <img src="/pdf-icon.png" alt="pdf icon" />
+              <p>{{pdf.name}}</p>
+            </a>
         </div>
     </div>
 </template>
@@ -306,12 +310,18 @@ export default defineComponent({
       width:200px;
     }
 
+    &--pdf {
+      height:200px;
+      img {
+        object-fit:contain;
+      }
+    }
+
     p {
         word-break:break-word;
     }
 
     &--subfolder {
-      
       display:inline-block;
       padding:5px;
       i {
@@ -345,6 +355,12 @@ export default defineComponent({
       appearance: none;
       position:absolute;
     }
+  }
+
+  &__pdf-link {
+    background-image:url('/pdf-icon.png');
+    width:100%;
+    height:100%;
   }
 
   &__item {

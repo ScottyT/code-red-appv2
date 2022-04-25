@@ -263,6 +263,15 @@
         <button class="button form__button-wrapper--submit" type="submit">{{ submitting ? 'Submitting' : 'Submit' }}</button>
       </form>
     </ValidationObserver>
+    <div>
+      <!-- <client-only>
+         <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="800" :manual-pagination="false"
+                    :show-layout="false" :preview-modal="true" :enable-download="false" @beforeDownload="beforeDownload($event)" ref="html2Pdf0">
+          <LazyLayoutReportDetails :notPdf="false" reportName="Dispatch Report" :report="postedReport" slot="pdf-content" />
+        </vue-html2pdf>
+      </client-only> -->
+      <!-- <button class="button--normal" ref="downloadBtn" v-show="false" @click="generatePdf()">Download PDF</button> -->
+    </div>
   </div>
 </template>
 <script>
@@ -274,6 +283,7 @@
   } from 'vuex'
   /* import goTo from 'vuetify/es5/services/goto' */
   import { dateMask, timeMask } from "@/data/masks"
+  import useReports from '@/composable/reports'
   export default {
     name: 'DispatchReport',
     props: ['slice', 'company', 'abbreviation'],
@@ -418,7 +428,8 @@
       errorDialog: false,
       errorArr: [],
       dateMask: dateMask,
-      timeMask: timeMask
+      timeMask: timeMask,
+      postedReport: {}
     }),
     watch: {
       date(val) {
@@ -488,15 +499,33 @@
           this.$refs.signaturePad.resizeCanvas()
         })
       },
-      submitForm() {
-        this.message = ""
-        const user = this.getUser
+      async submitForm() {
         var dispatchRep = this.getReports.filter((v) => {
           return v.ReportType === 'dispatch'
         })
         const reports = dispatchRep.map((v) => {
           return v.JobId
         })
+        await this.$refs.form.validate().then(success => {
+          if (!success) {
+            this.errorDialog = true
+            this.submitted = false
+            this.submitting = false
+            return
+          }
+          if (!reports.includes(this.jobId)) {
+            Promise.all([this.onSubmit()]).then((result) => {
+              this.submitted = true
+              this.message = result[0]
+             // this.$refs.html2pdf0.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
+          }
+        })
+      },
+      onSubmit() {
+        this.message = ""
+        const user = this.getUser
+        
         const post = {
           JobId: this.jobId,
           callerName: this.callerName,
@@ -524,6 +553,7 @@
           signDate: this.signDate,
           signTime: this.signTime
         };
+        this.postedReport = post
         this.submitting = true
         this.$refs.form.validate().then(success => {
           if (!success) {

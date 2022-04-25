@@ -231,7 +231,7 @@ export default function useReports() {
         }).save()
     }
     return { getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportImages, loading,
-        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport
+        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions
     }
 }
 
