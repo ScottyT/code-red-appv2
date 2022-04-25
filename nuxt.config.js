@@ -1,5 +1,10 @@
-module.exports = {
-  buildDir: '.nuxt',
+import { defineNuxtConfig } from '@nuxt/bridge'
+import { VuetifyLoaderPlugin } from "vuetify-loader";
+export default defineNuxtConfig({
+  bridge: {
+    vite: true,
+    meta: true
+  },
   // This is an SPA but using a server to show views on the page
   target: 'server',
   ssr: false,
@@ -26,6 +31,7 @@ module.exports = {
         type: 'image/x-icon',
         href: '/favicon.ico',
       },
+      { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css' },
     ],
   },
   loading: {
@@ -55,7 +61,7 @@ module.exports = {
   /*
    ** Global CSS
    */
-  css: ['@/assets/scss/index.scss', '@/assets/scss/transitions.css', '@/assets/scss/global.scss'],
+  css: ['@/assets/scss/index.scss', '@/assets/scss/transitions.css', '@/assets/scss/global.scss', '@/assets/scss/variables/main.scss'],
   /*
    ** Plugins to load before mounting the App
    ** https://nuxtjs.org/guide/plugins
@@ -68,7 +74,8 @@ module.exports = {
     { src: '@/plugins/vue-html2pdf.js', mode: 'client' },
     { src: '~/plugins/vue-chart.js', mode: 'client' },
     '~/plugins/provide-composable.js',
-    '~/plugins/directives.js'
+    '~/plugins/directives.js',
+    //'~/plugins/vuetify.js'
   ],
   /*
    ** Auto import components
@@ -87,8 +94,7 @@ module.exports = {
   buildModules: [
     // Doc: https://github.com/nuxt-community/eslint-module
     '@nuxtjs/eslint-module',
-    '@nuxtjs/vuetify',
-    '@nuxtjs/composition-api/module'
+    //'@nuxtjs/vuetify'
   ],
   /*
    ** Nuxt.js modules
@@ -218,7 +224,7 @@ module.exports = {
       ],
     },
   },
-  vuetify: {
+  /* vuetify: {
     customVariables: ['~/assets/scss/variables/variables.scss'],
     treeShake: true,
     theme: {
@@ -237,14 +243,19 @@ module.exports = {
         lg: 991
       }
     }
-  },
+  }, */
   /*
    ** Build configuration
    ** See https://nuxtjs.org/api/configuration-build/
    */
   build: {
     transpile: ['vee-validate/dist/rules'],
-    extractCSS: true,
+    /* plugins: [new VuetifyLoaderPlugin()],
+    loaders: {
+      sass: {
+        additionalData: "@import '@/assets/scss/variables/variables.scss'",
+      }
+    }, */
     babel: {
       presets({ envName }) {
         const envTargets = {
@@ -259,14 +270,10 @@ module.exports = {
         ]
       }
     },
-    extend(config) {
-      //config.resolve.alias['vue'] = 'vue/dist/vue.common',
-      /* config.module.rules.push({
-        test: /\.mjs$/,
-        include: /node_modules/,
-        type: "javascript/auto"
-      }); */
-    }
+    
+  },
+  server: {
+    host: '0'
   },
   /* alias: {
     '@vue/composition-api$': '@vue/composition-api/dist/vue-composition-api.mjs',
@@ -286,4 +293,4 @@ module.exports = {
     fallback: '404.html',
     interval: 2000
   }
-}
+});

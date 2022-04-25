@@ -44,7 +44,6 @@
     </span>
 </template>
 <script>
-import { defineComponent, useStore, computed, ref, onMounted } from '@nuxtjs/composition-api'
 export default defineComponent({
     props: ['formname'],
     setup(props, {root}) {

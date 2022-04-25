@@ -60,12 +60,11 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, ref, useContext, useMeta, useStore } from '@nuxtjs/composition-api';
 export default defineComponent({
     head:{},
     middleware: 'auth',
     setup(props, {refs}) {
-        useMeta({ title: 'Create Employee'})
+        useNuxt2Meta({ title: 'Create Employee'})
         const store = useStore();
         const { $axios, $auth, $api } = useContext()
         const errorMessage = ref('')

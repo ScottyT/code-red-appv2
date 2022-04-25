@@ -18,7 +18,6 @@
   </div>
 </template>
 <script>
-import { defineComponent, toRefs, ref, watch, onMounted, computed, useStore } from "@nuxtjs/composition-api";
 import axios from 'axios';
 import genericFuncs from "@/composable/utilityFunctions"
 import { saveAs } from "file-saver";

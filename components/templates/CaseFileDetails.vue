@@ -194,7 +194,6 @@
         </section>
 </template>
 <script>
-import { computed, defineComponent, onMounted, ref, toRefs } from "@nuxtjs/composition-api";
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
     props: {

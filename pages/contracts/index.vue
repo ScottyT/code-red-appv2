@@ -8,7 +8,6 @@
     </div>
 </template>
 <script>
-import { computed, defineComponent, useStore } from '@nuxtjs/composition-api'
 import useReports from '~/composable/reports'
 export default defineComponent({
     middleware: 'auth',

@@ -18,7 +18,6 @@
 </template>
 <script>
 // USE THIS FOR SINGLE IMAGE UPLOADS
-import { ref, toRefs } from '@nuxtjs/composition-api'
 import {compress, compressAccurately} from 'image-conversion';
 export default {
     props: {

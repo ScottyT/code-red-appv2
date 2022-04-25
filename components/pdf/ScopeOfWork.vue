@@ -223,7 +223,6 @@
     </section>
 </template>
 <script>
-import { defineComponent,onMounted,ref, toRefs, watch } from '@nuxtjs/composition-api'
 import useReports from "@/composable/reports"
 export default defineComponent({
     props: {

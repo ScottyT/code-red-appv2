@@ -312,7 +312,6 @@ officer of {{abbreviation}} for this agreement to be effective
     </div>
 </template>
 <script>
-import { defineComponent, useStore, useContext, ref, watch, computed } from '@nuxtjs/composition-api'
 import useReports from "@/composable/reports"
 import { dateMask } from "@/data/masks"
 export default defineComponent({

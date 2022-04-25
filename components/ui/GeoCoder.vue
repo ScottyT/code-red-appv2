@@ -6,7 +6,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, onBeforeUnmount, onMounted, ref, toRefs, useContext } from '@nuxtjs/composition-api'
 import mapboxgl from "mapbox-gl"
 import mapboxGeocoder from "@mapbox/mapbox-gl-geocoder"
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'

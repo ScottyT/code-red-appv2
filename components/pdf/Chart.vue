@@ -30,7 +30,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, ref, computed, provide, onMounted, inject } from '@nuxtjs/composition-api'
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
     props: {

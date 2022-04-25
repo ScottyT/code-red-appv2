@@ -43,7 +43,6 @@
     </div>
 </template>
 <script>
-import { computed, defineComponent, onMounted, toRefs, useContext } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {

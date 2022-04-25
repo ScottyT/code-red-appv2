@@ -7,7 +7,6 @@
     </div>
 </template>
 <script>
-import { computed, ref, defineComponent, toRefs } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {

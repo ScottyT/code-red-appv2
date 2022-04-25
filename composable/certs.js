@@ -1,4 +1,3 @@
-import { computed, ref, reactive, readonly } from "@nuxtjs/composition-api"
 import axios from 'axios';
 // If image token gets changed you will have to change the image url in the database
 const state = ref({

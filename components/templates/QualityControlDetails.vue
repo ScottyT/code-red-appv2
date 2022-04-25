@@ -90,9 +90,7 @@
     </section>
 </template>
 <script>
-import { defineComponent, toRefs, ref, onMounted, computed } from '@nuxtjs/composition-api'
-
-export default defineComponent({
+export default {
     props: {
         notPdf:Boolean,
         company: String,
@@ -121,5 +119,5 @@ export default defineComponent({
             services
         }
     },
-})
+}
 </script>

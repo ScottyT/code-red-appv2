@@ -9,13 +9,11 @@
     </div>
 </template>
 <script>
-import { defineComponent, ref, useStore, computed, onMounted, useContext } from '@nuxtjs/composition-api';
 import useReports from '@/composable/reports';
 export default defineComponent({
     middleware: 'auth',
     setup(props, {root}) {
-        const store = useStore()
-        const { $axios } = useContext()
+        const { $axios, $store } = useNuxtApp()
         const fetching = ref(false)
         const certs = ref([])
         const isOnline = computed(() => root.$nuxt.isOnline)

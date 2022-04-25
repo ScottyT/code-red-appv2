@@ -45,13 +45,10 @@
     </div>
 </template>
 <script>
-import { computed, defineComponent, onMounted, ref, useContext, useMeta, useStore } from '@nuxtjs/composition-api';
 export default defineComponent({
   head: {},
   setup(props, context) {
     const { route, $fire, $auth } = useContext()
-    const { title } = useMeta()
-    console.log(context)
     const router = context.root.$router
     const submitted = ref(false)
     const submitting = ref(false)
@@ -79,8 +76,6 @@ export default defineComponent({
         //router.go()
       })
     }
-
-    title.value = 'Login'
 
     return {
       password, email, errorMessage, passwordVisibility, submitting,

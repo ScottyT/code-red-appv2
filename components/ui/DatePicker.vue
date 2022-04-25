@@ -13,7 +13,6 @@
     </v-dialog>
 </template>
 <script>
-import { defineComponent, toRefs, ref, watch, onMounted, computed } from '@nuxtjs/composition-api'
 import genericFuncs from '~/composable/utilityFunctions'
 export default defineComponent({
     props: {

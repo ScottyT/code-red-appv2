@@ -8,7 +8,6 @@
 </template>
 
 <script>
-import { defineComponent, ref, inject, computed, onMounted, watch, provide, useContext } from '@nuxtjs/composition-api';
 export default defineComponent({
   setup(props, context) {
     //const authUser = context.root.$fire.auth.currentUser

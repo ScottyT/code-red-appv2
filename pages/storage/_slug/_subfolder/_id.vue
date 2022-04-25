@@ -6,18 +6,17 @@
     </div>
 </template>
 <script>
-import { defineComponent, useRoute, computed } from '@nuxtjs/composition-api'
 
-export default defineComponent({
+export default {
     setup() {
         const route = useRoute()
-        const repId = computed(() => route.value.params.slug)
-        const currentFolder = computed(() => route.value.params.id)
-        const subfolder = computed(() => route.value.params.subfolder)
+        const repId = computed(() => route.params.slug)
+        const currentFolder = computed(() => route.params.id)
+        const subfolder = computed(() => route.params.subfolder)
 
         return {
             repId, subfolder, currentFolder
         }
     },
-})
+}
 </script>

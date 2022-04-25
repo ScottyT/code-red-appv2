@@ -100,7 +100,6 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import useReports from '@/composable/reports'
 import axios from 'axios'
-import { defineComponent, useContext, ref, toRefs, computed, watch, onMounted } from '@nuxtjs/composition-api';
 export default defineComponent({
   props: {
     jobid: String,

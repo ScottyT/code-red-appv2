@@ -297,7 +297,6 @@ officer of {{abbreviation}} for this agreement to be effective
     </section>
 </template>
 <script>
-import { defineComponent, onMounted, ref, toRefs, useContext } from '@nuxtjs/composition-api'
 import useReports from '~/composable/reports'
 export default defineComponent({
     props: {

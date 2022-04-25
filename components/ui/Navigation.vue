@@ -42,7 +42,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, useStore, ref, computed, useContext } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {

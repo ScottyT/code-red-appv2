@@ -346,7 +346,6 @@ The scope of work that Guardian estimates is necessary to fully restore and/or r
     </div>
 </template>
 <script>
-import { defineComponent, ref, useContext, useStore, computed } from '@nuxtjs/composition-api'
 import { dateMask, driversLicenseMask } from "@/data/masks"
 export default defineComponent({
     props: {

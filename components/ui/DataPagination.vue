@@ -13,7 +13,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, computed, ref, onMounted, watch } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {

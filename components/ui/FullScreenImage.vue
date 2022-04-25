@@ -4,8 +4,6 @@
   </div>
 </template>
 <script>
-import { toRef } from 'vue'
-import { ref, reactive, onServerPrefetch, computed } from '@vue/composition-api'
 
 export default {
   props: {

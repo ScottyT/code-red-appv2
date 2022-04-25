@@ -43,7 +43,6 @@
   </ValidationProvider>
 </template>
 <script>
-import { defineComponent, onMounted, watch, computed, ref, toRefs, useContext, useStore } from "@nuxtjs/composition-api";
 import axios from 'axios';
 export default defineComponent({
   props: {

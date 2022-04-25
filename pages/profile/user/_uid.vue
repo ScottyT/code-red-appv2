@@ -108,7 +108,6 @@
 <script>
 import axios from 'axios';
 import 'animate.css'
-import { ref, computed, onMounted, defineComponent, useStore, useFetch, watch, useContext } from '@nuxtjs/composition-api'
 import useUsers from "@/composable/users";
 import { dateMask } from "@/data/masks";
 import { compress } from 'image-conversion';

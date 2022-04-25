@@ -6,7 +6,6 @@
     </div>
 </template>
 <script>
-import { ref, reactive, computed, watch, toRefs, onMounted, inject } from '@vue/composition-api'
 export default {
     props: {
         items: {

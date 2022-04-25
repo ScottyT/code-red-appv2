@@ -15,7 +15,6 @@
     </div></span>
 </template>
 <script>
-import { computed, defineComponent, ref, useStore } from '@nuxtjs/composition-api';
 import useReports from '@/composable/reports';
 export default defineComponent({
     setup(props, {root}) {

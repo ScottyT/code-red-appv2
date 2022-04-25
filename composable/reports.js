@@ -1,4 +1,3 @@
-import { onMounted, ref, useAsync, useContext, useFetch, computed, useStore } from "@nuxtjs/composition-api";
 import axios from 'axios';
 import "firebase/auth"
 import genericFuncs from "./utilityFunctions";

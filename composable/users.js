@@ -1,4 +1,3 @@
-import { ref, useContext } from "@nuxtjs/composition-api";
 import axios from 'axios';
 export default function useUsers() {
     let userObj = ref({})

@@ -12,7 +12,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, watch, ref, computed } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({

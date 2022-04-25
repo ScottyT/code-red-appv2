@@ -69,7 +69,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, computed, ref, useStore, ssrPromise, watch } from '@nuxtjs/composition-api'
 import axios from 'axios';
 import useReports from '@/composable/reports';
 export default defineComponent({

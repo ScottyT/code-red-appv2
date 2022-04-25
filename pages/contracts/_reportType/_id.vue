@@ -61,7 +61,6 @@
 </template>
 <script>
 import LazyHydrate from 'vue-lazy-hydration'
-import { defineComponent, ref, computed, onMounted } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports';
 
 export default defineComponent({

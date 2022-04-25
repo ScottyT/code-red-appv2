@@ -12,6 +12,7 @@ pids
 *.pid
 *.seed
 *.pid.lock
+.output
 
 */uploads
 server/*.json

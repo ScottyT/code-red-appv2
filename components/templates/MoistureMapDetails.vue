@@ -47,7 +47,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, toRefs, ref } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 export default defineComponent({
     props: {

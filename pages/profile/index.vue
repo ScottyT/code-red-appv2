@@ -4,7 +4,6 @@
   </div>
 </template>
 <script>
-import { defineComponent, onMounted, useContext, computed, ref, useRouter, useStore } from "@nuxtjs/composition-api";
 
 export default defineComponent({
   middleware: 'auth',

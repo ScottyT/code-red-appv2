@@ -1,4 +1,3 @@
-import {provide} from '@nuxtjs/composition-api'
 import userCertifications from '@/composable/certs'
 import userReports from '@/composable/userReports'
 

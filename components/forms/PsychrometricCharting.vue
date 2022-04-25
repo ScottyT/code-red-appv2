@@ -87,7 +87,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, computed, ref, useStore, reactive, watch, provide, useContext } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports';
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({

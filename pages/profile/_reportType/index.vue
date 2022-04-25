@@ -4,7 +4,6 @@
     </div>
 </template>
 <script>
-import { computed, defineComponent, useContext, ref, onMounted, useStore } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     setup(props, context) {

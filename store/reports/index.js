@@ -1,4 +1,3 @@
-import { ref } from "@nuxtjs/composition-api"
 import axios from 'axios';
 import genericFuncs from "~/composable/utilityFunctions";
 const state = () => ({

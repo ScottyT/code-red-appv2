@@ -4,7 +4,6 @@
     </span>
 </template>
 <script>
-import { defineComponent, toRefs, computed } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {

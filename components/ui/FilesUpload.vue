@@ -29,7 +29,6 @@
     </div>
 </template>
 <script>
-import { toRefs, watch, ref, useContext, computed } from '@nuxtjs/composition-api'
 import {compress} from 'image-conversion';
 export default {
     props: {

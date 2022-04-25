@@ -4,7 +4,6 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, ref, watch } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {
