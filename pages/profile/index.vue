@@ -7,11 +7,7 @@
 import { defineComponent, onMounted, useContext, computed, ref, useRouter, useStore } from "@nuxtjs/composition-api";
 
 export default defineComponent({
-  /* async middleware({redirect, store}) {
-    if (email === null) {
-      return redirect("/")
-    }
-  }, */
+  middleware: 'auth',
   setup(props, context) {
     const { $fire } = useContext()
     const router = useRouter()

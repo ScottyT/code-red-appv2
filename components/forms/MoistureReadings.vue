@@ -2,6 +2,9 @@
     <div class="form-wrapper">
         <h1 class="text-center">{{company}}</h1>
         <h3 class="text-center">MOISTURE READING MAP READINGS</h3>
+        <v-overlay :value="isLoading" v-show="isLoading" light>
+            <v-progress-circular indeterminate size="64"></v-progress-circular>
+        </v-overlay>
         <ValidationObserver ref="form" v-slot="{ errors }">
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
@@ -202,6 +205,7 @@ export default {
         warningDialog: false,
         loaded: false,
         uploaded:false,
+        isLoading: false,
         dateMask: dateMask
     }),
     props:['company', 'abbreviation'],
@@ -223,8 +227,10 @@ export default {
         },
         selectedJobId(val) {
             this.loaded = true
+            this.isLoading = true
             this.$api.$get(`/api/reports/details/moisture-map/${val}`).then((res) => {
                 this.reportFetched = true
+                this.isLoading = false
                 this.initialEvalDateFormatted = res.initialEvalDate
                 this.location = res.location
                 this.subAreas = res.readingsRow
@@ -235,6 +241,7 @@ export default {
                     this[property] = areas[property]
                 }
             }).catch(err => {
+                this.isLoading = false
                 var initReport = this.$store.state.reports.all.find(obj => obj.ReportType === 'dispatch')
                 if (initReport !== undefined) {
                     this.location.address = initReport.location.address
@@ -422,9 +429,6 @@ export default {
                         this.errorMessage = err.response.data
                         this.errorDialog = true
                         this.submitting = false
-                        this.$refs.form.setErrors({
-                            JobId: ["Job id required"]
-                        })
                     }
                 })
             })

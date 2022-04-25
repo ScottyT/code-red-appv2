@@ -44,7 +44,6 @@
     </span>
 </template>
 <script>
-import { mapActions, mapGetters } from 'vuex'
 import { defineComponent, useStore, computed, ref, onMounted } from '@nuxtjs/composition-api'
 export default defineComponent({
     props: ['formname'],

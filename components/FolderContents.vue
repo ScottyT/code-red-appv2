@@ -88,6 +88,10 @@
                   </div>
                 </template>
             </UiLightbox>
+            <a class="folder-contents__content folder-contents__content--pdf" v-for="(pdf, i) in report.pdfs" :key="`pdf-${i}`" :href="pdf.imageUrl" target="_blank">
+              <img src="/pdf-icon.png" alt="pdf icon" />
+              <p>{{pdf.name}}</p>
+            </a>
         </div>
     </div>
 </template>
@@ -106,7 +110,7 @@ export default defineComponent({
   },
   setup(props, {refs}) {
     const { jobid, path, subPath, delimiter } = toRefs(props)
-    const { $axios, $config, $api } = useContext()
+    const { $api, $gcs, $auth } = useContext()
     const { getReportImages, report } = useReports()
     const subfolders = ref([])
     const uploadFilesArr = ref([])
@@ -138,25 +142,17 @@ export default defineComponent({
     }
     const folderCreation = async () => {
       const post = {
-          folderPath: `${jobid.value}${path.value !== '' ? '/' + path.value : ''}${folderName.value !== '' ? '/'+folderName.value : ''}`
+          folderPath: `${jobid.value}${path.value !== '' ? '/' + path.value : ''}${folderName.value !== '' ? '/'+folderName.value : ''}`,
+          storageBucket: process.env.defaultStorage,
+          delimiter: "/",
+          root: false
       }
       creating.value = true
-      //const idToken = await $fire.auth.currentUser.getIdToken()
-      await $api.post(`/api/folder/${jobid.value}/create`, post).then((res) => {
-          actionSuccess.value = res.data
-          //var storageRef = $fire.storage.ref()
-          var listRef = storageRef.child(`${jobid.value}${currentFolder.value}`)
-          creating.value = false
-          createDirDialog.value = false
-          report.value.folders = []
-          listRef.listAll().then((res) => {
-              res.prefixes.forEach((folderRef) => {
-                  report.value.folders.push({
-                      path: folderRef.fullPath,
-                      name: folderRef.name
-                  })
-              })
-          })
+      await axios.post(`${process.env.functionsUrl}/create_folder`, post, {headers: {Authorization: `${$auth.strategy.token.get()}`}}).then((res) => {
+        creating.value = false
+        createDirDialog.value = false
+        var newFolder = res.data.data.folders.find(obj => obj.name.substring(obj.name.indexOf('/'), obj.name.length) === folderName.value)
+        report.value.folders.push(newFolder)
       }).catch((err) => {
         errorMessage.value = err
         creating.value = false
@@ -179,18 +175,16 @@ export default defineComponent({
         destFolder: destfolder
       }
       moving.value = true
-      /* $fire.auth.currentUser.getIdToken().then((idToken) => {
-        $axios.post(`${process.env.gsutil}/move`, post, {headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
-          actionSuccess.value = res.data
+      $gcs.$post(`${process.env.gsutil}/move`, post).then((res) => {
+          actionSuccess.value = res
           moveDialog.value = false
           moving.value = false
           report.value.images = report.value.images.filter((el, i) => {
-            return !selectedFiles.value.includes(el)
+              return !selectedFiles.value.includes(el)
           })
-        }).catch((err) => {
+      }).catch((err) => {
           moving.value = false
-        })
-      }) */
+      })
     }
     async function downloadFiles(foldername) {
       const zip = new JSZip();
@@ -198,7 +192,7 @@ export default defineComponent({
       const promises = [];
       const getFile = url => {
         return new Promise((resolve, reject) => {
-          $axios({
+          $api({
             url,
             responseType: "arraybuffer"
           }).then(res => {
@@ -237,14 +231,14 @@ export default defineComponent({
       const filesToDelete = selectedFiles.value.map(obj => {
         return obj.name
       })
-      /* $fire.auth.currentUser.getIdToken().then((idToken) => {
-        $axios.$post(`${process.env.gsutil}/delete-files`, {sourceFiles: filesToDelete}, {headers: {Authorization: `Bearer ${idToken}`}}).then((res) => {
-          actionSuccess.value = res
+      $gcs.$post(`/delete-files`, {
+          sourceFiles: filesToDelete
+      }).then((res) => {
+          actionSuccess.value = "Deleted images"
           deleteDialog.value = false
           let result = report.value.images.filter(obj1 => !selectedFiles.value.some(obj2 => obj1.name === obj2.name))
           report.value.images = result
-        })
-      }) */
+      })
     }
     watch(() => report.value.images, (val) => {
       uploadFilesArr.value = []
@@ -316,12 +310,18 @@ export default defineComponent({
       width:200px;
     }
 
+    &--pdf {
+      height:200px;
+      img {
+        object-fit:contain;
+      }
+    }
+
     p {
         word-break:break-word;
     }
 
     &--subfolder {
-      
       display:inline-block;
       padding:5px;
       i {
@@ -355,6 +355,12 @@ export default defineComponent({
       appearance: none;
       position:absolute;
     }
+  }
+
+  &__pdf-link {
+    background-image:url('/pdf-icon.png');
+    width:100%;
+    height:100%;
   }
 
   &__item {

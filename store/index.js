@@ -13,12 +13,12 @@ export const actions = {
       const { allClaims: claims, idToken: token, ...authUser } = res.locals.user
       console.log("user: ", res.locals.user)
     } */
-    commit('users/setUser', {
+    /* commit('users/setUser', {
       email: null,
       id: null,
       role: null,
       name: null,
       certifications: null
-    })
+    }) */
   },
 }

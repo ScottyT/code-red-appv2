@@ -29,7 +29,7 @@ export default function ({ $axios, error: nuxtError, store, redirect, app }, inj
       console.log("Could not set token:", error)
     }
   })
-  var baseurl = process.env.NODE_ENV !== 'production' ? 'http://localhost:8082' : process.env.apiUrl
+  var baseurl = process.env.NODE_ENV !== 'production' ? 'http://localhost:8080' : process.env.apiUrl
   api.setBaseURL(baseurl);
   inject('api', api);
 

@@ -6,7 +6,7 @@
           size="64"
         ></v-progress-circular>
     </v-overlay>
-    <LayoutReportsList :reportslist="storage" :sortoptions="sortOptions" page="storagePage" />
+    <LayoutReportsList :reportslist="storage" :sortoptions="sortOptions" page="storagePage" :darkMode="true" />
   </div>
 </template>
 <script>
@@ -16,6 +16,7 @@
   import axios from 'axios';
   export default {
     middlware: ['auth'],
+    //layout: 'dashboard-layout',
     head() {
       return {
         title: "Storage"
@@ -39,30 +40,18 @@
     methods: {
       storageItems() {
         axios.get(`${process.env.gsutil}/list`, {
-          params: {folder: "", subfolder: "", delimiter: "/"}, headers: {"authorization": `${this.$auth.$storage.getCookie("_token.auth0")}`}
+          params: {folder: "", subfolder: "", delimiter: "/"}, headers: {"authorization": `${this.$auth.strategy.token.get()}`}
         }).then((res) => {
-          console.log(res.data)
           res.data.folders.forEach((folder) => {
             this.storage.push({"JobId" : folder.name})
           })
         })
-        
-        /* this.isLoading = true
-        return new Promise((resolve, reject) => {
-          storageRef.listAll().then((res) => {
-            res.prefixes.forEach((folderRef) => {
-              this.storage.push({"JobId": folderRef.name})
-            })
-            resolve(false)
-          })
-        }) */
       },
     },
     mounted() {
       this.$nextTick(() => {
         this.storageItems()
       })
-      
     }
   }
 </script>

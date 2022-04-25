@@ -42,10 +42,10 @@ export default defineComponent({
                 emit("date", formattedDate.value)
             }
         })
-        /* watch(d, (val) => {
-            formattedDate.value = formatDate(val)
-            emit("date", formattedDate.value)
-        }) */
+        watch(d, (val) => {
+            formattedDate.value = val
+            emit("date", val)
+        })
         return {
             dialogToggle,
             formattedDate,

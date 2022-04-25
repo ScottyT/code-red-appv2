@@ -1,7 +1,7 @@
 <template>
     <div class="slider__images">        
         <div class="folder-contents__content" @click.stop="!selecting ? clickedImage(item) : null" v-for="(item, i) in images" :key="i">
-            <slot name="image" v-bind:image="item"></slot>
+            <slot name="image" v-bind:image="item" v-if="!item.name.includes('pdf')"></slot>
         </div>
         <v-dialog v-model="sliderDialog" :overlay-opacity=".7" content-class="slider no-box-shadow overflow-hidden" max-width="600px">
             <UiDataPagination :items="images" :itemsPerPage="imagesPerPage" :visiblePageNumbers="5" itemStyle="data-list--flex" :curPage="initImage + 1" themeMode="image-slider"

@@ -47,32 +47,34 @@ const actions = {
         if (!this.$auth.loggedIn) {
             return;
         }
+
         var email = this.$auth.user.email
         var options = {
-            params: { id: this.$auth.user.sub }
+            params: {
+                id: this.$auth.user.sub
+            }
         }
         commit('setLoading', true)
         this.$api.$get(`/api/employees/${email}`, options).then((res) => {
-            dispatch('getSigOrInitialImage', {email: email, signType: 'signature.jpg'})
-            dispatch('getSigOrInitialImage', {email: email, signType: 'initial.jpg'})
-            this.$auth.setUser({
-                email: res.email,
-                name: res.fullName,
-                avatarurl: res.picture,
-                role: res.role,
-                //certifications: res.data.user_metadata.certifications, Will add this back in the future
-                id: res.team_id
+            dispatch('getSigOrInitialImage', {
+                email: email,
+                signType: 'signature.jpg'
+            })
+            dispatch('getSigOrInitialImage', {
+                email: email,
+                signType: 'initial.jpg'
             })
             commit('setUser', {
                 email: res.email,
                 name: res.fullName,
-                avatarurl: res.picture,
+                avatarurl: this.$auth.user.picture,
                 role: res.role,
-                id: res.team_id
+                id: res.team_id,
+                auth_id: res.auth_id
             })
             commit('setLoading', false)
         }).catch((err) => {
-            [
+            commit('setLoading', false)[
                 console.error(err)
             ]
         })

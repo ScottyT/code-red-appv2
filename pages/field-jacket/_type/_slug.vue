@@ -108,12 +108,12 @@ export default defineComponent({
     //layout: 'dashboard-layout',
     setup(props, {root, refs}) {
         const store = useStore()
-        const { $auth } = useContext()
+        const { $auth, $gcs } = useContext()
         const { beforeDownload } = useReports()
         const company = ref("")
         const clickedOn = ref(false)
-        let reportType = root.$route.params.type
-        let jobId = root.$route.params.slug
+        const reportType = root.$route.params.type
+        const jobId = root.$route.params.slug
         const report = computed(() => store.getters["reports/getReport"]);
         const fetchSignature = (signType, email) => { store.dispatch("users/getSigOrInitialImage", {signType, email}); }
         const htmlToPdfOptions = computed(() => {
@@ -151,8 +151,21 @@ export default defineComponent({
             clickedOn.value = key
             refs["html2Pdf"+key].generatePdf()
         }
-        function hasDownloaded() {
+        function hasDownloaded(blob) {
+            uploadPdf(blob).then(() => {
+                console.log("uploaded pdf")
+            })
             clickedOn.value = null
+        }
+        async function uploadPdf(file) {
+
+            let formData = new FormData();
+            const pdf = new File([file], `${reportType}-${jobId}.pdf`, {
+                type: 'application/pdf'
+            });
+            formData.append('multiFiles', pdf) // The method in the gsutil web api looks for a form file named multiFiles
+            formData.append('path', 'pdfs/')
+            $gcs.$post(`/upload`, formData)
         }
         onMounted(fetchingReport)
         return {

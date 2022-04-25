@@ -138,7 +138,7 @@ export default defineComponent({
         const matchUrl = computed(() => context.root.$route.path.match(/^(?:^|\W)field-jacket(?:$|\W)(?:\/(?=$))?/gm));
         const isOnline = computed(() => context.root.$nuxt.isOnline);
         const isLoading = computed(() => store.state.users.loading);
-        const getUser = computed(() => store.getters["users/getUser"])
+        const getUser = computed(() => store.state.users.user)
         const isLoggedIn = computed(() => store.getters["users/isLoggedIn"])
         const overlay = ref(false);
         const filtered = (role) => items.value.filter((v) => {
@@ -164,6 +164,7 @@ export default defineComponent({
                 //$userReports.fetchReports(val.email)
             }
         });
+
         onMounted(fetchUser)
         return {
             items,
@@ -179,7 +180,8 @@ export default defineComponent({
             matchUrl,
             isOnline,
             isLoading,
-            overlay
+            overlay,
+            isLoggedIn
         };
     }
 })

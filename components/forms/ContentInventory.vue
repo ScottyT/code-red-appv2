@@ -1,6 +1,6 @@
 <template>
     <div class="form-wrapper form-wrapper__prop-inventory">
-        <v-overlay absolute :value="loading" v-show="loading">
+        <v-overlay :value="loading" v-show="loading" light>
             <v-progress-circular
                 indeterminate
                 size="64"
@@ -56,12 +56,12 @@
                     </ValidationProvider>
                 </div>
                 <div class="form__form-group inventory-list">
-                    <div class="d-flex">
+                    <!-- <div class="d-flex">
                         <h3 class="pr-5">Inventory</h3>
                         <button type="button" class="button button--normal" @click="addRow(inventoryList.length)">Add row</button>
                         <button type="button" class="button button--normal p1-5" v-show="selectedItems.length > 0" @click="deleteRow">Delete row(s)</button>
                         <button type="button" class="button button--normal" v-show="selectedItems.length > 0" @click="selectedItems = []">Clear selection</button>
-                    </div>
+                    </div> -->
                     <div class="form__form-group flex-column inventory-list__table">
                         <div class="inventory-list__heading inventory-list__row">
                             <div :id="`inventory-list__${item.id}`" class="inventory-list__col" v-for="item in inventoryList[0].cols" :key="`${item.id}`" v-uppercase>{{item.label}}</div>
@@ -84,16 +84,18 @@
                                     <UiImageUpload @getFiles="addFilesToInventory($event[0], i)" errorText="an error happened" :email="user.email" :maxSize="2048"
                                         name="item-image" :additionalData="{itemNum: inventoryList[i].item_num}">
                                         <template v-slot:activator>
-                                            <button v-show="row.cols[2].value == ''" type="button" class="button button--normal">Add image</button>
+                                            <button v-show="row.cols[2].value === ''" type="button" class="button button--normal">Add image</button>
                                         </template>
                                         <template v-slot:imagePreview="slotProps">
                                             <img v-show="slotProps.image !== ''" class="file-listing__preview" :src="slotProps.image" />
                                         </template>
                                     </UiImageUpload>
-                                    <div class="inventory-list__item-image--preview" v-if="row.cols[2].value !== ''">
-                                        <img :src="row.cols[2].value" />
+                                    
+                                    <div class="inventory-list__item-image--preview" v-if="images.length > 0">
+                                        <img v-show="images[i] !== undefined" :src="row.cols[2].value" />
                                     </div>
                                 </div>
+                                
                                 <div class="inventory-list__col" id="inventory-list__restored">
                                     <input type="checkbox" :disabled="editing" class="form__input" v-model="row.cols[3].value" />
                                 </div>
@@ -147,6 +149,7 @@ import { dateMask } from "@/data/masks";
 import useReports from '@/composable/reports'
 import axios from 'axios'
 import {compress, compressAccurately} from 'image-conversion';
+import { resolve } from 'path';
 export default defineComponent({
     props: {
         company: String,
@@ -154,13 +157,12 @@ export default defineComponent({
     },
     setup(props, { emit, refs }) {
         const { $api, $auth } = useContext()
-        const { getReportPromise } = useReports()
+        const { getReportPromise, loading } = useReports()
         const store = useStore()
         const editing = ref(false)
         const hasTechSig = ref(false)
         const errorDialog = ref(false)
         const message = ref([])
-        const loading = ref(false)
         const submitted = ref(false)
         const submitting = ref(false)
         const selectedJobId = ref("")
@@ -222,16 +224,17 @@ export default defineComponent({
             }
         ])
         const empSig = ref("")
+        const imageIds = ref([])
         const techSig = ref({
             data: '',
             isEmpty: true
         })
+        const deletedImages = ref([])
         const customerSign = ref({
             data: '',
             isEmpty: true
         })
         const reportId = ref("");
-        const inventoryImagesList = ref([]);
         const reportFetched = ref(false)
         const total = ref(0)
         const selectedItems = ref([])
@@ -242,106 +245,112 @@ export default defineComponent({
         let pressHoldDuration = 50;
         
         const addFilesToInventory = (file, row) => {
-            images.value.push(file)
+            if (images.value.find(el => el.itemNum === file.itemNum) === undefined) {
+                images.value.push(file)
+            } else {
+                var curI = images.value.findIndex(el => el.itemNum === file.itemNum)
+                images.value[curI] = file
+            }
+            
             inventoryList.value[row].cols[2].value = file.image.imageName
         }
-        const compressing = async (upload) => {
-            var compressedFiles = []
-            var images = []
+        const compressing = async (file) => {
             var formData = new FormData()
             
-            await Promise.all(upload.map(async (file) => {
-                const res = await compress(file.image.image, {
-                    quality: .7,
-                    scale: .8
-                })
-                let compressedImg = new File([res], file.image.imageName, {
-                    type: res.type
-                })
-                formData.append("img", compressedImg)
-                
-                images.push({
-                    image: compressedImg,
-                    ItemNumber: file.itemNum
-                })
-            }))
-            
-            //Object.assign(compressedFile, {formData, imageName: upload.image.imageName, image: compressedImg, imageUrl: upload.image.imageUrl})
-            compressedFiles.push({formData, images})
-            return compressedFiles
+            const res = await compress(file.image.image, {
+                quality: .7,
+                scale: .8
+            })
+            let compressedImg = new File([res], file.image.imageName, {
+                type: res.type
+            })
+
+            formData.set("img", compressedImg)
+            formData.set("JobId", selectedJobId.value)
+            formData.set("ItemNumber", file.itemNum)
+            return formData
         }
         const uploadFile = async (uploadarr) => {
-            return new Promise((resolve, reject) => {
-                compressing(uploadarr).then((result) => {
-                    result[0].formData.append("JobId", selectedJobId.value)
-                    axios.post(`${process.env.serverUrl}/api/image/upload/content-inventory-image`, result[0].formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'Authorization': `${$auth.strategy.token.get()}`
-                        }
-                    }).then((res) => {
-                        resolve(res.data)
-                        setTimeout(() => {
-                            message.value = []
-                        }, 3000)
-                    })
-                }).catch((err) => {
-                    if (err.response) {
-                        reject(err.response.data)
-                    }
-                })
+            uploadarr = uploadarr.filter((val) => {
+                return deletedImages.value.map(obj => obj.item_num).indexOf(val.itemNum) < 0
             })
+            for (var i = 0; i < uploadarr.length; i++) {
+                const file = await compressing(uploadarr[i])
+                console.log("file:", file)
+                await axios.post(`${process.env.serverUrl}/api/image/upload/content-inventory-image`, file, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `${$auth.strategy.token.get()}`
+                    }
+                }).then((res) => {
+                    imageIds.value.push(res.data)
+                    setTimeout(() => {
+                        message.value = []
+                    }, 3000)
+                })
+            }
         }
+
         async function submitForm() {
             submitting.value = true
             message.value = []
-            
-            const post = {
-                JobId: selectedJobId.value,
-                ReportType: "personal-content-inventory",
-                formType: "logs-report",
-                customer: customerName.value,
-                claimNumber: claimNum.value,
-                insurance: insuranceCompany.value,
-                dateCompleted: completionDate.value,
-                inventory: inventoryList.value,
-                teamMember: user.value,
-                cusSig: customerSign.value.data,
-                techSig: empSig.value !== '',
-                totalAmount: total.value,
-                image_ids: inventoryImagesList.value
+            var filteredImages = images.value.filter((el) => {
+                return el.formData !== undefined
+            })
+            if (deletedImages.value.length > 0) {
+                var deletedArr = []
+                await Promise.all(deletedImages.value.map(async (image) => {
+                    if (image.imageId !== undefined) {
+                        await $api.$delete(`/api/image/${image.imageId}`).then(() => {
+                            var imageIndex = imageIds.value.indexOf(image.imageId);
+                            deletedArr.push(imageIndex)
+                        }).catch(err => {
+                            if (err.response) {
+                                generalErrorMessages.value.push(err.response.data)
+                            }
+                        })
+                    }
+                })).then(() => {
+                    message.value.push(`Deleted ${deletedArr.length} images`)
+                })
             }
-
-            await refs.form.validate().then(success => {          
-                if (!success) {
-                    submitting.value = false
-                    errorDialog.value = true
-                    return
+            await Promise.all([uploadFile(filteredImages)]).then(() => {
+                var filteredImageIds = imageIds.value.filter((el) => {
+                    return el !== null
+                })
+                const post = {
+                    JobId: selectedJobId.value,
+                    ReportType: "personal-content-inventory",
+                    formType: "logs-report",
+                    customer: customerName.value,
+                    claimNumber: claimNum.value,
+                    insurance: insuranceCompany.value,
+                    dateCompleted: completionDate.value,
+                    inventory: inventoryList.value,
+                    teamMember: user.value,
+                    cusSig: customerSign.value.data,
+                    techSig: empSig.value !== '',
+                    totalAmount: total.value,
+                    image_ids: filteredImageIds
                 }
-                Promise.all([uploadFile(images.value)]).then((result) => {
-                    console.log(result)
-                    $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
-                        submitted.value = true
-                        submitting.value = false
-                        message.value.push(result[0], res)
-                        generalErrorMessages.value = []
-                        setTimeout(() => {
-                            window.location = "/"
-                        }, 3000)
-                    }).catch((err) => {
-                        errorDialog.value = true
-                        submitting.value = false
-                        if (err.response) {
-                            generalErrorMessages.value.push(err.response.data)
-                        }
-                    })
+                $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
+                    submitted.value = true
+                    submitting.value = false
+                    generalErrorMessages.value = []
+                    message.value.push(res)
+                    setTimeout(() => {
+                        window.location = "/"
+                    }, 3000)
                 }).catch((err) => {
+                    errorDialog.value = true
+                    submitting.value = false
                     if (err.response) {
                         generalErrorMessages.value.push(err.response.data)
                     }
                 })
             })
         }
+        
         function pressingDown(e, i) {
             requestAnimationFrame(function() {
                 timer(i)
@@ -375,23 +384,45 @@ export default defineComponent({
                 return
             } else {
                 selectedItems.value.push({item_num: itemNum})
+                selectedItems.value.sort((a, b) => { return a.item_num - b.item_num })
             }
         }
         function deleteRow() {
-            var firstItem = selectedItems.value.findIndex(e => e.item_num === 1)
-            if (firstItem > -1) {
-                inventoryList.value[0].cols.forEach((item, i) => {
-                    if (item.hasOwnProperty('value')) {
-                        item.value = ""
-                    }
-                })
-            } else {
-                selectedItems.value.forEach(item => {
-                    let index = inventoryList.value.findIndex(o => o.item_num === item.item_num)
-                    inventoryList.value.splice(index, 1)
-                })
+            for (let i = 0; i < selectedItems.value.length; i++) {
+                
+                let firstItem = selectedItems.value.map(obj => obj.item_num).indexOf(1)
+                if (firstItem > -1) {
+                    inventoryList.value[0].cols.forEach((item, i) => {
+                        if (item.hasOwnProperty('value')) {
+                            item.value = ""
+                        }
+                    })
+                    deletedImages.value.push({
+                        item_num: selectedItems.value[0].item_num,
+                        imageId: imageIds.value[0]
+                    })
+                    /* imageIds.value.splice(0, 1)
+                    images.value.splice(0, 1) */
+                    imageIds.value[0] = null
+                    images.value[0] = { itemNum: null }
+                } else {
+                    let indexInInventoryList = inventoryList.value.findIndex(o => o.item_num === selectedItems.value[i].item_num)
+                    let itemI = images.value.map(obj => obj.itemNum).indexOf(selectedItems.value[i].item_num)
+                    deletedImages.value.push({
+                        item_num: selectedItems.value[i].item_num,
+                        imageId: imageIds.value[itemI]
+                    })
+                    inventoryList.value.splice(indexInInventoryList, 1)
+
+                    //imageIds.value.splice(0, 1)
+                    imageIds.value[i] = null
+                    //images.value.splice(0, 1)
+                    images.value[i] = { itemNum: 0 }
+                }
+                selectedItems.value[i].item_num = null
             }
             selectedItems.value = []
+            
         }
         const addRow = (index) => {
             inventoryList.value.push({item_num: index+1, label: "Item #", cols: [{
@@ -485,7 +516,7 @@ export default defineComponent({
             })
             if (existingInv !== undefined) {
                 getReportPromise(`personal-content-inventory/${val}`).then((result) => {
-                    const { claimNumber, customer, dateCompleted, insurance, inventory, cusSig, techSig, totalAmount, Id } = result
+                    const { claimNumber, customer, dateCompleted, insurance, inventory, cusSig, techSig, totalAmount, Id, image_ids } = result
                     customerName.value = customer
                     claimNum.value = claimNumber
                     insuranceCompany.value = insurance
@@ -496,10 +527,16 @@ export default defineComponent({
                     loading.value = false
                     total.value = totalAmount
                     reportId.value = Id
+                    imageIds.value = image_ids
+                    
 
                     result.inventoryImages.forEach((image) => {
-                        var row = result.inventory.findIndex(i => i.cols[2].value === image.img.filename)
-                        if (row > 0) {
+                        images.value.push({
+                            image: image.img,
+                            itemNum: image.ItemNumber
+                        })
+                        var row = inventory.findIndex(i => i.cols[2].value === image.img.filename)
+                        if (row >= 0) {
                             inventoryList.value[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
                         }
                     })
@@ -557,10 +594,10 @@ export default defineComponent({
             completionDate,
             techSig,
             customerSign,
-            submitForm,
             dateMask,
             loading,
             inventoryList,
+            imageIds,
             addRow,
             dateMask,
             currencyFormat,
@@ -569,11 +606,14 @@ export default defineComponent({
             hasTechSig,
             reportFetched,
             uploadFile,
+            submitForm,
             user,
             images,
             total,
             loading,
-            addFilesToInventory
+            addFilesToInventory,
+            reports,
+            deletedImages
         }
     },
 })

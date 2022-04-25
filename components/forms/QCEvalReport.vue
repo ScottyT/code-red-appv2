@@ -2,18 +2,19 @@
     <div class="form-wrapper form-wrapper__qc-eval">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Quality Control Evaluation Report</h2>
+        <h3 v-if="serverMessage !== ''">{{serverMessage}}</h3>
         <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
-                        <h3 class="form__input--error">{{ error[0] }}</h3>
+                        <h3 class="form__input--error">{{ error }}</h3>
                     </div>
                 </div>
             </v-dialog>
             <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
                 <div class="form__form-group">
-                    <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
+                    <ValidationProvider v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
                         <label class="form__label">Job ID:</label>
                         <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
@@ -145,10 +146,11 @@ export default defineComponent({
         const { getReportPromise } = useReports()
         const { groupByKey } = genericFuncs()
         const store = useStore()
-        const { $api, $fire } = useContext()
+        const { $api } = useContext()
         const submitted = ref(false)
         const submitting = ref(false)
         const message = ref("")
+        const serverMessage = ref("")
         const errorDialog = ref(false)
         const selectedJobId = ref("")
         const name = ref("")
@@ -264,6 +266,14 @@ export default defineComponent({
                 location.value.address = result.location.address
                 location.value.cityStateZip = result.location.cityStateZip
                 name.value = result.callerName.last
+            }).catch(err => {
+                location.value.address = ""
+                location.value.cityStateZip = ""
+                name.value = ""
+                errorDialog.value = true
+                if (err.response) {
+                    serverMessage.value = err.response.data
+                }
             })
         }
         async function submitForm() {

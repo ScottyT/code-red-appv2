@@ -17,6 +17,12 @@
                     <ValidationProvider vid="selectedJobId" rules="required" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
                         <label class="form__label">Job ID:</label>
+                        <v-overlay :value="isLoading" v-show="isLoading" light>
+                            <v-progress-circular
+                                indeterminate
+                                size="64"
+                                ></v-progress-circular>
+                        </v-overlay>
                         <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
                         <select class="form__input" v-model="selectedJobId">
                             <option disabled value="">Please select a Job ID</option>
@@ -452,9 +458,10 @@ export default {
         Dp: "",
         readingsType: {},
         fetchedPsychometric: {},
-        currentDate: "",
+        currentDate: new Date().toISOString().substr(0, 10),
         error: false,
-        reportId: ""
+        reportId: "",
+        isLoading: false
     }),
     props: ['company', 'abbreviation'],
     head() {
@@ -472,11 +479,11 @@ export default {
         },
         selectedJobId(val) {
             this.dates = []
-           // this.dateRanges()
+            this.isLoading = true
             this.$api.$get(`/api/reports/details/atmospheric-readings/${val}`).then((res) => {
+                this.isLoading = false
                 this.reportFetched = true
                 this.initDateFormatted = res.startDate
-                //this.currentDate = res.data.startDate
                 this.$emit("date", res.startDate)
                 this.endDateFormatted = res.endDate
                 this.readingsArr = res.readingsLog
@@ -485,6 +492,7 @@ export default {
                 this.notes = res.notes
                 this.reportId = res.Id
             }).catch((error) => {
+                this.isLoading = false
                 this.initDateFormatted = this.formatDate(new Date().toISOString().substr(0, 10))
                 this.endDateFormatted = this.formatDate(this.addDays(new Date(), 6).toISOString().substr(0, 10))
                 this.readingsArr.forEach((item, i) => {
@@ -509,7 +517,6 @@ export default {
             this.$api.$get(`/api/reports/details/psychrometric-chart/${val}`).then((res) => {
                 this.fetchedPsychometric = res
                 this.readingsType = genericFuncs().groupByKey(res.jobProgress, "readingsType")
-                //this.initDateFormatted = res.data.jobProgress[0].date
                 this.initDate = new Date(res.jobProgress[0].date).toISOString().substr(0, 10)
                 this.endDate = this.addDays(new Date(res.jobProgress[0].date).toISOString().substr(0, 10), 6).toISOString().substr(0, 10)
             }).catch((error) => {
@@ -570,9 +577,7 @@ export default {
     },
     methods: {
         ...mapActions({
-            fetchReport: 'reports/fetchReport',
-            addReport: 'indexDb/addReport',
-            checkStorage: 'indexDb/checkStorage',
+            fetchReport: 'reports/fetchReport'
         }),
         calculationsDp(e, param, label, date) {
             var dateIndex = this.dateRanges.indexOf(date)
@@ -707,20 +712,18 @@ export default {
                 
                 this.submitPsychrometic().then(result => {
                     this.$api.$put(`/api/reports/atmospheric-readings/${this.selectedJobId}/update`, post).then((res) => {
-                        if (res.errors) {
-                            this.errorDialog = true
-                            this.submitting = false
-                            this.$refs.form.setErrors({
-                                JobId: res.errors.filter(obj => obj.param === 'JobId').map(v => v.msg)
-                            })
-                            return goTo(0)
-                        }
                         this.submittedMessage = res.message
                         this.submitting = false
                         this.submitted = true
                         setTimeout(() => {
                             window.location = "/"
                         }, 3000)
+                    }).catch(err => {
+                        this.errorDialog = true
+                        this.submitting = false
+                        if (err.response) {
+                            console.error(err.response.data)
+                        }
                     })
                 })
             })
@@ -756,7 +759,6 @@ export default {
                     let filteredArr = result.filter(r => r.jobProgress !== undefined)
                     filteredArr.forEach((item) => {
                         let updateReading = this.readingsType[item.jobProgress.readingsType] !== undefined
-                        var jobProgressDate = item.jobProgress.date
                         //var newDateProgress = this.readingsType[item.jobProgress.readingsType].find(el => el.date === jobProgressDate) === undefined
                         
                         if (updateReading) {
@@ -774,9 +776,6 @@ export default {
                 })
             })
         }
-    },
-    mounted() {
-        this.checkStorage()
     }
 }
 </script>

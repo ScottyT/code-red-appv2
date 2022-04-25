@@ -27,7 +27,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <div class="reports-list__reports">
+    <div class="reports-list__reports" :class="darkMode ? 'reports-list__reports--dark' : ''">
       <transition-group class="reports-list__reports-wrapper" name="flip-list" tag="div">
         <div class="reports-list__report flip-list-item" v-for="(report, i) in reports" :key="`report-type-${i}`">
           <nuxt-link class="reports-list__report-link" :to="`/storage/${report.JobId}`" v-if="page == 'storagePage'">
@@ -41,9 +41,10 @@
 <script>
 import {mapActions} from 'vuex';
 import genericFuncs from '@/composable/utilityFunctions'
+import axios from 'axios'
 export default {
   name: "ReportsList",
-  props: ['reportslist','sortoptions', 'page', "items"],
+  props: ['reportslist','sortoptions', 'page', "items", 'darkMode'],
   data: () => ({
     search: null,
     report: {},
@@ -55,13 +56,6 @@ export default {
     jobid: "",
     creating: false
   }),
-  computed: {
-    teamMemberName() {
-      return this.reports.map((v) => {
-        return v.teamMember.name
-      })
-    }
-  },
   methods: {
     ...mapActions({
       sortReports: 'sortReports',
@@ -77,24 +71,24 @@ export default {
       this.sortBy = s.value
     },
     folderCreation() {
+      const post = {folderPath: this.jobid, storageBucket: process.env.defaultStorage, delimiter: "/", root: true}
       const create = () => {
         return new Promise((resolve, reject) => {
           this.creating = true
-          this.$axios.$post(`/api/folder/${this.jobid}/create`, {folderPath: ""}).then((res) => {
-            resolve(res)
-          }).catch((err) => {
+          axios.post(`${process.env.functionsUrl}/create_folder`, post, {headers: {Authorization: `${this.$auth.strategy.token.get()}`}}).then((res) => {
+            resolve(res.data)
+          }).catch(err => {
             reject(err)
           })
         })
       }
-      create().then(() => {
-        var storageRef = this.$fire.storage.ref()
+      create().then((result) => {
         this.creating = false
         this.createDirDialog = false
-        storageRef.listAll().then((res) => {
-          var newFolder = res.prefixes.find(obj => obj.name === this.jobid)
-          this.reports.push({"JobId":newFolder.name})
-        })
+        var newFolder = result.data.folders.find(obj => obj.name === this.jobid)
+        this.reports.push({"JobId":newFolder.name})
+      }).catch((err) => {
+        console.log(err)
       })
     }
   },
@@ -141,9 +135,16 @@ export default {
     //display:grid;
   }
 
-  &__reports>span {
-    display: flex;
-    flex-wrap: wrap;
+  &__reports{
+    padding:10px;
+    &--dark {
+      background:$color-black;
+      color:$color-white;
+    }
+    & >span {
+      display: flex;
+      flex-wrap: wrap;
+    }
   }
 
   &__reports-wrapper {
@@ -152,7 +153,6 @@ export default {
   }
 
   &>span {
-
     &>h2 {
       display: flex;
       width: 100%;
@@ -161,10 +161,10 @@ export default {
   }
 
   &__report {
-    max-width: 237px;
+    max-width: 200px;
     width: 100%;
     padding: 5px;
-    background-color: $color-white;
+    background-color: inherit;
 
     &:not(:first-child) {
       .reports-list__report {

@@ -1,7 +1,7 @@
 <template>
     <div>
         <div @click="launchFilePicker()" class="d-inline">
-            <slot name="activator" v-if="previewImageUrl === ''"></slot>
+            <slot name="activator"></slot>
             <slot name="imagePreview" v-if="!multipleFiles" v-bind:image="previewImageUrl"></slot>
         </div>
         <input type="file" ref="file" @change="onFileChange($event.target.name, $event.target.files)" style="display:none;" :multiple="multipleFiles" />

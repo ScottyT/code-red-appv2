@@ -264,15 +264,12 @@ import genericFuncs from '@/composable/utilityFunctions'
       },
       getFolders(jobid, folder, subfolder, delimiter) {
         return new Promise((resolve, reject) => {
-          this.$axios.$get(`${process.env.gsutil}/list/${jobid}`, {
+          this.$gcs.$get(`/list/${jobid}`, {
               params: {
                   folder: folder,
                   subfolder: folder + "/" + subfolder,
                   delimiter: delimiter,
                   bucket: "default"
-              },
-              headers: {
-                  authorization: this.$auth.$storage.getCookie("_token.auth0")
               }
           }).then((res) => {
               resolve(res)
