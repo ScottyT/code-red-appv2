@@ -139,7 +139,7 @@ ul {
     position:relative;
      li::before {
       counter-increment: list;
-      content:""counter(list)".";
+      //content:""counter(list)".";
       position:absolute;
       left:5px;
     }

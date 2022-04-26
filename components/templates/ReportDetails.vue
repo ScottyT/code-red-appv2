@@ -1,5 +1,5 @@
 <!-- THIS IS USED FOR DISPATCH REPORT -->
-<template lang="html">
+<template>
     <section class="pdf-content" slot="pdf-content">
       
         <h1 v-if="message">{{message}}</h1>

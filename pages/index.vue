@@ -8,7 +8,7 @@
 </template>
 
 <script>
-export default defineComponent({
+export default {
   setup(props, context) {
     //const authUser = context.root.$fire.auth.currentUser
 
@@ -16,7 +16,7 @@ export default defineComponent({
       
     }
   }
-})
+}
 </script>
 <style lang="scss">
 .page-block {

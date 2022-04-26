@@ -2,8 +2,9 @@ import { defineNuxtConfig } from '@nuxt/bridge'
 import { VuetifyLoaderPlugin } from "vuetify-loader";
 export default defineNuxtConfig({
   bridge: {
-    vite: true,
-    meta: true
+    vite: false,
+    nitro: false,
+    typescript: false
   },
   // This is an SPA but using a server to show views on the page
   target: 'server',
@@ -34,9 +35,9 @@ export default defineNuxtConfig({
       { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@mdi/font@latest/css/materialdesignicons.min.css' },
     ],
   },
-  loading: {
+/*   loading: {
     color: '#2a73ae',
-  },
+  }, */
   env: {
     serverUrl: process.env.NODE_ENV !== 'production' ? 'http://localhost:8082' : process.env.API_URL,
     gsutil: process.env.NODE_ENV !== 'production' ? 'http://localhost:8081' : process.env.GSUTIL_URL,
@@ -61,7 +62,21 @@ export default defineNuxtConfig({
   /*
    ** Global CSS
    */
-  css: ['@/assets/scss/index.scss', '@/assets/scss/transitions.css', '@/assets/scss/global.scss', '@/assets/scss/variables/main.scss'],
+  css: ['@/assets/scss/index.scss', '@/assets/scss/transitions.css', '@/assets/scss/global.scss'],
+  styleResources: {
+    scss: [
+      './assets/scss/variables/main.scss'
+    ]
+  },
+  /* vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: '@import "@/assets/scss/variables/main.scss"',
+        }
+      }
+    }
+  }, */
   /*
    ** Plugins to load before mounting the App
    ** https://nuxtjs.org/guide/plugins
@@ -81,20 +96,24 @@ export default defineNuxtConfig({
    ** Auto import components
    ** See https://nuxtjs.org/api/configuration-components
    */
-  components: [
-    { path: '~/components/forms/', prefix: 'forms' },
-    { path: '~/components/ui/', prefix: 'ui' },
-    { path: '~/components/pdf/', prefix: 'pdf' },
-    { path: '~/components/templates/', prefix: 'layout' },
-    '~/components'
-  ],
+  components: {
+    global: true,
+    dirs: [
+      { path: '~/components/forms/', prefix: 'forms' },
+      { path: '~/components/ui/', prefix: 'ui' },
+      { path: '~/components/pdf/', prefix: 'pdf' },
+      { path: '~/components/templates/', prefix: 'layout' },
+      '~/components'
+    ]
+  },
   /*
    ** Nuxt.js dev-modules
    */
   buildModules: [
     // Doc: https://github.com/nuxt-community/eslint-module
     '@nuxtjs/eslint-module',
-    //'@nuxtjs/vuetify'
+    //'@nuxtjs/vuetify',
+    '@nuxtjs/style-resources'
   ],
   /*
    ** Nuxt.js modules
@@ -154,7 +173,7 @@ export default defineNuxtConfig({
   /*
    ** PWA settings
    */
-  pwa: {
+  /* pwa: {
     manifest: {
       name: 'Code Red',
       short_name: 'Code Red Field Forms',
@@ -223,9 +242,9 @@ export default defineNuxtConfig({
         }
       ],
     },
-  },
+  }, */
   /* vuetify: {
-    customVariables: ['~/assets/scss/variables/variables.scss'],
+    customVariables: ['~/assets/styles/variables.scss'],
     treeShake: true,
     theme: {
       dark: true,
@@ -272,9 +291,9 @@ export default defineNuxtConfig({
     },
     
   },
-  server: {
+  /* server: {
     host: '0'
-  },
+  }, */
   /* alias: {
     '@vue/composition-api$': '@vue/composition-api/dist/vue-composition-api.mjs',
     '@vue/composition-api/dist/vue-composition-api.mjs': vueCompositionAPIFullpath,
