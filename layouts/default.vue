@@ -181,7 +181,8 @@ export default defineComponent({
             isOnline,
             isLoading,
             overlay,
-            isLoggedIn
+            isLoggedIn,
+            getUser
         };
     }
 })

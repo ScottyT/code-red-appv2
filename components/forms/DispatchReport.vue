@@ -276,6 +276,7 @@
 </template>
 <script>
   /* eslint-disable */
+  import { computed, defineComponent, ref, useStore, watch } from '@nuxtjs/composition-api'
   import {
     mapGetters,
     mapState,
@@ -284,6 +285,7 @@
   /* import goTo from 'vuetify/es5/services/goto' */
   import { dateMask, timeMask } from "@/data/masks"
   import useReports from '@/composable/reports'
+
   export default {
     name: 'DispatchReport',
     props: ['slice', 'company', 'abbreviation'],
@@ -650,6 +652,7 @@
       },
     }
   }
+  
 </script>
 <style lang="scss">
   /* #map {

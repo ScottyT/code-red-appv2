@@ -1,20 +1,37 @@
-import { ref, useContext } from "@nuxtjs/composition-api";
-import axios from 'axios';
+import { ref, useContext, computed, readonly } from "@nuxtjs/composition-api";
+
+
 export default function useUsers() {
-    let userObj = ref({})
-    let avatar = ref({})
-    const { $axios, $fire } = useContext()
-    function fetchUser(userEmail) {
-        return new Promise((resolve, reject) => {
-            $fire.auth.currentUser.getIdToken().then((idToken) => {
-                $axios.$get(`${process.env.serverUrl}/api/employee/${userEmail}`, {headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
-                    userObj.value = res
-                    resolve(res)
-                }).catch((err) => {
-                    reject(err)
-                })
-            })
-        })
+    const { $api, $auth } = useContext()
+    const userObj = ref({})
+    const avatar = ref({})
+
+    const setUser = (user) => {
+        userObj.value = {
+            email: user.email,
+            name: user.fullName,
+            avatarurl: $auth.user.picture,
+            role: user.role,
+            id: user.team_id,
+            auth_id: user.auth_id
+        }
     }
-    return { fetchUser, userObj }
+    
+    const fetchUser = () => {
+        if ($auth.loggedIn) {
+            const options = {
+                params: {
+                    id: $auth.user.sub
+                }
+            }
+            $api.$get(`/api/employees/${$auth.user.email}`, options).then((res) => {
+                setUser(res)
+            })
+        }
+    }
+    return {
+        userObj: readonly(userObj),
+        fetchUser,
+        userObj
+    }
 }

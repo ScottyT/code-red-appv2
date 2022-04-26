@@ -88,7 +88,7 @@ module.exports = {
     // Doc: https://github.com/nuxt-community/eslint-module
     '@nuxtjs/eslint-module',
     '@nuxtjs/vuetify',
-    '@nuxtjs/composition-api/module'
+    '@nuxtjs/composition-api/module',
   ],
   /*
    ** Nuxt.js modules
