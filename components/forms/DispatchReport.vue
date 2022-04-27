@@ -464,9 +464,7 @@
     },
     computed: {
       ...mapGetters({getReports: 'reports/getReports'}),
-      getUser() {
-        return this.$auth.user
-      }
+      ...mapGetters({getUser: 'users/getUser'})
     },
     methods: {
       capitalizeFirstChar(str) {
@@ -517,7 +515,6 @@
           }
           if (!reports.includes(this.jobId)) {
             Promise.all([this.onSubmit()]).then((result) => {
-              this.submitted = true
               this.message = result[0]
              // this.$refs.html2pdf0.generatePdf()
             }).catch(error => console.log(`Error in promises ${error}`))
@@ -526,7 +523,6 @@
       },
       onSubmit() {
         this.message = ""
-        const user = this.getUser
         
         const post = {
           JobId: this.jobId,
@@ -550,44 +546,34 @@
           ReportType: 'dispatch',
           formType: 'initialForms',
           teamMember: this.getUser,
-          id: user.id,
+          id: this.getUser.id,
           teamMemberSig: Object.keys(this.empSig).length !== 0,
           signDate: this.signDate,
           signTime: this.signTime
         };
         this.postedReport = post
         this.submitting = true
-        this.$refs.form.validate().then(success => {
-          if (!success) {
-            this.errorDialog = true
-            this.submitted = false
-            this.submitting = false
-            return
-          }
-          if (!reports.includes(this.jobId)) {
-            this.$api.$post("/api/reports/dispatch/new", post, {
-                params: {
-                    jobid: post.JobId
-                }
-            }).then((res) => {
-                if (res.error) {
-                    this.errorDialog = true
-                    this.submitting = false
-                    this.$refs.form.setErrors({
-                        JobId: [res.message],
-                    })
-                    return
-                }
-                this.message = res
-                this.submitted = true
+        this.$api.$post("/api/reports/dispatch/new", post, {
+            params: {
+                jobid: post.JobId
+            }
+        }).then((res) => {
+            if (res.error) {
+                this.errorDialog = true
                 this.submitting = false
-                setTimeout(() => {
-                    this.message = ""
-                    window.location = "/"
-                }, 2000)
-            })
-          }
-        })     
+                this.$refs.form.setErrors({
+                    JobId: [res.message],
+                })
+                return
+            }
+            this.message = res
+            this.submitted = true
+            this.submitting = false
+            setTimeout(() => {
+                this.message = ""
+                window.location = "/"
+            }, 2000)
+        })
       },
       formatDate(dateReturned) {
         if (!dateReturned) return null
