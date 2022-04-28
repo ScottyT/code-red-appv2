@@ -16,10 +16,10 @@ export default function useReports() {
     const store = useStore()
     const { groupByKey } = genericFuncs()
 
-    const htmlToPdfOptions = computed(() => {
+    function htmlToPdfOptions(reportType, jobid) {
         return {
-            margin:[20, 10, 20, 10],
-            filename: `${report.value.ReportType}-${report.value.JobId}`,
+            margin: [20, 10, 20, 10],
+            filename: `${reportType}-${jobid}`,
             image: {
                 type: "jpeg",
                 quality: 0.95
@@ -37,11 +37,11 @@ export default function useReports() {
                 hotfixes: ['px_scaling']
             }
         }
-    })
+    }
 
     function filterConditions(arr, type) {
         filters.value = arr
-        
+
         return groupByKey(arr, type)
     }
     function addHeadingToReports(value) {
@@ -52,7 +52,7 @@ export default function useReports() {
     }
     function getReports(filterRepType = false, filterFormType = false, grouped = false) {
         loading.value = true
-        
+
         const { fetch: fetchReports, fetchState } = useFetch(async () => {
             const promises = []
             reports.value = await $api.$get(`/api/reports`).then((res) => {
@@ -66,11 +66,11 @@ export default function useReports() {
                 Promise.all(promises).then((result) => {
                     var formTypeFilter = result.filter(el => filters.value.includes(el.formType))
                     var reportTypeFilter = result.filter(el => filters.value.includes(el.ReportType))
-                    
+
                     if (grouped) {
                         var f = filterConditions(formTypeFilter, "formType")
                         var r = filterConditions(reportTypeFilter, "ReportType")
-                        
+
                         if (filterFormType && !filterRepType) {
                             groupedReports.value = f
                         }
@@ -78,7 +78,7 @@ export default function useReports() {
                             groupedReports.value = r
                         }
                         else {
-                            return Object.assign(groupedReports.value,f,r)
+                            return Object.assign(groupedReports.value, f, r)
                         }
                     } else {
                         reports.value = result
@@ -92,7 +92,7 @@ export default function useReports() {
                     errorMessage.value = e.response.data
                 })
             })
-            
+
             //const token = await $fire.auth.currentUser.getIdToken()
             // This is using the Fetch API 
         })
@@ -112,7 +112,7 @@ export default function useReports() {
                 errorMessage.value = err.response.data
                 loading.value = false
                 reject(err)
-            })            
+            })
         })
     }
 
@@ -121,7 +121,7 @@ export default function useReports() {
             await $api.$get(`/api/reports/details/${path}`).then((res) => {
                 res.heading = changeFormName(res.ReportType)
                 report.value = res
-                store.dispatch("users/getSigOrInitialImage", {signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email})
+                store.dispatch("users/getSigOrInitialImage", { signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email })
 
             }).catch((err) => {
                 error.value = true
@@ -150,7 +150,8 @@ export default function useReports() {
         loading.value = true
         const { fetch: fetchImages, fetchState } = useFetch(async () => {
             $gcs.$get(`/list/${jobid}`, {
-                params: {folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter, bucket: "default" }}).then((res) => {
+                params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter, bucket: "default" }
+            }).then((res) => {
                 report.value = res
                 images.value = res.images
             }).catch(err => {
@@ -163,7 +164,7 @@ export default function useReports() {
 
     const getCertReport = (path) => {
         loading.value = true
-        const {fetch: fetchCertReport, fetchState} = useFetch(async () => {
+        const { fetch: fetchCertReport, fetchState } = useFetch(async () => {
             $api.$get(`/api/reports/${path}`).then((res) => {
                 report.value = res
                 loading.value = false
@@ -176,7 +177,7 @@ export default function useReports() {
     }
 
     const changeFormName = (reportType, formType) => {
-        switch(reportType) {
+        switch (reportType) {
             case "upholstery-form":
                 return "Upholstery Form"
             case "quality-control":
@@ -220,27 +221,59 @@ export default function useReports() {
         }
     }
 
-    async function beforeDownload({html2pdf, options, pdfContent}) {
+    async function beforeDownload({ html2pdf, options, pdfContent }) {
         await html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
             const totalPages = pdf.internal.getNumberOfPages()
-            for (let i = 0; i<= totalPages; i++) {
+            for (let i = 0; i <= totalPages; i++) {
                 pdf.setPage(i)
                 pdf.setFontSize(14)
                 pdf.text('Page ' + i + ' of ' + totalPages, (pdf.internal.pageSize.getWidth() * 0.88), (pdf.internal.pageSize.getHeight() - 10))
             }
         }).save()
     }
-    return { getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportImages, loading,
-        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions
+    async function beforeDownloadNoSave({ html2pdf, options, pdfContent }) {
+        await html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
+            const totalPages = pdf.internal.getNumberOfPages()
+            for (let i = 0; i <= totalPages; i++) {
+                pdf.setPage(i)
+                pdf.setFontSize(14)
+                pdf.text('Page ' + i + ' of ' + totalPages, (pdf.internal.pageSize.getWidth() * 0.88), (pdf.internal.pageSize.getHeight() - 10))
+            }
+        }).outputPdf().then((result) => {
+            return Promise.resolve(result)
+        })
+    }
+    async function uploadPdf(file, filename, jobId) {
+        const finalPdf = new File([file], `${filename}.pdf`, {
+            type: file.type
+        })
+        const formData = new FormData();
+        formData.append('path', `${jobId}/pdfs/`)
+        formData.append('multiFiles', finalPdf)
+        await $gcs.$post("/upload", formData, {
+            params: {
+                folder: 'pdfs',
+                subfolder: '',
+                delimiter: '/'
+            }
+        }).then(() => {
+            return Promise.resolve(file)
+        })
+    }
+    return {
+        getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportImages, loading,
+        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf
     }
 }
 
 export function fetchReportImages(jobid, folder, subfolder, delimiter) {
     return new Promise((resolve, reject) => {
         axios.get(`${process.env.gsutil}/list/${jobid}`,
-            { params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter }, headers: {
-                authorization: `Bearer ${this.$auth.strategy.token.get().split(' ')[1]}`
-            }}).then((res) => {
+            {
+                params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter }, headers: {
+                    authorization: `Bearer ${this.$auth.strategy.token.get().split(' ')[1]}`
+                }
+            }).then((res) => {
                 resolve(res.data)
             })
     }).catch((err) => {

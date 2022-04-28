@@ -24,7 +24,7 @@
             <input v-model="timeOfCall" class="form__input" type="text" />
             <span class="form__input--error">{{ errors[0] }}</span>
           </ValidationProvider>-->
-          <ValidationProvider rules="required" vid="JobId" v-slot="{ errors, ariaMsg, ariaInput }" name="Job Id" class="form__input-group form__input-group--short">
+          <ValidationProvider  vid="JobId" v-slot="{ errors, ariaMsg, ariaInput }" name="Job Id" class="form__input-group form__input-group--short">
             <label class="form__label">Job ID Number</label>
             <input name="jobId" v-model="jobId" class="form__input" type="text" v-bind="ariaInput" />
             <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
@@ -44,17 +44,7 @@
           </div>
           <div class="form__input-group form__input-group--short">
             <label for="dateOfCall" class="form__label">Date of Call</label>
-            <v-dialog ref="dialog" v-model="modal" :return-value.sync="date" persistent max-width="290px">
-              <template v-slot:activator="{ on, attrs }">
-                <input id="dateOfCall" v-model="dateFormatted" v-bind="attrs" class="form__input" v-on="on" @blur="date = parseDate(dateFormatted)" />
-              </template>
-              <v-date-picker v-model="date" scrollable>
-                <v-spacer></v-spacer>
-                <v-btn text color="#fff" @click="modal = false">Cancel</v-btn>
-                <v-btn text color="#fff" @click="$refs.dialog.save(date)">OK</v-btn>
-              </v-date-picker>
-            </v-dialog>
-            <v-date-picker v-if="dateBoxSelected" v-model="picker"></v-date-picker>
+            <UiDatePicker dateId="dateOfCall" dialogId="dialog" @date="dateFormatted = $event" />
           </div>
           <ValidationProvider class="form__input-group form__input-group--very-long">
             <label for="location" class="form__label">Location</label>
@@ -66,11 +56,11 @@
           <div class="form__form-group--left-side">
             <label class="form__label">Caller Name</label>
             <div class="form__input-group--name-group">
-              <ValidationProvider name="Caller First name" rules="required" v-slot="{errors, ariaMsg}" vid="callerFirstName">
+              <ValidationProvider name="Caller First name"  v-slot="{errors, ariaMsg}" vid="callerFirstName">
                 <input v-model="callerName.first" name="First name" placeholder="First" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
-              <ValidationProvider name="Last name" rules="required_if:callerFirstName" v-slot="{errors, ariaMsg}">
+              <ValidationProvider name="Last name"  v-slot="{errors, ariaMsg}">
                 <input v-model="callerName.last" name="Last name" placeholder="Last" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
@@ -78,11 +68,11 @@
             
             <label class="form__label">Arrival Contact Name</label>
             <div class="form__input-group--name-group">
-              <ValidationProvider name="Arrival First name" rules="required" v-slot="{errors, ariaMsg}" vid="arrivalFirstName">
+              <ValidationProvider name="Arrival First name" v-slot="{errors, ariaMsg}" vid="arrivalFirstName">
                 <input v-model="arrivalContactName.first" placeholder="First" name="Arrival First name" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
-              <ValidationProvider name="Last name" rules="required_if:arrivalFirstName" v-slot="{errors, ariaMsg}">
+              <ValidationProvider name="Last name" v-slot="{errors, ariaMsg}">
                 <input v-model="arrivalContactName.last" placeholder="Last" name="Arrival Last name" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
@@ -112,17 +102,7 @@
             <div class="form__input-wrapper">
               <div class="form__input--input-group">
                 <label for="dateOfIntrusion" class="form__label">Date of Intrusion</label>
-                <v-dialog ref="dateIntrusionDialog" v-model="intrusionLogsDialog.dateIntrusion" persistent :return-value.sync="dateIntrusion" transition="scale-transition" max-width="320px">
-                  <template v-slot:activator="{ on, attrs }">
-                    <input type="text" id="dateOfIntrusion" v-model="dateIntrusionFormatted" class="form__input" v-bind="attrs" v-on="on" />
-                    <span class="button" @click="dateIntrusion = ''">clear</span>
-                  </template>
-                  <v-date-picker v-if="intrusionLogsDialog.dateIntrusion" v-model="dateIntrusion" scrollable>
-                    <v-spacer></v-spacer>
-                    <v-btn text color="#fff" @click="intrusionLogsDialog.dateIntrusion = false">Cancel</v-btn>
-                    <v-btn text color="#fff" @click="$refs.dateIntrusionDialog.save(dateIntrusion)">OK</v-btn>
-                  </v-date-picker>
-                </v-dialog>
+                <UiDatePicker dateId="dateOfIntrusion" dialogId="dateOfIntrusion" @date="dateIntrusionFormatted = $event" />
               </div>
               <div class="form__input--input-group">
                 <label for="timeIntrusionBegan" class="form__label">Time Intrusion Began</label>
@@ -186,20 +166,7 @@
             </div>
             <div class="form__input-group form__input-group--normal">
               <label for="appointmentDate" class="form__label">Date of Appointment</label>
-              <v-dialog ref="dialogAppointment" v-model="modalAppointment" light :return-value.sync="appointmentDate"
-                        persistent width="400px">
-                <template v-slot:activator="{ on, attrs }">
-                  <input id="appointmentDate" v-model="appointmentDateFormatted" v-bind="attrs" class="form__input"
-                         v-on="on" @blur="
-                      appointmentDate = parseDate(appointmentDateFormatted)
-                    " />
-                </template>
-                <v-date-picker v-model="appointmentDate" scrollable>
-                  <v-spacer></v-spacer>
-                  <v-btn text color="#fff" @click="modalAppointment = false">Cancel</v-btn>
-                  <v-btn text color="#fff" @click="$refs.dialogAppointment.save(appointmentDate)">OK</v-btn>
-                </v-date-picker>
-              </v-dialog>
+              <UiDatePicker dateId="appointmentDate" dialogId="dialogAppointment" @date="appointmentDateFormatted = $event" />
             </div>
             <div class="form__input-group form__input-group--long">
               <label for="updateTimeCall" class="form__label">(15-Min) ETA Verification Call Time</label>
@@ -245,7 +212,7 @@
             </div>
             <LazyUiSignaturePadModal v-model="empSig" width="650px" height="219px" inputId="teamMemberSig" :sigData="teamMemberSig" name="Team member signature" dialog :initial="false"
               sigRef="teamSignaturePad" sigType="employee" />
-            <ValidationProvider name="Sign Date" rules="required" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
+            <ValidationProvider name="Sign Date"  v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
                 <label for="signDate" class="form__label">Sign date</label>
                 <input type="hidden" v-model="signDate" />
                 <imask-input id="signDate" @complete="signDate = $event" :lazy="false" :blocks="dateMask.blocks"
@@ -253,7 +220,7 @@
                               :pattern="dateMask.pattern" class="form__input" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
             </ValidationProvider>
-            <ValidationProvider name="Time Sign" rules="required" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
+            <ValidationProvider name="Time Sign"  v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
               <label for="timeSign" class="form__label">Sign Time</label>
               <imask-input v-model="signTime" :lazy="false" :mask="timeMask.mask" :blocks="timeMask.blocks" class="form__input" />
               <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
@@ -264,19 +231,19 @@
       </form>
     </ValidationObserver>
     <div>
-      <!-- <client-only>
-         <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="800" :manual-pagination="false"
-                    :show-layout="false" :preview-modal="true" :enable-download="false" @beforeDownload="beforeDownload($event)" ref="html2Pdf0">
+      <client-only>
+         <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('dispatch', jobId)" :paginate-elements-by-height="800" :manual-pagination="false"
+                    :show-layout="false" :preview-modal="true" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event)"
+                    @hasDownloaded="uploadPdf($event, `dispatch-${jobId}`, jobId)" ref="html2Pdf0">
           <LazyLayoutReportDetails :notPdf="false" reportName="Dispatch Report" :report="postedReport" slot="pdf-content" />
         </vue-html2pdf>
-      </client-only> -->
-      <!-- <button class="button--normal" ref="downloadBtn" v-show="false" @click="generatePdf()">Download PDF</button> -->
+      </client-only>
     </div>
   </div>
 </template>
 <script>
   /* eslint-disable */
-  import { computed, defineComponent, ref, useStore, watch } from '@nuxtjs/composition-api'
+  import { computed, defineComponent, ref, useContext, useStore, watch, watchEffect } from '@nuxtjs/composition-api'
   import {
     mapGetters,
     mapState,
@@ -285,59 +252,74 @@
   /* import goTo from 'vuetify/es5/services/goto' */
   import { dateMask, timeMask } from "@/data/masks"
   import useReports from '@/composable/reports'
-
-  export default {
-    name: 'DispatchReport',
-    props: ['slice', 'company', 'abbreviation'],
-    data: (vm) => ({
-      id: "",
-      name: "",
-      jobId: "",
-      timeOfCall: new Date().toTimeString().substr(0, 5),
-      timeFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      timeOfDay: '',
-      dateOfCall: '',
-      dateBoxSelected: false,
-      date: new Date().toISOString().substr(0, 10),
-      dateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-      appointmentDateSelected: false,
-      appointmentDate: new Date().toISOString().substr(0, 10),
-      appointmentDateFormatted: vm.formatDate(
+  import genericFuncs from '@/composable/utilityFunctions'
+  export default defineComponent({
+    props: {
+      slice: String,
+      company: String,
+      abbreviation: String
+    },
+    setup(props, { refs }) {
+      const store = useStore()
+      const { $api } = useContext()
+      const { formatDate, formatTime } = genericFuncs()
+      const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+      const id = ref("")
+      const name = ref("")
+      const jobId = ref("")
+      const timeOfCall = ref(new Date().toTimeString().substr(0, 5))
+      const timeFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const timeOfDay = ref('')
+      const dateOfCall = ref('')
+      const dateBoxSelected = ref(false)
+      const date = ref(new Date().toISOString().substr(0, 10))
+      const dateFormatted = ref(formatDate(new Date().toISOString().substr(0, 10)))
+      const appointmentDateSelected = ref(false)
+      const appointmentDate = new Date().toISOString().substr(0, 10)
+      const appointmentDateFormatted = formatDate(
         new Date().toISOString().substr(0, 10)
-      ),
-      appointmentTimeSelected: false,
-      appointmentTime: null,
-      appointmentTimeFormatted: vm.formatTimeRange(
+      )
+      const appointmentTimeSelected = ref(false)
+      const appointmentTime = ref(new Date().toTimeString().substr(0, 5))
+      const appointmentTimeFormatted = ref(formatTimeRange(
         new Date().toTimeString().substr(0, 5), new Date().toTimeString().substr(0, 5)
-      ),
-      appointmentTimeStart: null,
-      appointmentTimeEnd: null,
-      modal: false, //Binded to Date of call
-      modalAppointment: false,
-      timeModal: false,
-      appointmentTimeModal: false,
-      verificationTime: {
+      ))
+      const appointmentTimeStart = ref(null)
+      const appointmentTimeEnd = ref(null)
+      const modal = ref(false) //Binded to Date of call
+      const modalAppointment = ref(false)
+      const timeModal = ref(false)
+      const appointmentTimeModal = ref(false)
+      const verificationTime = ref({
         callTime: false,
         textEtaTime: false,
-      },
-      callTime: null,
-      callTimeFormatted: vm.formatTime(null),
-      textEtaTime: null,
-      textEtaTimeFormatted: vm.formatTime(null),
-      location: {
+      })
+      const callTime = ref(new Date().toTimeString().substr(0, 5))
+      const callTimeFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const textEtaTime = ref(null)
+      const textEtaTimeFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const location = ref({
         address: null,
         city: null,
         cityStateZip: null,
-      },
-      callerName: {
+      })
+      const callerName = ref({
         first: '',
         last: ''
-      },
-      arrivalContactName: {
+      })
+      const arrivalContactName = ref({
         first:'',
         last: ''
-      },
-      property: [{
+      })
+      const email = ref('')
+      const phone = ref('')
+      const selectedCheckboxes = ref([])
+      const notes = ref('')
+      const message = ref('')
+      const errorMessage =ref("")
+      const submitted = ref(false)
+      const submitting = ref(false)
+      const property = ref([{
           id: 1,
           text: 'The property owner is the caller',
           checked: false
@@ -391,212 +373,43 @@
           id: 11,
           text: 'The property has requested the use of PPE products by on-site personnel'
         }
-      ],
-      email: '',
-      phone: '',
-      selectedCheckboxes: [],
-      appointmentTime: '',
-      notes: '',
-      message: '',
-      errorMessage:"",
-      submitted: false,
-      submitting: false,
-      intrusionLogsDialog: {
+      ])
+      const intrusionLogsDialog = ref({
         dateIntrusion: false,
         timeIntBegan: false,
         timeIntEnd: false
-      },
-      intrusionSection: [
+      })
+      const intrusionSection = ref([
         { label: 'Source of Intrusion', value: '', type: 'text' },
         { label: 'Age of Structure', value: '', type: 'text' },
         { label: 'Approximate sqft', value: '', type: 'number' },
         { label: 'Number of Rooms', value: '', type: 'number' },
         { label: 'Number of Floors', value: '', type: 'text' }
-      ],
-      dateIntrusion: new Date().toISOString().substr(0, 10),
-      dateIntrusionFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-      timeIntBegan: null,
-      timeIntBeganFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      timeIntEnd: null,
-      timeIntEndFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      teamMemberSig: {
+      ])
+      const dateIntrusion = new Date().toISOString().substring(0, 10)
+      const dateIntrusionFormatted = formatDate(new Date().toISOString().substring(0, 10))
+      const timeIntBegan = ref(null)
+      const timeIntBeganFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const timeIntEnd = ref(null)
+      const timeIntEndFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const teamMemberSig = ref({
         data: '',
         isEmpty: true
-      },
-      empSig: "",
-      signDate: "",
-      signTime: "",
-      sigDialog: false,
-      errorDialog: false,
-      errorArr: [],
-      dateMask: dateMask,
-      timeMask: timeMask,
-      postedReport: {}
-    }),
-    watch: {
-      date(val) {
-        this.dateFormatted = this.formatDate(val)
-      },
-      appointmentDate(val) {
-        this.appointmentDateFormatted = this.formatDate(val)
-      },
-      appointmentTimeFormatted(val) {
-        this.appointmentTimeFormatted = this.formatTimeRange(this.appointmentTimeStart, this.appointmentTimeEnd)
-      },
-      timeOfCall(val) {
-        this.timeFormatted = this.formatTime(val)
-      },
-      callTime(val) {
-        this.callTimeFormatted = this.formatTime(val)
-      },
-      textEtaTime(val) {
-        this.textEtaTimeFormatted = this.formatTime(val)
-      },
-      dateIntrusion(val) {
-        this.dateIntrusionFormatted = this.formatDate(val)
-      },
-      timeIntBegan(val) {
-        this.timeIntBeganFormatted = this.formatTime(val)
-      },
-      timeIntEnd(val) {
-        this.timeIntEndFormatted = this.formatTime(val)
-      }
-    },
-    computed: {
-      ...mapGetters({getReports: 'reports/getReports'}),
-      ...mapGetters({getUser: 'users/getUser'})
-    },
-    methods: {
-      capitalizeFirstChar(str) {
-        var inputValue = str.charAt(0).toUpperCase() + str.slice(1);
-        console.log(inputValue)
-        return inputValue
-      },
-      setLocation(...params) {
-        const { address, street, cityStateZip } = params[0]
-        this.location.cityStateZip = cityStateZip
-        this.location.address = street
-      },
-      clear() {
-        this.$refs.signaturePad.clearSignature();
-        this.cusSignature.isEmpty = true
-        this.cusSignature.data = null
-      },
-      save() {
-        const {
-          data,
-          isEmpty
-        } = this.$refs.signaturePad.saveSignature();
-        this.cusSignature.data = data;
-        this.cusSignature.isEmpty = isEmpty
-      },
-      onBegin() {
-        const {
-          isEmpty
-        } = this.$refs.signaturePad.saveSignature();
-        this.cusSignature.isEmpty = isEmpty
-        this.$nextTick(() => {
-          this.$refs.signaturePad.resizeCanvas()
-        })
-      },
-      async submitForm() {
-        var dispatchRep = this.getReports.filter((v) => {
-          return v.ReportType === 'dispatch'
-        })
-        const reports = dispatchRep.map((v) => {
-          return v.JobId
-        })
-        await this.$refs.form.validate().then(success => {
-          if (!success) {
-            this.errorDialog = true
-            this.submitted = false
-            this.submitting = false
-            return
-          }
-          if (!reports.includes(this.jobId)) {
-            Promise.all([this.onSubmit()]).then((result) => {
-              this.message = result[0]
-             // this.$refs.html2pdf0.generatePdf()
-            }).catch(error => console.log(`Error in promises ${error}`))
-          }
-        })
-      },
-      onSubmit() {
-        this.message = ""
-        
-        const post = {
-          JobId: this.jobId,
-          callerName: this.callerName,
-          ArrivalContactName: this.arrivalContactName,
-          phoneNumber: this.phone,
-          emailAddress: this.email,
-          location: this.location,
-          timeFormatted: this.timeFormatted,
-          dateFormatted: this.dateFormatted,
-          appointmentDate: this.appointmentDateFormatted,
-          appointmentTime: this.appointmentTimeFormatted,
-          callTimeUpdate: this.callTimeFormatted,
-          textTimeUpdate: this.textEtaTimeFormatted,
-          propertyChkList: this.selectedCheckboxes,
-          intrusion: this.intrusionSection,
-          dateOfIntrusion: this.dateIntrusionFormatted,
-          timeIntrusionBegan: this.timeIntBeganFormatted,
-          timeIntrusionEnded: this.timeIntEndFormatted,
-          summary: this.notes,
-          ReportType: 'dispatch',
-          formType: 'initialForms',
-          teamMember: this.getUser,
-          id: this.getUser.id,
-          teamMemberSig: Object.keys(this.empSig).length !== 0,
-          signDate: this.signDate,
-          signTime: this.signTime
-        };
-        this.postedReport = post
-        this.submitting = true
-        this.$api.$post("/api/reports/dispatch/new", post, {
-            params: {
-                jobid: post.JobId
-            }
-        }).then((res) => {
-            if (res.error) {
-                this.errorDialog = true
-                this.submitting = false
-                this.$refs.form.setErrors({
-                    JobId: [res.message],
-                })
-                return
-            }
-            this.message = res
-            this.submitted = true
-            this.submitting = false
-            setTimeout(() => {
-                this.message = ""
-                window.location = "/"
-            }, 2000)
-        })
-      },
-      formatDate(dateReturned) {
-        if (!dateReturned) return null
-        const [year, month, day] = dateReturned.split('-')
-        return `${month}/${day}/${year}`
-      },
-      formatTime(timeReturned) {
-        if (!timeReturned) return null
-        const pieces = timeReturned.split(':')
-        let hours
-        let minutes
-        if (pieces.length === 2) {
-          hours = parseInt(pieces[0], 10)
-          minutes = parseInt(pieces[1], 10)
-        }
-        const newFormat = hours >= 12 ? 'PM' : 'AM'
-        hours = hours % 12
-        // To display "0" as "12"
-        hours = hours || 12
-        minutes = minutes < 10 ? '0' + minutes : minutes
-        return `${hours}:${minutes} ${newFormat}`
-      },
-      formatTimeRange(timeStart, timeEnd) {
+      })
+      const empSig = ref("")
+      const signDate = ref("")
+      const signTime = ref("")
+      const sigDialog = ref(false)
+      const errorDialog = ref(false)
+      const errorArr = ref([])
+      const postedReport = ref({})
+
+      const getReports = computed(() => store.getters["reports/getReports"])
+      const getUser = computed(() => store.getters["users/getUser"])
+      
+      const fetchReports = () => { store.dispatch("reports/fetchReports") }
+      
+      function formatTimeRange(timeStart, timeEnd) {
         if (!timeStart && !timeEnd) return null
         if (timeStart> timeEnd) return "Invalid time range"
         const startPieces = timeStart.split(':')
@@ -621,28 +434,147 @@
         endhours = endhours || 12
         endminutes = endminutes < 10 ? '0' + endminutes : endminutes
         return `${starthours}:${startminutes} ${newFormat1}-${endhours}:${endminutes} ${newFormat2}`
-      },
-      parseTime(time) {
-        if (!time) return null
-      },
-      parseDate(date) {
+      }
+      function parseDate(date) {
         if (!date) return null
         const [month, day, year] = date.split('/')
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-      },
-      acceptNumber() {
-        var x = this.phone.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
-        this.phone = !x[2] ?
+      }
+      function acceptNumber() {
+        var x = phone.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
+        phone.value = !x[2] ?
           x[1] :
           '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '')
-      },
+      }
+      function setLocation(...params) {
+        const { address, street, cityStateZip } = params[0]
+        location.value.cityStateZip = cityStateZip
+        location.value.address = street
+      }
+      function clear() {
+        refs.signaturePad.clearSignature();
+        cusSignature.value.isEmpty = true
+        cusSignature.value.data = null
+      }
+      function save() {
+        const {
+          data,
+          isEmpty
+        } = refs.signaturePad.saveSignature();
+        cusSignature.value.data = data;
+        cusSignature.value.isEmpty = isEmpty
+      }
+      async function submitForm() {
+        var dispatchRep = getReports.value.filter((v) => {
+          return v.ReportType === 'dispatch'
+        })
+        const reports = dispatchRep.map((v) => {
+          return v.JobId
+        })
+        await refs.form.validate().then(success => {
+          if (!success) {
+            errorDialog.value = true
+            submitted.value = false
+            submitting.value = false
+            return
+          }
+          if (!reports.includes(jobId.value)) {
+            Promise.all([onSubmit()]).then((result) => {
+              message.value = result[0]
+              refs.html2Pdf0.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
+          }
+        })
+      }
+      
+      function onSubmit() {
+        message.value = ""
+        const post = {
+          JobId: jobId.value,
+          callerName: callerName.value,
+          ArrivalContactName: arrivalContactName.value,
+          phoneNumber: phone.value,
+          emailAddress: email.value,
+          location: location.value,
+          timeFormatted: timeFormatted.value,
+          dateFormatted: dateFormatted.value,
+          appointmentDate: appointmentDateFormatted.value,
+          appointmentTime: appointmentTimeFormatted.value,
+          callTimeUpdate: callTimeFormatted.value,
+          textTimeUpdate: textEtaTimeFormatted.value,
+          propertyChkList: selectedCheckboxes.value,
+          intrusion: intrusionSection.value,
+          dateOfIntrusion: dateIntrusionFormatted.value,
+          timeIntrusionBegan: timeIntBeganFormatted.value,
+          timeIntrusionEnded: timeIntEndFormatted.value,
+          summary: notes.value,
+          ReportType: 'dispatch',
+          formType: 'initialForms',
+          teamMember: getUser.value,
+          id: getUser.value.id,
+          teamMemberSig: Object.keys(empSig.value).length !== 0,
+          signDate: signDate.value,
+          signTime: signTime.value
+        };
+        postedReport.value = post
+        submitting.value = true
+        $api.$post("/api/reports/dispatch/new", post, {
+            params: {
+                jobid: post.JobId
+            }
+        }).then((res) => {
+            if (res.error) {
+                errorDialog.value = true
+                submitting.value = false
+                refs.form.setErrors({
+                    JobId: [res.message],
+                })
+                return
+            }
+            message.value = res
+            submitted.value = true
+            submitting.value = false
+            fetchReports()
+        })
+        return Promise.resolve("Dispatch form submitted!")
+      }
+
+      watch(() => appointmentTimeFormatted.value, (val) => {
+        appointmentTimeFormatted.value = formatTimeRange(appointmentTimeStart.value, appointmentTimeEnd.value)
+      })
+      watch(() => timeOfCall.value, (val) => {
+        timeFormatted.value = formatTime(val)
+      })
+      watch(() => timeIntBegan.value, (val) => {
+        timeIntBeganFormatted.value = formatTime(val)
+      })
+      watch(() => timeIntEnd.value, (val) => {
+        timeIntEndFormatted.value = formatTime(val)
+      })
+      watch(() => callTime.value, (val) => {
+        callTimeFormatted.value = formatTime(val)
+      })
+      watch(() => textEtaTime.value, (val) => {
+        textEtaTimeFormatted.value = formatTime(val)
+      })
+
+      return {
+        id, name, jobId, timeOfCall, timeFormatted, timeOfDay, dateOfCall, dateBoxSelected, date, dateFormatted, appointmentDateSelected, appointmentDate,
+        appointmentDateFormatted, appointmentDateSelected, appointmentTime, appointmentTimeFormatted, appointmentTimeStart, appointmentTimeEnd, modal, modalAppointment,
+        timeModal, appointmentTimeModal, verificationTime, callTime, callTimeFormatted, textEtaTime, textEtaTimeFormatted, location, callerName, arrivalContactName,property,
+        email, phone, selectedCheckboxes, appointmentTime, notes, message, errorMessage, submitted, submitting, intrusionLogsDialog, intrusionSection, dateIntrusion, dateIntrusionFormatted,
+        timeIntBegan, timeIntBeganFormatted, timeIntEnd, timeIntEndFormatted, teamMemberSig, empSig, signDate, signTime, sigDialog, errorDialog, errorArr, dateMask, timeMask, postedReport,
+        parseDate, acceptNumber, getUser,
+        setLocation,
+        save,
+        clear,
+        submitForm,
+        htmlToPdfOptions,
+        beforeDownloadNoSave,
+        onSubmit,
+        uploadPdf
+      }
     }
-  }
+  })
   
 </script>
-<style lang="scss">
-  /* #map {
-    height: 200px;
-    width: 200px;
-  } */
-</style>

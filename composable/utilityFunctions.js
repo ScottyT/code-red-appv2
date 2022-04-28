@@ -92,6 +92,22 @@ export default function genericFuncs() {
         const [year, month, day] = dateReturned.split('-')
         return `${month}/${day}/${year}`
     }
+    function formatTime(timeReturned) {
+        if (!timeReturned) return null
+        const pieces = timeReturned.split(':')
+        let hours
+        let minutes
+        if (pieces.length === 2) {
+            hours = parseInt(pieces[0], 10)
+            minutes = parseInt(pieces[1], 10)
+        }
+        const newFormat = hours >= 12 ? 'PM' : 'AM'
+        hours = hours % 12
+        // To display "0" as "12"
+        hours = hours || 12
+        minutes = minutes < 10 ? '0' + minutes : minutes
+        return `${hours}:${minutes} ${newFormat}`
+      }
     function paginateArr(array, size) {
         return array.reduce((acc, val, i) => {
             var index = Math.floor(i / size)
@@ -167,5 +183,5 @@ export default function genericFuncs() {
         return mainObj
     }
     return { getRandom, getRandomUnique, convertToF, convertToC, round, groupByKey, namedColor, formatDate, paginateArr, updateReport, timeConverter, sum,
-        replaceEmptyFormFields, genRandHex }
+        replaceEmptyFormFields, genRandHex, formatTime }
 }
