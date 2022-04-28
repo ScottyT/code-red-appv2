@@ -27,12 +27,22 @@
                 <div class="form__form-group">
                     <ValidationProvider v-slot="{errors}" vid="sketch" rules="required" name="Sketch" class="form__input form__input--sketch">
                         <input type="hidden" v-model="sketchData.data" />
-                        <VueSignaturePad width="100%" height="600px" id="sketchPad" ref="sketchRef" :options="{ onBegin }" />
-                        <div class="form__button-wrapper">
-                            <button type="button" class="button button--normal" @click="clear">Clear</button>
+                        <VueSignaturePad width="100%" height="600px" id="sketchPad" ref="sketchRef" :options="{ onBegin, minWidth: 1.5, maxWidth:3.5, penColor: penColor }" />
+                        <div class="pt-3 pb-3">
                             <button type="button" @click="save" :class="`button ${sketchData.isEmpty ? 'button--disabled':''}`">
                                 {{sketchData.data !== undefined ? 'Saved' : 'Save'}}
                             </button>
+                            <button type="button" class="button--normal" @click="undoMap">Undo</button>
+                            <div class="map-wrapper__pen">
+                                <span class="map-wrapper__pen-color" aria-label="black" @click="penColor = '#000'"
+                                      style="background:#000"></span>
+                                <span class="map-wrapper__pen-color" aria-label="shallow-water"
+                                      @click="penColor = '#6c8ce6'" style="background:#6c8ce6"></span>
+                                <span class="map-wrapper__pen-color" aria-label="normal-water"
+                                      @click="penColor = '#3047f1'" style="background:#3047f1"></span>
+                                <span class="map-wrapper__pen-color" aria-label="deep-water"
+                                      @click="penColor = '#0a2177'" style="background:#0a2177"></span>
+                            </div>
                         </div>
                         <span class="form__input--error">{{ errors[0] }}</span>
                     </ValidationProvider>
@@ -47,9 +57,10 @@
 import { defineComponent, useStore, computed, ref, onMounted } from '@nuxtjs/composition-api'
 export default defineComponent({
     props: ['formname'],
-    setup(props, {root}) {
+    setup(props, {root, refs}) {
         const store = useStore()
         const sketchRef = ref(null)
+        const penColor = ref("#000")
         const user = computed(() => store.getters['users/getUser']); const getReports = computed(() => store.getters['reports/getReports']);
         const isUserAuth = computed(() => store.getters['users/isLoggedIn']);
         
@@ -67,10 +78,17 @@ export default defineComponent({
             const { isEmpty } = sketchRef.value.saveSignature()
             sketchData.value = { isEmpty }
         }
+        function undoMap() {
+            sketchRef.value.undoSignature()
+            if (sketchRef.value.signaturePad._data.length === 0) {
+                clear()
+            }
+        }
 
         return {
             sketchRef,
-            clear, save, onBegin,
+            penColor,
+            clear, save, onBegin, undoMap,
             sketchData,
             sketchFormData,
             selectedJobId,
