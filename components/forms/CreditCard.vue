@@ -378,47 +378,6 @@ import { statesArr } from "@/data/states"
             reader.readAsDataURL(file)
           }
         },
-        async submitFiles(uploadarr, element) {
-          // uploadarr is the array of Files 
-          const field = element.getAttribute('name')
-          if (this.cardNumber === "") {
-            element.innerHTML = "Uploading card images requires a card number! Please put in a card number."
-            return
-          }
-          
-          uploadarr.forEach((file) => {
-            var storageRef = this.$fire.storage.ref()
-            var uploadRef = storageRef.child(`${this.cardNumber}/${file.name}`)
-            var uploadTask = uploadRef.put(file)
-            uploadTask.on('state_changed', (snapshot) => {
-              var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              if (progress < 100) {
-                this.uploading = true
-              }
-              if(progress == 100) {
-                this.uploading = false
-                
-                var uploadMessage = `${this.selectedCardType !== '' ? this.selectedCardType : 'Card '} images uploaded successfully`
-                element.innerHTML = uploadMessage
-                uploadarr = []
-              }
-            }, (error) => {
-              console.log(error.message)
-            }, () => {
-              
-              uploadRef.getDownloadURL().then((url) => {
-                var fileName = file.name.substring(0, file.name.lastIndexOf('.'))
-                var fileType = file.name.substring(file.name.lastIndexOf('.'), file.name.length)
-                const fileObj = {
-                  name: fileName,
-                  url: url,
-                  type: fileType
-                }
-                this.cardDownloadUrls.push(fileObj)
-              })
-            })
-          })
-        },
         async submitCard() {
             const cards = this.getCards.map((v) => { return v.cardNumber })
 
@@ -444,7 +403,10 @@ import { statesArr } from "@/data/states"
                   customerSignDate: this.cusSigDateFormatted,
                   teamMember: this.getUser.name
                 };
-                this.$api.$post("/api/credit-card/new", post).then((res) => {
+                this.$api.$post("/api/credit-card/new", {
+                  params: {
+                    cardnumber: this.cardNumber
+                  }}, post).then((res) => {
                     if (res.error) {
                       this.errorMessage = res.message
                       this.isSubmitted = false
