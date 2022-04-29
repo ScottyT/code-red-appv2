@@ -1043,6 +1043,7 @@ import axios from 'axios'
         }
     },
     methods: {
+        ...mapActions({fetchReports: "reports/fetchReports"}),
         onAccept(e) {
           var maskRef = e
           this.driversLicense = maskRef
@@ -1104,6 +1105,7 @@ import axios from 'axios'
         },
         async submitForm() {
             this.errorMessage = []
+            var cardnumber = this.cardToUse
             const contracts = this.getReports.filter((v) => {
               return v.ReportType === 'wesi-aob'
             })
@@ -1118,7 +1120,7 @@ import axios from 'axios'
               }
               if (!contractsRep.includes(this.selectedJobId)) {
                 if ((this.currentStep === 1 && this.paymentOption === 'Card' && this.existingCreditCard === "Yes") || this.currentStep === 2) {
-                  Promise.all([this.onSubmit()]).then((result) => {
+                  Promise.all([this.onSubmit(), this.getCardImages(cardnumber)]).then((result) => {
                     this.submitted = true
                     this.message = result[0]
                     //I will add this back when we are able to use gmail email service
@@ -1130,7 +1132,7 @@ import axios from 'axios'
                   Promise.all([this.onSubmit()]).then((result) => {
                     this.submitted = true
                     this.message = result[0]
-                    this.$refs.downloadBtn.click()
+                    //this.$refs.downloadBtn.click()
                   })
                 }
                 this.currentStep++;
@@ -1191,13 +1193,14 @@ import axios from 'axios'
           this.data = post
           this.$api.$post("/api/reports/wesi-aob/new", post, {
               params: {
-                  jobid: selectedJobId.value
+                  jobid: this.selectedJobId
               }
           }).then((res) => {
               if (res.error) {
                   this.errorMessage = res.message
                   return
               }
+              this.fetchReports()
           }).catch((err) => {
               this.errorMessage.push(err)
           })
@@ -1216,33 +1219,19 @@ import axios from 'axios'
           })
         },
         async getCardImages(card) {
-          var promiseArr = []
-          var storageRef = this.$fire.storage.ref()
-          var listRef = storageRef.child(card)
-          const sendListItems = (item) => {
-            var promise = new Promise((resolve) => {
-              var itemPath = item.fullPath;
-                storageRef.child(itemPath).getDownloadURL().then((url) => {
-                var fileName = itemPath.substring(itemPath.lastIndexOf('/') + 1, itemPath.length)
-                var fileType = itemPath.substring(itemPath.lastIndexOf('.'), itemPath.length)
-                const fileObj = {
-                  cardNumber: card,
-                  name: fileName,
-                  url: url,
-                  type: fileType
-                }                
-                resolve(fileObj)
-              });
-            });
-            return promise.then((cardimage) => {
-              promiseArr.push(cardimage)
+          return new Promise((resolve, reject) => {
+            this.$gcs.$get("/list/creditCard", {
+              params: {
+                  folder: 'creditCard',
+                  subfolder: card,
+                  delimiter: '',
+              }
+            }).then((res) => {
+              this.cardImages = res.images
+              resolve(res.images)
+            }).catch(err => {
+              reject(err)
             })
-          }
-          await listRef.listAll().then((res) => {
-            Promise.all(res.items.map(itemRef => sendListItems(itemRef))).then(() => {
-              this.cardImages = promiseArr
-              
-            }).catch(error => console.log(`Error in promises ${error}`))
           })
         },
         generatePdf() {
