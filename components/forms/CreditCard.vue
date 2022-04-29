@@ -59,23 +59,18 @@
             <ValidationProvider vid="frontcard" ref="frontcard" name="Front Side" rules="image" v-slot="{validate, errors}" class="card-upload card-upload--front">
               <p>Front side:</p>
               <input type="hidden" v-model="frontCardImage" @click="validate" />
-              <UiFilesUpload singleImage :changeImageName="`front-card-${jobId}`" :path="cardNumber" subDir="" rootPath="creditCard" autoUpload 
+              <UiFilesUpload singleImage :changeImageName="`front-card-${jobId}`" :path="cardNumber" subDir="" rootPath="creditCard" 
                 @sendPreviews="frontCardImage = $event[0].image.image" />
               <span class="form__input--error">{{ errors[0] }}</span>
             </ValidationProvider>
               
-            <ValidationProvider vid="backcard" ref="backcard" v-if="frontCardImage !== ''" name="Back Side" rules="image" v-slot="{validate, errors}" class="card-upload card-upload--back">
+            <ValidationProvider vid="backcard" ref="backcard" v-if="frontCardImage !== null" name="Back Side" rules="image" v-slot="{validate, errors}" class="card-upload card-upload--back">
               <p>Back side:</p>
               <input type="hidden" v-model="backCardImage" @click="validate" />
-              <UiFilesUpload singleImage :changeImageName="`back-card-${jobId}`" :path="cardNumber" subDir="" rootPath="creditCard" autoUpload 
+              <UiFilesUpload singleImage :changeImageName="`back-card-${jobId}`" :path="cardNumber" subDir="" rootPath="creditCard" 
                 @sendPreviews="backCardImage = $event[0].image.image" />
               <span class="form__input--error">{{ errors[0] }}</span>
             </ValidationProvider>
-            <div class="buttons-wrapper">
-              <v-btn @click="submitFiles(cardImages, $refs.cardimage)" v-if="(frontCardImage !== '' && backCardImage !== '') && $nuxt.isOnline"
-                  :class="[uploaded ? 'button--disabled' : 'button']">{{ uploading ? 'Uploading' : 'Upload'}}</v-btn>
-              <p class="card-upload__message" aria-label="Upload message goes here" name="Debit/Credit card " ref="cardimage"></p>
-            </div>
           </div>
         </div>
       </fieldset>

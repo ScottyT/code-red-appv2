@@ -141,8 +141,7 @@ export default defineComponent({
     }
     // this might be breaking something but i don't know what it is
     watch(() => sigData.value.data, (val) => {
-      if (sigType.value == 'customer') {
-        signed.value = true
+      if (sigType.value == 'customer' && initial.value) {
         signage.value = val
       }
     })
