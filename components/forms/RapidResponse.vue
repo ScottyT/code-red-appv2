@@ -228,7 +228,8 @@
               </div>
               <VueSignaturePad width="100%" height="703px" ref="map" class="map-wrapper__canvas" :options="{ onBegin, minWidth: 1.5, maxWidth:3.5, penColor: penColor }" />
               <div class="pt-3 pb-3">
-                <button type="button" class="button--normal" @click="saveMap">{{ moistureMap.data !== '' ? 'Saved' : 'Save' }}</button>
+                <button type="button" class="button--normal" :class="`button ${moistureMap.isEmpty ? 'button--disabled': ''}`" 
+                  @click="saveMap">{{ moistureMap.data !== '' ? 'Saved' : 'Save' }}</button>
                 <button type="button" class="button--normal" @click="undoMap">Undo</button>
                 <div class="map-wrapper__pen">
                   <span class="map-wrapper__pen-color" aria-label="black" @click="penColor = '#000'" style="background:#000"></span>
@@ -833,6 +834,10 @@
       },
       undoMap() {
         this.$refs.map.undoSignature()
+        if (this.$refs.map.signaturePad._data.length === 0) {
+          this.$refs.map.clearSignature();
+          this.moistureMap.data = null; this.moistureMap.isEmpty = true
+        }
       },
       saveMap() {
         const { isEmpty, data } = this.$refs.map.saveSignature()
@@ -840,6 +845,8 @@
         this.moistureMap.isEmpty = isEmpty
       },
       onBegin() {
+        const { isEmpty } = this.$refs.map.saveSignature()
+        this.moistureMap = { isEmpty, data: "" }
         this.$nextTick(() => {
           this.$refs.map.resizeCanvas()
         })
