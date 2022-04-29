@@ -15,7 +15,7 @@ export default defineComponent({
     middleware: 'auth',
     setup(props, {root}) {
         const store = useStore()
-        const { $axios } = useContext()
+        const { $api } = useContext()
         const fetching = ref(false)
         const certs = ref([])
         const isOnline = computed(() => root.$nuxt.isOnline)
@@ -24,7 +24,7 @@ export default defineComponent({
         filterConditions(["initialForms", "chart-report", "upholstery-form", "case-report", "logs-report", "sketch-report", "quality-control"])
         getReports(true, true, true)
         const fetchCerts = async () => {
-            certs.value = await $axios.$get(`${process.env.apiUrl}/api/Certifications`);
+            certs.value = await $api.$get(`/api/Certifications`);
         }
         onMounted(fetchCerts)
         return { groupedReports, fetching, error, reports, certs }
