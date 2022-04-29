@@ -403,10 +403,7 @@ import { statesArr } from "@/data/states"
                   customerSignDate: this.cusSigDateFormatted,
                   teamMember: this.getUser.name
                 };
-                this.$api.$post("/api/credit-card/new", {
-                  params: {
-                    cardnumber: this.cardNumber
-                  }}, post).then((res) => {
+                this.$api.$post(`/api/credit-card/new?cardnumber=${this.cardNumber}`, post).then((res) => {
                     if (res.error) {
                       this.errorMessage = res.message
                       this.isSubmitted = false
