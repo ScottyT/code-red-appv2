@@ -1,7 +1,7 @@
 <template>
   <div class="folder-contents-wrapper">
     <h1 v-uppercase>{{currentFolder}}</h1>
-    <UiBreadcrumbs page="storage" />
+    <UiBreadcrumbs page="storage" :darkMode="false" />
     <LazyFolderContents :jobid="repId" :path="currentFolder" subPath="" delimiter="/" />
   </div>
 </template>

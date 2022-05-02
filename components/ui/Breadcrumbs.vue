@@ -2,14 +2,14 @@
     <div class="breadcrumb-wrapper">
         <div class="breadcrumb-wrapper__back">
             <a class="button button--normal" @click="$router.back()">
-                <v-icon>mdi-chevron-left</v-icon>Go back
+                <v-icon :dark="!darkMode" :light="darkMode">mdi-chevron-left</v-icon>Go back
             </a>
         </div>
         <nav class="breadcrumb-wrapper__breadcrumb" aria-label="breadcrumbs" v-if="displayStrip">
             <ul>
                 <li v-for="(item, i) in breadList" :key="`breadcrumb-${i}`" :class="item.classes">
                     <nuxt-link v-if="item.name !== name" :to="`/${item.path}`" exact>{{item.meta.title}}</nuxt-link>
-                    <v-icon v-if="item.name !== name" class="breadcrumb-wrapper__breadcrumb--icon">mdi-chevron-right</v-icon>
+                    <v-icon :dark="!darkMode" :light="darkMode" v-if="item.name !== name" class="breadcrumb-wrapper__breadcrumb--icon">mdi-chevron-right</v-icon>
                 </li>
             </ul>
         </nav>
@@ -27,6 +27,11 @@ export default {
       type: Boolean,
       default: true,
       required: false
+    },
+    // This is for making the icon use dark or light lettering. For dark mode it uses light
+    darkMode: {
+      type: Boolean,
+      default: true
     }
   },
   data: () => ({

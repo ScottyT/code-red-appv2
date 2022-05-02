@@ -28,12 +28,22 @@
       </v-card>
     </v-dialog>
     <div class="reports-list__reports" :class="darkMode ? 'reports-list__reports--dark' : ''">
-      <transition-group class="reports-list__reports-wrapper" name="flip-list" tag="div">
-        <div class="reports-list__report flip-list-item" v-for="(report, i) in reports" :key="`report-type-${i}`">
-          <nuxt-link class="reports-list__report-link" :to="`/storage/${report.JobId}`" v-if="page == 'storagePage'">
-            <h3>{{report.JobId}}</h3>
-          </nuxt-link>
-        </div>
+      <transition-group class="reports-list__reports-wrapper" name="flip-list" tag="div" v-if="reportslist.length > 0">
+          <div class="reports-list__report flip-list-item" v-for="(report, i) in reports" :key="`report-type-${i}`">
+            <nuxt-link class="reports-list__report-link" :to="`/storage/${report.JobId}`" v-if="page == 'storagePage'">
+              <h3>{{report.JobId}}</h3>
+            </nuxt-link>
+          </div>
+      </transition-group>
+      <transition-group class="reports-list__reports-wrapper" name="flip-list" tag="div" v-if="sketchlist.length > 0">
+          <div class="reports-list__report flip-list-item" v-for="(report, i) in sketches" :key="`sketches-${i}`">
+            <nuxt-link class="reports-list__report-link" :to="`/field-jacket/sketches/${report.JobId}`" v-if="page == 'sketches'">
+              <h3>{{report.JobId}}</h3>
+            </nuxt-link>
+            <nuxt-link class="reports-list__report-link reports-list__report-link--pdf" :to="`/field-jacket/sketches/${report.JobId}`" v-if="page == 'sketches-jobid'">
+              <h3>{{report.JobId}}</h3>
+            </nuxt-link>
+          </div>
       </transition-group>
     </div>
   </div>
@@ -44,7 +54,7 @@ import genericFuncs from '@/composable/utilityFunctions'
 import axios from 'axios'
 export default {
   name: "ReportsList",
-  props: ['reportslist','sortoptions', 'page', "items", 'darkMode'],
+  props: ['reportslist', 'sketchlist', 'sortoptions', 'page', "items", 'darkMode'],
   data: () => ({
     search: null,
     report: {},
@@ -94,6 +104,19 @@ export default {
   },
   mounted() {
     this.reports = this.reportslist
+    const map = new Map();
+    for (const item of this.sketchlist) {
+      if (!map.has(item.JobId)) {
+        map.set(item.JobId, true);
+        this.sketches.push({
+          JobId: item.JobId,
+          Title: item.Title,
+          sketch: item.sketch,
+          ReportType: item.ReportType,
+          notes: item.notes
+        })
+      }
+    }
   }
 }
 </script>
@@ -182,6 +205,10 @@ export default {
 
     p {
       margin-bottom:5px;
+    }
+
+    &--pdf {
+      background-image:url('/pdf-icon.png');
     }
   }
 
