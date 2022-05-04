@@ -6,9 +6,15 @@
         </div>
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center" v-uppercase>{{reportName}}</h2>
-        <div class="pdf-item__inline">
-          Job ID: {{report.JobId}}
+        <div class="pdf-item report-details__section">
+            <div class="report-details__data">
+                Job ID: {{report.JobId}}
+            </div>
+            <div class="report-details__data report-details__data--row">
+                Title of sketch: <p>{{type}} {{title}}</p>
+            </div>
         </div>
+        
         <div class="pdf-item__sketch-area" :style="'background-image:url('+report.sketch+')'"></div>
         <div class="pdf-item report-details__section">
             <label class="form__label">Notes:</label>
@@ -23,6 +29,19 @@ export default {
     data() {
         return {
             charting: null,
+            title: "",
+            type: ""
+        }
+    },
+    watch: {
+        report(val) {
+            var title = val.Title.charAt(0).toUpperCase() + val.Title.slice(1)
+            var type = this.reportType.split('-')
+            for (var i = 0; i < type.length; i++) {
+                type[i] = type[i].charAt(0).toUpperCase() + type[i].substring(1)
+            }
+            this.title = title
+            this.type = type.join(' ')
         }
     },
     methods: {
@@ -32,7 +51,6 @@ export default {
             return base64string
         },
         generateReport(key) {
-            //this.htmlToPdfOptions.filename = `coc-${this.report[key].JobId}`
             this.$refs["html2Pdf-" + key].generatePdf()
         },
     }

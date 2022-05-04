@@ -40,9 +40,6 @@
             <nuxt-link class="reports-list__report-link" :to="`/field-jacket/sketches/${report.JobId}`" v-if="page == 'sketches'">
               <h3>{{report.JobId}}</h3>
             </nuxt-link>
-            <nuxt-link class="reports-list__report-link reports-list__report-link--pdf" :to="`/field-jacket/sketches/${report.JobId}`" v-if="page == 'sketches-jobid'">
-              <h3>{{report.JobId}}</h3>
-            </nuxt-link>
           </div>
       </transition-group>
     </div>

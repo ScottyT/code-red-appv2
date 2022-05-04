@@ -3,12 +3,17 @@
     <div class="pa-6 sketches-wrapper" v-else>
         <UiBreadcrumbs page="sketches" />
         <button class="button--normal" type="button" @click="$fetch">Refresh</button>
+        <div class="info-bar">
+            <div class="info-bar__search-wrapper">
+                <UiAutocomplete @sendReportsToParent="sketchesFetched" :items="sketches" theme="light" searchKey="ReportType" />
+            </div>
+        </div>
         <h2>{{$route.params.jobid}} job</h2>
         <p>Touch or click on a pdf to download it</p>
         <div class="grid grid--default">
-            <div class="sketches-wrapper__sketch" v-for="(item, i) in sketches" :key="`sketch-${i}`" @click="pdfClicked(item)">
+            <div class="sketches-wrapper__sketch" v-for="(item, i) in sketchList" :key="`sketch-${i}`" @click="pdfClicked(item)">
                 <img class="pdf" src="/pdf-icon.png" alt="pdf-icon" />
-                <p>{{item.ReportType}}-{{item.Title}}</p>
+                <p v-uppercase>{{item.ReportType}}-{{item.Title}}</p>
             </div>
         </div>
         
@@ -23,7 +28,7 @@
     </div>
 </template>
 <script>
-import { defineComponent, useContext, computed, ref } from '@nuxtjs/composition-api'
+import { defineComponent, useContext, computed, ref, onMounted, watch } from '@nuxtjs/composition-api'
 import useSketches from '@/composable/sketches'
 import useReports from '@/composable/reports' //Using this just to import beforeDownload for pdf
 
@@ -31,6 +36,7 @@ export default defineComponent({
     setup(props, {refs, root}) {
         const { getSketchesByJobId, sketches } = useSketches()
         const sketch = ref({})
+        const sketchList = ref([])
         const { beforeDownload } = useReports()
 
         const htmlToPdfOptions = computed(() => {
@@ -56,6 +62,9 @@ export default defineComponent({
             }
         })
 
+        function sketchesFetched(item) {
+            sketchList.value = item.value
+        }
         function getSketchData(item) {
             return new Promise((resolve, reject) => {
                 sketch.value = item
@@ -69,12 +78,17 @@ export default defineComponent({
         }
 
         getSketchesByJobId(root.$route.params.jobid)
+        watch(() => sketches.value, (val) => {
+            sketchList.value = val
+        })
         return {
             sketches,
             sketch,
             htmlToPdfOptions,
             beforeDownload,
-            pdfClicked
+            pdfClicked,
+            sketchesFetched,
+            sketchList
         }
     },
 })
