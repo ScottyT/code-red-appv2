@@ -56,68 +56,80 @@
                     </ValidationProvider>
                 </div>
                 <div class="form__form-group inventory-list">
-                    <!-- <div class="d-flex">
+                    <div class="d-flex">
                         <h3 class="pr-5">Inventory</h3>
                         <button type="button" class="button button--normal" @click="addRow(inventoryList.length)">Add row</button>
-                        <button type="button" class="button button--normal p1-5" v-show="selectedItems.length > 0" @click="deleteRow">Delete row(s)</button>
-                        <button type="button" class="button button--normal" v-show="selectedItems.length > 0" @click="selectedItems = []">Clear selection</button>
-                    </div> -->
+                        <!-- <button type="button" class="button button--normal p1-5" v-show="selectedItems.length > 0" @click="deleteRow">Delete row(s)</button>
+                        <button type="button" class="button button--normal" v-show="selectedItems.length > 0" @click="selectedItems = []">Clear selection</button> -->
+                    </div>
                     <div class="form__form-group flex-column inventory-list__table">
                         <div class="inventory-list__heading inventory-list__row">
                             <div :id="`inventory-list__${item.id}`" class="inventory-list__col" v-for="item in inventoryList[0].cols" :key="`${item.id}`" v-uppercase>{{item.label}}</div>
                         </div>
-                        <div class="inventory-list__rows">
-                            <div class="inventory-list__row" v-for="(row, i) in inventoryList" :key="`row-${i}`" :ref="`row-${i}`"
-                                v-on="(selectedItems.findIndex(o => o.item_num === row.item_num) > -1) ? { click: ($event) => selectRow(row.item_num) } : {}"
-                                @touchstart="!editing ? pressingDown($event, i) : null" @touchend="notPressingDown($event)"
-                                :class="selectedItems.findIndex(o => o.item_num === row.item_num) > -1 ? 'selected':''" >
-                                <span class="inventory-list__checkbox" @click="selectRow(row.item_num)">
-                                    <input type="checkbox" class="form__input" :checked="selectedItems.findIndex(o => o.item_num === row.item_num) > -1" />
-                                </span>
-                                <div class="inventory-list__col">
-                                    <input :id="`${i}-itemnumber`" type="number" class="form__input" v-model="inventoryList[i].item_num" />
+                        <div class="inventory-list__row" v-for="(row, i) in inventoryList" :key="`row-${i}`" :ref="`row-${i}`"
+                             v-on="(selectedItems.findIndex(o => o.item_num === row.item_num) > -1) ? { click: ($event) => selectRow(row.item_num) } : {}"
+                             @touchstart="!editing ? pressingDown($event, i) : null" @touchend="notPressingDown($event)"
+                             :class="selectedItems.findIndex(o => o.item_num === row.item_num) > -1 ? 'selected':''">
+                            <span class="inventory-list__checkbox" @click="selectRow(row.item_num)">
+                                <input type="checkbox" class="form__input"
+                                       :checked="selectedItems.findIndex(o => o.item_num === row.item_num) > -1" />
+                            </span>
+                            <div class="inventory-list__col">
+                                <input :id="`${i}-itemnumber`" type="number" class="form__input"
+                                       v-model="inventoryList[i].item_num" />
+                            </div>
+                            <div class="inventory-list__col">
+                                <input :id="`${i}-description`" type="text" class="form__input"
+                                       v-model="row.cols[1].value" />
+                            </div>
+                            <div class="inventory-list__col">
+                                <UiImageUpload @getFiles="addFilesToInventory($event[0], i)"
+                                               errorText="an error happened" :email="user.email" :maxSize="2048"
+                                               name="item-image" :additionalData="{itemNum: inventoryList[i].item_num}">
+                                    <template v-slot:activator>
+                                        <button v-show="row.cols[2].value === ''" type="button"
+                                                class="button button--normal">Add image</button>
+                                    </template>
+                                    <template v-slot:imagePreview="slotProps" v-if="row.cols[2].value.includes('.jpg')">
+                                        <img v-show="slotProps.image !== ''" class="file-listing__preview"
+                                             :src="slotProps.image" />
+                                    </template>
+                                </UiImageUpload>
+
+                                <div class="inventory-list__item-image--preview" v-if="images.length > 0 && !row.cols[2].value.includes('.jpg')">
+                                    <img v-show="images[i] !== undefined" :src="row.cols[2].value" />
                                 </div>
-                                <div class="inventory-list__col">
-                                    <input :id="`${i}-description`" type="text" class="form__input" v-model="row.cols[1].value" />
-                                </div>
-                                <div class="inventory-list__col">
-                                    <UiImageUpload @getFiles="addFilesToInventory($event[0], i)" errorText="an error happened" :email="user.email" :maxSize="2048"
-                                        name="item-image" :additionalData="{itemNum: inventoryList[i].item_num}">
-                                        <template v-slot:activator>
-                                            <button v-show="row.cols[2].value === ''" type="button" class="button button--normal">Add image</button>
-                                        </template>
-                                        <template v-slot:imagePreview="slotProps">
-                                            <img v-show="slotProps.image !== ''" class="file-listing__preview" :src="slotProps.image" />
-                                        </template>
-                                    </UiImageUpload>
-                                    
-                                    <div class="inventory-list__item-image--preview" v-if="images.length > 0">
-                                        <img v-show="images[i] !== undefined" :src="row.cols[2].value" />
-                                    </div>
-                                </div>
-                                
-                                <div class="inventory-list__col" id="inventory-list__restored">
-                                    <input type="checkbox" :disabled="editing" class="form__input" v-model="row.cols[3].value" />
-                                </div>
-                                <div class="inventory-list__col" id="inventory-list__disposed">
-                                    <input type="checkbox" :disabled="editing" class="form__input" v-model="row.cols[4].value" />
-                                </div>
-                                <div class="inventory-list__col" id="inventory-list__stored">
-                                    <input type="checkbox" :disabled="editing" class="form__input" v-model="row.cols[5].value" />
-                                </div>
-                                <div class="inventory-list__col" id="inventory-list__qty">
-                                    <input :ref="`${i}-qty`" :min="0" type="number" class="form__input" v-model="row.cols[6].value" @change="setSubtotalValue(i)" />
-                                </div>
-                                <div class="inventory-list__col">
-                                    <span class="d-inline-flex align-center"><span>$</span>
-                                    <imask-input :id="`${i}-rcv`" :ref="`${i}-rcv`" class="form__input" :value="row.cols[7].value" :mask="Number" :signed="false" :scale="2" radix="."
-                                        :mapToRadix="['.']" :unmask="true" thousandsSeparator="," :max="1000000" @change="setSubtotalValue(i)"
-                                        @keypress="currencyFormat(row.cols[7].value, $event)" @complete="row.cols[7].value = $event" /></span>
-                                </div>
-                                <div class="inventory-list__col">
-                                    <span class="d-inline-flex align-center"><span>$</span>
-                                    <input :id="`${i}-subtotal`" type="text" class="form__input" readonly v-model="row.cols[8].value" /></span>
-                                </div>
+                            </div>
+
+                            <div class="inventory-list__col" id="inventory-list__restored">
+                                <input type="checkbox" :disabled="editing" class="form__input"
+                                       v-model="row.cols[3].value" />
+                            </div>
+                            <div class="inventory-list__col" id="inventory-list__disposed">
+                                <input type="checkbox" :disabled="editing" class="form__input"
+                                       v-model="row.cols[4].value" />
+                            </div>
+                            <div class="inventory-list__col" id="inventory-list__stored">
+                                <input type="checkbox" :disabled="editing" class="form__input"
+                                       v-model="row.cols[5].value" />
+                            </div>
+                            <div class="inventory-list__col" id="inventory-list__qty">
+                                <input :ref="`${i}-qty`" :min="0" type="number" class="form__input"
+                                       v-model="row.cols[6].value" @change="setSubtotalValue(i)" />
+                            </div>
+                            <div class="inventory-list__col">
+                                <span class="d-inline-flex align-center"><span>$</span>
+                                    <imask-input :id="`${i}-rcv`" :ref="`${i}-rcv`" class="form__input"
+                                                 :value="row.cols[7].value" :mask="Number" :signed="false" :scale="2"
+                                                 radix="." :mapToRadix="['.']" :unmask="true" thousandsSeparator=","
+                                                 :max="1000000" @change="setSubtotalValue(i)"
+                                                 @keypress="currencyFormat(row.cols[7].value, $event)"
+                                                 @complete="row.cols[7].value = $event" /></span>
+                            </div>
+                            <div class="inventory-list__col">
+                                <span class="d-inline-flex align-center"><span>$</span>
+                                    <input :id="`${i}-subtotal`" type="text" class="form__input" readonly
+                                           v-model="row.cols[8].value" /></span>
                             </div>
                         </div>
                     </div>
@@ -276,11 +288,9 @@ export default defineComponent({
             })
             for (var i = 0; i < uploadarr.length; i++) {
                 const file = await compressing(uploadarr[i])
-                console.log("file:", file)
-                await axios.post(`${process.env.serverUrl}/api/image/upload/content-inventory-image`, file, {
+                await $api.$post(`/api/image/upload/content-inventory-image`, file, {
                     headers: {
-                        'Content-Type': 'multipart/form-data',
-                        'Authorization': `${$auth.strategy.token.get()}`
+                        'Content-Type': 'multipart/form-data'
                     }
                 }).then((res) => {
                     imageIds.value.push(res.data)
@@ -529,7 +539,6 @@ export default defineComponent({
                     reportId.value = Id
                     imageIds.value = image_ids
                     
-
                     result.inventoryImages.forEach((image) => {
                         images.value.push({
                             image: image.img,
@@ -623,16 +632,12 @@ export default defineComponent({
     display:flex;
     flex-direction:column;
     justify-content: space-between;
-    max-width:750px;
-    
-    @include respond(mobileLarge) {
-        overflow-x:unset;
-    }
-    overflow-x:scroll;
     &__table {
         height:auto;
         position: relative;
         left:10px;
+        min-width:702px;
+        max-width:750px;
     }
     &__row {
         position:relative;

@@ -33,6 +33,10 @@
                 <v-icon>mdi-form-select</v-icon>
                 <p>PDF viewable contracts</p>
             </nuxt-link>
+            <nuxt-link class="profile-menu__dropdown-menu--item" to="/field-jacket/sketches">
+                <v-icon>mdi-form-select</v-icon>
+                <p>Sketches</p>
+            </nuxt-link>
             <a class="profile-menu__dropdown-menu--item">
                 <v-icon>{{$auth.loggedIn ? 'mdi-logout-variant' : 'mdi-login-variant'}}</v-icon>
                 <p @click="$auth.logout('auth0')">{{$auth.loggedIn ? "Logout" : "Login"}}</p>

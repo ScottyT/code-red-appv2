@@ -1,6 +1,6 @@
 <template>
   <div>
-    <UiAutocomplete :items="reports" @sendReportsToParent="reportsFetched" :theme="pagetheme" />
+    <UiAutocomplete :items="reports" @sendReportsToParent="reportsFetched" :theme="pagetheme" searchKey="JobId" />
 
     <UiDataPagination :items="reportslist" :itemsPerPage="4" :itemStyle="flex ? 'data-list--flex' : 'data-list--grid'" :themeMode="theme" :visiblePageNumbers="visiblePages">
         <template v-slot:content="slotProps">

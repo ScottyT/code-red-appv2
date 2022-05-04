@@ -232,10 +232,14 @@
                   @click="saveMap">{{ moistureMap.data !== '' ? 'Saved' : 'Save' }}</button>
                 <button type="button" class="button--normal" @click="undoMap">Undo</button>
                 <div class="map-wrapper__pen">
-                  <span class="map-wrapper__pen-color" aria-label="black" @click="penColor = '#000'" style="background:#000"></span>
-                  <span class="map-wrapper__pen-color" aria-label="shallow-water" @click="penColor = '#6c8ce6'" style="background:#6c8ce6"></span>
-                  <span class="map-wrapper__pen-color" aria-label="normal-water" @click="penColor = '#3047f1'" style="background:#3047f1"></span>
-                  <span class="map-wrapper__pen-color" aria-label="deep-water" @click="penColor = '#0a2177'" style="background:#0a2177"></span>
+                  <span class="map-wrapper__pen-color" aria-label="black" :class="penColor === '#000'?'active' : ''"
+                        @click="changePenColor(0)" style="background:#000"></span>
+                  <span class="map-wrapper__pen-color" :class="penColor === '#6c8ce6'?'active' : ''"
+                        aria-label="shallow-water" @click="changePenColor(1)" style="background:#6c8ce6"></span>
+                  <span class="map-wrapper__pen-color" :class="penColor === '#3047f1'?'active' : ''"
+                        aria-label="normal-water" @click="changePenColor(2)" style="background:#3047f1"></span>
+                  <span class="map-wrapper__pen-color" :class="penColor === '#0a2177'?'active' : ''"
+                        aria-label="deep-water" @click="changePenColor(3)" style="background:#0a2177"></span>
                 </div>
               </div>
             </div>
@@ -770,7 +774,8 @@
         lazy: false
       },
       hasJobid: false,
-      teamMemberSignDate: ''
+      teamMemberSignDate: '',
+      penColorArr: ["#000", "#6c8ce6", "#3047f1", "#0a2177"]
     }),
     watch: {
       timeOfDispatch(val) {
@@ -831,6 +836,9 @@
       onAccept(e) {
         const maskRef = e.detail;
         this.cusSignTime = maskRef.value
+      },
+      changePenColor(selectedIndex) {
+        this.penColor = this.penColorArr[selectedIndex]
       },
       undoMap() {
         this.$refs.map.undoSignature()
@@ -1023,53 +1031,5 @@
   .signature-area {
     max-width: 700px;
   }
-  .map-wrapper {
-    position:relative;
-    width:100%;
-    max-width:660px;
-    margin:auto;
-    
-    &__canvas {
-      position:absolute;
-      width:100%;
-      height:100%;
-      top:0;
-      height:0;
-      
-    }
-    &__map {
-      border-left:1px solid $color-black;
-      border-right:1px solid $color-black;
-      height:100%;
-      
-      &--row {
-        height:19px;
-        border-top:1px solid $color-black;
-        display:flex;
-        flex-direction:row;
-        
-        &:not(:first-child) {
-          border-top:0px solid $color-black;
-          border-bottom:0;
-        }
-      }
-      &--col {
-        flex:1 0 auto;
-        border:1px solid $color-black;
-        height:100%;
-      }
-    }
-    &__pen {
-      display:flex;
-      max-width:300px;
-      width:100%;
-      justify-content:space-between;
-      float:right;
-    }
-    &__pen-color {
-      border-radius:50%;
-      width:50px;
-      height:50px;
-    }
-  }
+  
 </style>

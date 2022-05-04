@@ -42,15 +42,6 @@
             </client-only>
             <LazyLayoutCaseFileDetails :form_name="report.ReportType" :notPdf="true" :report="report" />
         </span>
-        <span v-if="report.formType === 'sketch-report'">
-            <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
-            <client-only>
-                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="900" :manual-pagination="false"
-                 :show-layout="false" @hasDownloaded="hasDownloaded($event)" :preview-modal="false" ref="html2Pdf0">
-                    <PdfSketch :reportName="report.ReportType" :reportType="reportType" :report="report" company="Water Emergency Services Incorporated" slot="pdf-content" />
-                </vue-html2pdf>
-            </client-only>
-        </span>
         <span v-if="report.formType === 'logs-report' && report.ReportType !== 'moisture-map' && report.ReportType !== 'personal-content-inventory'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
             <client-only>
@@ -152,9 +143,6 @@ export default defineComponent({
             refs["html2Pdf"+key].generatePdf()
         }
         function hasDownloaded(blob) {
-            uploadPdf(blob).then(() => {
-                console.log("uploaded pdf")
-            })
             clickedOn.value = null
         }
         async function uploadPdf(file) {

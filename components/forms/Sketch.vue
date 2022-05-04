@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="onSubmit">
+            <form class="form" @submit.prevent="onSubmit" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" name="Job ID" v-slot="{errors}" rules="required" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -22,7 +22,12 @@
                             <option v-for="(item, i) in $store.state.reports.jobids" :key="`jobid-${i}`">{{item}}</option>
                         </select>
                         <span class="form__input--error">{{ errors[0] }}</span>
-                    </ValidationProvider>                   
+                    </ValidationProvider>
+                    <ValidationProvider vid="Title" name="Title" v-slot="{errors}" class="form__input-group form__input-group--normal">
+                        <label class="form__label">Title:</label>
+                        <input type="text" v-model="title" class="form__input" />
+                        <span class="form__input--error">{{ errors[0] }}</span>
+                    </ValidationProvider>
                 </div>
                 <div class="form__form-group">
                     <ValidationProvider v-slot="{errors}" vid="sketch" rules="required" name="Sketch" class="form__input form__input--sketch">
@@ -34,18 +39,22 @@
                             </button>
                             <button type="button" class="button--normal" @click="undoMap">Undo</button>
                             <div class="map-wrapper__pen">
-                                <span class="map-wrapper__pen-color" aria-label="black" @click="penColor = '#000'"
+                                <span class="map-wrapper__pen-color" aria-label="black" :class="penColor === '#000'?'active' : ''" @click="changePenColor(0)"
                                       style="background:#000"></span>
-                                <span class="map-wrapper__pen-color" aria-label="shallow-water"
-                                      @click="penColor = '#6c8ce6'" style="background:#6c8ce6"></span>
-                                <span class="map-wrapper__pen-color" aria-label="normal-water"
-                                      @click="penColor = '#3047f1'" style="background:#3047f1"></span>
-                                <span class="map-wrapper__pen-color" aria-label="deep-water"
-                                      @click="penColor = '#0a2177'" style="background:#0a2177"></span>
+                                <span class="map-wrapper__pen-color" :class="penColor === '#6c8ce6'?'active' : ''" aria-label="shallow-water"
+                                      @click="changePenColor(1)" style="background:#6c8ce6"></span>
+                                <span class="map-wrapper__pen-color" :class="penColor === '#3047f1'?'active' : ''" aria-label="normal-water"
+                                      @click="changePenColor(2)" style="background:#3047f1"></span>
+                                <span class="map-wrapper__pen-color" :class="penColor === '#0a2177'?'active' : ''" aria-label="deep-water"
+                                      @click="changePenColor(3)" style="background:#0a2177"></span>
                             </div>
                         </div>
                         <span class="form__input--error">{{ errors[0] }}</span>
                     </ValidationProvider>
+                </div>
+                <div class="form__form-group">
+                    <label class="form__label">Notes</label>
+                    <textarea class="form__input form__input--textarea" v-model="notes"></textarea>
                 </div>
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
@@ -55,12 +64,17 @@
 </template>
 <script>
 import { defineComponent, useStore, computed, ref, onMounted } from '@nuxtjs/composition-api'
+import {mapActions} from 'vuex'
 export default defineComponent({
     props: ['formname'],
     setup(props, {root, refs}) {
         const store = useStore()
         const sketchRef = ref(null)
+        const penColorArr = ref(["#000", "#6c8ce6", "#3047f1", "#0a2177"])
         const penColor = ref("#000")
+        const notes = ref("")
+        const submitted = ref(false)
+        const title = ref("")
         const user = computed(() => store.getters['users/getUser']); const getReports = computed(() => store.getters['reports/getReports']);
         const isUserAuth = computed(() => store.getters['users/isLoggedIn']);
         
@@ -69,6 +83,9 @@ export default defineComponent({
         function clear() {
             sketchRef.value.clearSignature();
             sketchData.value.data = null; sketchData.value.isEmpty = true
+        }
+        function changePenColor(selectedIndex) {
+            penColor.value = penColorArr.value[selectedIndex]
         }
         function save() {
             const { data, isEmpty } = sketchRef.value.saveSignature();
@@ -90,24 +107,33 @@ export default defineComponent({
             penColor,
             clear, save, onBegin, undoMap,
             sketchData,
+            title,
             sketchFormData,
             selectedJobId,
             submittedMessage,
             errorDialog,
             submitting,
+            submitted,
             user, getReports,
-            loggedIn: computed(() => isUserAuth.value)
+            loggedIn: computed(() => isUserAuth.value),
+            changePenColor,
+            notes
         }
     },
     methods: {
+        ...mapActions({
+            fetchReports: "reports/fetchReports"
+        }),
         onSubmit() {
             this.submittedMessage = ""
             const post = {
                 JobId: this.selectedJobId,
+                title: this.title,
                 teamMember: this.user,
                 sketch: this.sketchData.data,
                 ReportType: this.$route.params.uid,
-                formType: 'sketch-report'
+                formType: 'sketch-report',
+                notes: this.notes
             };
             this.submitting = true
             this.$refs.form.validate().then(success => {
@@ -116,7 +142,7 @@ export default defineComponent({
                     this.errorDialog = true
                     return;
                 }
-                this.$api.$post(`/api/reports/${post.ReportType}/new`, post, {params: {jobid: this.selectedJobId}}).then((res) => {
+                this.$api.$post(`/api/sketch`, post).then((res) => {
                     if (res.error) {
                         this.errorDialog = true
                         this.submitting = false
@@ -125,13 +151,13 @@ export default defineComponent({
                         })
                         return
                     }
+                    this.fetchReports()
                     this.submittedMessage = res
                     this.submitting = false
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                    this.submitted = true
                 }).catch(err => {
                     this.submitting = false
+                    this.submitted = false
                     console.error(err)
                 })
             })

@@ -21,7 +21,7 @@ export default defineComponent({
         const isOnline = computed(() => root.$nuxt.isOnline)
         const { getReports, groupedReports, filterConditions, error, reports } = useReports()
         //Here change dispatch and rapid-response formType to initialForms when deleting the old test reports and updating job 21-0002
-        filterConditions(["initialForms", "chart-report", "upholstery-form", "case-report", "logs-report", "sketch-report", "quality-control"])
+        filterConditions(["initialForms", "chart-report", "upholstery-form", "case-report", "logs-report", "quality-control"])
         getReports(true, true, true)
         const fetchCerts = async () => {
             certs.value = await $api.$get(`/api/Certifications`);

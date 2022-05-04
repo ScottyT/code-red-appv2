@@ -20,15 +20,16 @@ export default {
         theme: {
             type: String,
             default: 'dark'
-        }
+        },
+        searchKey: String
     },
     setup(props, context) {
-        const { items } = toRefs(props)
+        const { items, searchKey } = toRefs(props)
         const search = ref('')
         const focused = ref(false)
         const reportsMatchingSearch = computed(() => {
             return items.value.filter(
-                item => item.JobId.indexOf(search.value) >= 0
+                item => item[searchKey.value].indexOf(search.value) >= 0
             )
         })
         const sendReportsToParent = () => {
