@@ -9,32 +9,32 @@
         <div class="report-details__section">
           <div class="report-details__data">
             <h3>Team Lead ID #:</h3>
-            <span>{{repData.id}}</span>
+            <span>{{report.id}}</span>
           </div>
           <div class="report-details__data">
             <h3>Job ID:</h3>
-            <span>{{repData.JobId}}</span>
+            <span>{{report.JobId}}</span>
           </div>
           <div class="report-details__data">
             <h3>Date of Call:</h3>
-            <span>{{repData.dateFormatted}}</span>
+            <span>{{report.dateFormatted}}</span>
           </div>
           <div class="report-details__data">
             <h3>Time of call:</h3>
-            <span>{{repData.timeFormatted}}</span>
+            <span>{{report.timeFormatted}}</span>
           </div>
         </div>
         <div class="report-details__section report-details__section--contact-group">
           <div class="report-details__section--name-group">
             <div class="report-details__data-label">Caller Name:</div>
-            <span v-if="!isEditing" class="report-details__data-field" v-capital>{{repData && repData.callerName ? repData.callerName.first + ' ' + repData.callerName.last : null}}</span>
+            <span v-if="!isEditing" class="report-details__data-field" v-capital>{{report && report.callerName ? report.callerName.first + ' ' + report.callerName.last : null}}</span>
             <div v-if="isEditing" class="form__input-group--name-group">
               <input type="text" class="form__input" v-model="updatedReport.callerName.first" placeholder="First" />
               <input type="text" class="form__input" v-model="updatedReport.callerName.last" placeholder="Last" />
             </div>
             <div class="report-details__data-label">Arrival Contact Name:</div>
-            <span v-if="!isEditing" class="report-details__data-field" v-capital>{{repData && repData.ArrivalContactName ? 
-              repData.ArrivalContactName.first + ' ' + repData.ArrivalContactName.last : null}}</span>
+            <span v-if="!isEditing" class="report-details__data-field" v-capital>{{report && report.ArrivalContactName ? 
+              report.ArrivalContactName.first + ' ' + report.ArrivalContactName.last : null}}</span>
             <div class="form__input-group--name-group" v-if="isEditing">
               <input type="text" class="form__input" v-model="updatedReport.ArrivalContactName.first" placeholder="First" />
               <input type="text" class="form__input" v-model="updatedReport.ArrivalContactName.last" placeholder="Last" />
@@ -43,30 +43,30 @@
           <div class="report-details__data-label">Address:</div>
           <input class="form__input" v-if="isEditing" v-model="updatedReport.location.address" />
           <span v-if="!isEditing"
-            class="report-details__data-field">{{repData && repData.location ? repData.location.address : null}}</span>
+            class="report-details__data-field">{{report && report.location ? report.location.address : null}}</span>
 
           <div class="report-details__data-label">City, State, Zip:</div>
           <input class="form__input" v-if="isEditing" v-model="updatedReport.location.cityStateZip" />
           <span v-if="!isEditing"
-            class="report-details__data-field">{{repData && repData.location ? repData.location.cityStateZip : null}}</span>
+            class="report-details__data-field">{{report && report.location ? report.location.cityStateZip : null}}</span>
 
           <div class="report-details__data-label">Phone Number:</div>
           <input class="form__input" v-if="isEditing" v-model="updatedReport.phoneNumber" @input="acceptNumber" />
-          <span v-if="!isEditing" class="report-details__data-field">{{repData.phoneNumber}}</span>
+          <span v-if="!isEditing" class="report-details__data-field">{{report.phoneNumber}}</span>
 
           <div class="report-details__data-label">Email Address:</div>
           <input class="form__input" v-if="isEditing" v-model="updatedReport.emailAddress" />
-          <span v-if="!isEditing" class="report-details__data-field">{{repData.emailAddress}}</span>
+          <span v-if="!isEditing" class="report-details__data-field">{{report.emailAddress}}</span>
           <div class="report-details__checklist">
             <div class="report-details__data-label">Property Checklist</div>
             <ul>
-              <li v-for="item in repData.propertyChkList" :key="item.id">{{item}}</li>
+              <li v-for="item in report.propertyChkList" :key="item.id">{{item}}</li>
             </ul>
           </div>
         </div>
 
         <div class="pdf-item report-details__section">
-          <div class="report-details__data" v-for="(item, i) in repData.intrusion" :key="`intrusion-${i}`">
+          <div class="report-details__data" v-for="(item, i) in report.intrusion" :key="`intrusion-${i}`">
             <label class="form__label">{{item.label}}</label>
             <span>{{item.value}}</span>
           </div>
@@ -74,16 +74,16 @@
         <div class="pdf-item report-details__section">
           <div class="report-details__data">
             <h3>Appointment time set for:</h3>
-            <span>{{repData.appointmentTime}}</span>
+            <span>{{report.appointmentTime}}</span>
 
           </div>
           <div class="report-details__data">
             <h3>Date of Appointment:</h3>
-            <span>{{repData.appointmentDate}}</span>
+            <span>{{report.appointmentDate}}</span>
           </div>
           <div class="report-details__data">
             <h3>15-Minute ETA Verification Call Time:</h3>
-            <span v-if="!isEditing">{{repData.callTimeUpdate}}</span>
+            <span v-if="!isEditing">{{report.callTimeUpdate}}</span>
             <span v-if="isEditing">
               <v-dialog ref="calltimeupdate" v-model="callTimeModal" :return-value.sync="callTime" persistent
                 width="400px">
@@ -102,7 +102,7 @@
           </div>
           <div class="report-details__data">
             <h3>Text ETA Verification Time:</h3>
-            <span v-if="!isEditing">{{repData.textTimeUpdate}}</span>
+            <span v-if="!isEditing">{{report.textTimeUpdate}}</span>
             <span v-if="isEditing">
               <v-dialog ref="texttimeupdate" v-model="textTimeModal" :return-value.sync="textEtaTime" persistent width="400px">
                 <template v-slot:activator="{ on, attrs }">
@@ -122,15 +122,7 @@
           <div class="report-details__data form__input-group--long">
             <h3>Summary of Call:</h3>
             <textarea class="form__input form__input--textarea" v-if="isEditing" v-model="updatedReport.summary"></textarea>
-            <span v-if="!isEditing">{{repData.summary}}</span>
-          </div>
-          <div class="report-details__data">
-            <h3>Created at</h3>
-            <div>{{newCreatedAt}}</div>
-          </div>
-          <div class="report-details__data" v-if="repData.updatedAt">
-            <h3>Updated at</h3>
-            <div>{{new Date(repData.updatedAt)}}</div>
+            <span v-if="!isEditing">{{report.summary}}</span>
           </div>
         </div>
         <UiStorageImages class="report-details__section--pictures" v-for="(group, j) in imageFolders" :key="`group-${j}`" :imageArr="images" :jobid="report.JobId" :subPath="group.name" 
@@ -185,16 +177,7 @@ import genericFuncs from '@/composable/utilityFunctions'
       },
       textEtaTime(val) {
         this.updatedReport.textTimeUpdate = this.formatTime(val)
-      }
-    },
-    computed: {
-      newCreatedAt() {
-        const timestamp = new Date(this.report.createdAt)
-        return timestamp
       },
-      ...mapGetters({
-        repData: 'reports/getReport'
-      })
     },
     methods: {
       ...mapActions({
@@ -221,9 +204,9 @@ import genericFuncs from '@/composable/utilityFunctions'
         this.updatedReport.emailAddress = this.report.emailAddress
         this.updatedReport.phoneNumber = this.report.phoneNumber
         this.updatedReport.callTimeUpdate = this.report.callTimeUpdate === "N/A" ? 
-          this.formatTime(new Date().toTimeString().substr(0, 5)) : this.report.callTimeUpdate
+          this.formatTime(new Date().toTimeString().substring(0, 5)) : this.report.callTimeUpdate
         this.updatedReport.textTimeUpdate = this.report.textTimeUpdate === "N/A" ? 
-          this.formatTime(new Date().toTimeString().substr(0, 5)) : this.report.textTimeUpdate
+          this.formatTime(new Date().toTimeString().substring(0, 5)) : this.report.textTimeUpdate
         this.updatedReport.summary = this.report.summary
       },
       updateReport() {

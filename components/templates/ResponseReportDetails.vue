@@ -21,6 +21,10 @@
         <span>{{report.DateOfLoss}}</span>
       </div>
       <div class="report-details__data">
+        <h3>Time of Dispatch:</h3>
+        <span>{{report.timeOfDispatch}}</span>
+      </div>
+      <div class="report-details__data">
         <h3>Date Of Evaluation:</h3>
         <span>{{report.DateOfEvaluation}}</span>
       </div>
@@ -97,7 +101,7 @@
     </div>
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial1" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial1 : ''" />
     </div>
     <div class="report-details__section">
       <div class="report-details__checklist">
@@ -111,7 +115,7 @@
     </div>
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial2" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial2 : ''" />
     </div>
     <div class="report-details__section">
       <div class="report-details__checklist">
@@ -129,7 +133,7 @@
     
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial3" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial3 : ''" />
     </div>
     
     <div class="report-details__section">
@@ -158,7 +162,7 @@
     <div class="report-details report-details__response-report">
       <div class="report-details__data">
         <label class="form__label">Initial:</label>
-        <img class="report-details__initial" :src="report.initials.initial4" />
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial4 : ''" />
       </div>
       <div class="report-details__section">
         <div class="report-details__data">
@@ -296,7 +300,7 @@ import {fetchReportImages} from '@/composable/reports'
 import { timeMask } from "@/data/masks"
   export default {
     name: 'ResponseReportDetails',
-    props: ['rep', 'notPdf', 'company', 'reportName'],
+    props: ['rep', 'report', 'notPdf', 'company', 'reportName'],
     data: (vm) => ({
       message: '',
       stepsArrLength: '',
@@ -358,9 +362,9 @@ import { timeMask } from "@/data/masks"
         }
         return ""
       },
-      ...mapGetters({
+     /*  ...mapGetters({
         report: "reports/getReport"
-      }),
+      }), */
       ...mapState({
         evaltimes: state => state.reports.report.evaluationLogs
       }),

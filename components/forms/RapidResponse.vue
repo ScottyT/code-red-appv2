@@ -20,16 +20,7 @@
           </ValidationProvider>
           <div class="form__input-group form__input-group--normal">
             <label for="dateOfLoss" class="form__label">Date of Loss</label>
-            <v-dialog ref="dolDialog" v-model="dolModal" :return-value.sync="dateOfLoss" persistent max-width="290px">
-              <template v-slot:activator="{ on, attrs }">
-                <input id="dateOfLoss" v-model="dolFormatted" v-bind="attrs" class="form__input" v-on="on" readonly />
-              </template>
-              <v-date-picker v-if="dolModal" v-model="dateOfLoss" scrollable>
-                <v-spacer></v-spacer>
-                <v-btn text color="#fff" @click="dolModal = false">Cancel</v-btn>
-                <v-btn text color="#fff" @click="$refs.dolDialog.save(dateOfLoss)">OK</v-btn>
-              </v-date-picker>
-            </v-dialog>
+            <UiDatePicker dateId="dateOfLoss" dialogId="dolDialog" @date="dolFormatted = $event" />
           </div>
           <div class="form__input-group form__input-group--normal">
             <label for="timeOfDispatch" class="form__label">Time of Dispatch</label>
@@ -46,16 +37,7 @@
           </div>
           <div class="form__input-group form__input-group--normal">
             <label for="dateOfEval" class="form__label">Date of Evaluation</label>
-            <v-dialog ref="doeDialog" v-model="doeModal" :return-value.sync="dateOfEval" persistent width="400px">
-              <template v-slot:activator="{ on, attrs }">
-                <input id="dateOfEval" v-model="doeFormatted" v-bind="attrs" class="form__input" v-on="on" readonly />
-              </template>
-              <v-date-picker v-model="dateOfEval" scrollable>
-                <v-spacer></v-spacer>
-                <v-btn text color="#fff" @click="doeModal = false">Cancel</v-btn>
-                <v-btn text color="#fff" @click="$refs.doeDialog.save(dateOfEval)">OK</v-btn>
-              </v-date-picker>
-            </v-dialog>
+            <UiDatePicker dateId="dateOfEval" dialogId="doeDialog" @date="doeFormatted = $event" />
           </div>
           <ValidationProvider class="form__input-group form__input-group--very-long">
             <label for="location" class="form__label">Address</label>
@@ -149,21 +131,11 @@
             <div class="form__input-wrapper">
               <div class="form__input--input-group">
                 <label for="dateOfIntrusion" class="form__label">Date of Intrusion</label>
-                <v-dialog ref="dateIntrusionDialog" v-model="intrusionLogsDialog.dateIntrusion" persistent :return-value.sync="dateIntrusion" transition="scale-transition" max-width="320px">
-                  <template v-slot:activator="{ on, attrs }">
-                    <input type="text" id="dateOfIntrusion" v-model="dateIntrusionFormatted" class="form__input" v-bind="attrs" readonly v-on="on" />
-                    <span class="button" @click="dateIntrusion = ''">clear</span>
-                  </template>
-                  <v-date-picker v-if="intrusionLogsDialog.dateIntrusion" v-model="dateIntrusion" scrollable>
-                    <v-spacer></v-spacer>
-                    <v-btn text color="#fff" @click="intrusionLogsDialog.dateIntrusion = false">Cancel</v-btn>
-                    <v-btn text color="#fff" @click="$refs.dateIntrusionDialog.save(dateIntrusion)">OK</v-btn>
-                  </v-date-picker>
-                </v-dialog>
+                <UiDatePicker dateId="dateOfIntrusion" dialogId="dateIntrusionDialog" @date="dateIntrusionFormatted = $event" />
               </div>
               <div class="form__input--input-group">
                 <label for="timeIntrusion" class="form__label">Time of Intrusion</label>
-                <v-dialog ref="timeIntrusion" v-model="intrusionLogsDialog.timeIntrusion" persistent
+                <v-dialog ref="timeIntrusionDialog" v-model="intrusionLogsDialog.timeIntrusion" persistent
                   :return-value.sync="timeIntrusion" transition="scale-transition" max-width="290px" light>
                   <template v-slot:activator="{ on, attrs }">
                     <input type="text" id="timeIntrusion" v-model="timeIntrusionFormatted" class="form__input" readonly v-bind="attrs" v-on="on" />
@@ -172,7 +144,7 @@
                   <v-time-picker v-if="intrusionLogsDialog.timeIntrusion" v-model="timeIntrusion" format="ampm" full-width>
                     <v-spacer></v-spacer>
                     <v-btn text color="#fff" @click="intrusionLogsDialog.timeIntrusion = false">Cancel</v-btn>
-                    <v-btn text color="#fff" @click="$refs.timeIntrusion.save(timeIntrusion)">OK</v-btn>
+                    <v-btn text color="#fff" @click="$refs.timeIntrusionDialog.save(timeIntrusion)">OK</v-btn>
                   </v-time-picker>
                 </v-dialog>
               </div>
@@ -304,7 +276,6 @@
               <label for="adjusterPhone" class="form__label">Adjuster Phone</label>
               <input id="adjusterPhone" :value="adjusterPhone" class="form__input" v-imask="phoneMask" @accpet="adjusterPhone = $event.detail.value"
                 @complete="adjusterPhone = $event.detail.value" />
-              
             </span>
             <ValidationProvider v-slot="{errors}" name="Adjuster email" rules="email" class="form__input-group form__input-group--long">
               <label for="adjusterEmail" class="form__label">Adjuster Email</label>
@@ -461,6 +432,16 @@
         <div class="form__button-wrapper"><button type="submit" class="button form__button-wrapper--submit">{{ submitting ? 'Submitting' : 'Submit' }}</button></div>
       </form>
     </ValidationObserver>
+    <div>
+      <client-only>
+          <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions('rapid-response', jobId)"
+                        :paginate-elements-by-height="1300" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event, `rapid-response-${jobId}`, jobId)"
+                        @hasDownloaded="uploadPdf($event, `rapid-response-${jobId}`, jobId)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
+              <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" slot="pdf-content" :notPdf="false" 
+                :report="postData" />
+          </vue-html2pdf>
+      </client-only>
+    </div>
   </div>
 </template>
 <script>
@@ -468,63 +449,73 @@
   import 'animate.css'
   import goTo from 'vuetify/es5/services/goto'
   import { timeMask, dateMask } from "@/data/masks";
-  export default {
-    name: 'RapidResponse',
-    props: ['slice', 'company', 'abbreviation'],
-    data: (vm) => ({
-      errorDialog: false,
-      sigDialog: false,
-      uploading: false,
-      successMessage: '',
-      errorMessage: [],
-      uploadSuccess: '',
-      submitting: false,
-      submitted: false,
-      jobId: "",
-      timeOfDispatch: new Date().toTimeString().substr(0, 5),
-      timeOfDispatchFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      dateOfLoss: new Date().toISOString().substring(0, 10),
-      dolFormatted: vm.formatDate(new Date().toISOString().substring(0, 10)),
-      dateOfEval: new Date().toISOString().substr(0, 10),
-      doeFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-      arrivalAtProperty: new Date().toTimeString().substr(0, 5),
-      arrivalFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      evalStart: new Date().toTimeString().substr(0, 5),
-      evalStartFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      evalEnd: new Date().toTimeString().substr(0, 5),
-      evalEndFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      contractSigning: new Date().toTimeString().substr(0, 5),
-      contractFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      denialOfServices: null,
-      dosformatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      departureTime: null,
-      departureTimeFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      evalLogsDialog: {
+  import { defineComponent, ref, useStore, computed, nextTick, watch } from '@nuxtjs/composition-api';
+  import genericFuncs from '@/composable/utilityFunctions';
+  import useReports from '@/composable/reports'
+  export default defineComponent({
+    props: {
+      slice: String,
+      company: String,
+      abbreviation: String
+    },
+    setup(props, { refs }) {
+      const { formatDate, formatTime } = genericFuncs()
+      const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+      const store = useStore()
+      const map = ref(null)
+      const errorDialog = ref(false)
+      const sigDialog = ref(false)
+      const uploading = ref(false)
+      const successMessage = ref('')
+      const errorMessage = ref([])
+      const uploadSuccess = ref('')
+      const submitting = ref(false)
+      const submitted = ref(false)
+      const jobId = ref("")
+      const timeOfDispatch = ref(new Date().toTimeString().substr(0, 5))
+      const timeOfDispatchFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const dateOfLoss = new Date().toISOString().substring(0, 10)
+      const dolFormatted = formatDate(new Date().toISOString().substring(0, 10))
+      const dateOfEval = new Date().toISOString().substr(0, 10)
+      const doeFormatted = formatDate(new Date().toISOString().substr(0, 10))
+      const arrivalAtProperty = ref(new Date().toTimeString().substr(0, 5))
+      const arrivalFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const evalStart = ref(new Date().toTimeString().substr(0, 5))
+      const evalStartFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const evalEnd = ref(new Date().toTimeString().substr(0, 5))
+      const evalEndFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const contractSigning = ref(new Date().toTimeString().substr(0, 5))
+      const contractFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const denialOfServices = ref(null)
+      const dosformatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const departureTime = ref(null)
+      const departureTimeFormatted = ref(formatTime(new Date().toTimeString().substr(0, 5)))
+      const evalLogsDialog = ref({
         arrivalAtProperty: false,
         evalStart: false,
         evalEnd: false,
         contractSigning: false,
         denialOfServices: false,
         departureTime: false
-      },
-      todModal: false,
-      dolModal: false,
-      doeModal: false,
-      contactName: {
+      })
+      const todModal = ref(false)
+      const dolModal = ref(false)
+      const doeModal = ref(false)
+      const contactName = ref({
         first: '',
         last:''
-      },
-      propertyOwner: {
+      })
+      const propertyOwner = ref({
         first: '',
         last: ''
-      },
-      phoneNumber: '',
-      emailAddress: '',
-      location: {
+      })
+      const phoneNumber = ref('')
+      const emailAddress = ref('')
+      const location = ref({
         address: null,
         cityStateZip: null,
-      },
-      sourceOfIntrustion: [{
+      })
+      const sourceOfIntrustion = ref([{
           id: 1,
           text: 'Frozen Pipes',
           checked: false
@@ -614,12 +605,12 @@
           text: 'Other',
           checked: false
         }
-      ],
-      intrusionLogsDialog: {
+      ])
+      const intrusionLogsDialog = ref({
         dateIntrusion: false,
         timeIntrusion: false
-      },
-      intrusionSection: [
+      })
+      const intrusionSection = ref([
         { id:'statusOfIntrusion', label: 'Control Status of Intrusion', value: '', type: 'text' },
         { id:'structureType', label: 'Structure Type', value: '', type: 'text' },
         { id:'use', label: 'Use', value: '', type: 'text' },
@@ -628,12 +619,12 @@
         { id:'appxSqft', label: 'Approximate sqft', value: '', type: 'number' },
         { id:'numberOfRooms', label: 'Number of Rooms', value: '', type: 'number' },
         { id:'numberOfFloors', label: 'Number of Floors', value: '', type: 'text' }
-      ],
-      dateIntrusion: new Date().toISOString().substr(0, 10),
-      dateIntrusionFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-      timeIntrusion: null,
-      timeIntrusionFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      preliminaryDetermination: [
+      ])
+      const dateIntrusion = new Date().toISOString().substr(0, 10)
+      const dateIntrusionFormatted = formatDate(new Date().toISOString().substr(0, 10))
+      const timeIntrusion = ref(null)
+      const timeIntrusionFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const preliminaryDetermination = ref([
         "Category 1 Water",
         "Category 2 Water",
         "Category 3 Water",
@@ -643,8 +634,8 @@
         "Occupants Express Contaminates",
         "Believed Aerosolizing",
         "Stop & Determine Contaminates"
-      ],
-      moistureInspection: [
+      ])
+      const moistureInspection = ref([
         {label: "Free Water"},
         {label:"Bound Water"},
         {label:"Water Migration"},
@@ -654,18 +645,18 @@
         {label:"Class 2 (significant)"},
         {label:"Class 3 (more than 40%)"},
         {label:"Class 4 (Deeply Bound)"}
-      ],
-      preRestoreEval:{
+      ])
+      const preRestoreEval = ref({
         emergencyResAct: '',
         buildingMatRestore: '',
         contentEval: '',
         hvacEval: '',
         substructure:''
-      },
-      selectedPreliminary: [],
-      selectedInspection:[],
-      selectedTypes: [],
-      steps: [{
+      })
+      const selectedPreliminary = ref([])
+      const selectedInspection = ref([])
+      const selectedTypes = ref([])
+      const steps = ref([{
           id: 19,
           text: 'Is a TMP required?',
           checked: false
@@ -705,21 +696,21 @@
           text: 'Is a content tech required?',
           checked: false
         }
-      ],
-      selectedSteps: [],
-      picturesCheck:[
+      ])
+      const selectedSteps = ref( [])
+      const picturesCheck = ref( [
         { id: 23, text: 'Arrival Photo of Entrance', checked: false, image:"" },
         { id: 24, text: 'Address Photo of Property', checked: false, image:"" },
         { id: 25, text: 'Site Specific Safety', checked: false, image:""}
-      ],
-      selectedPictures:[],
-      insuranceCompany: '',
-      claimNumber: '',
-      policyNumber: '',
-      adjusterName: '',
-      adjusterPhone: '',
-      adjusterEmail: '',
-      verificationCheckboxes: [{
+      ])
+      const selectedPictures = ref( [])
+      const insuranceCompany = ref( '')
+      const claimNumber = ref( '')
+      const policyNumber = ref( '')
+      const adjusterName = ref( '')
+      const adjusterPhone = ref( '')
+      const adjusterEmail = ref( '')
+      const verificationCheckboxes = ref( [{
           id: 226,
           text: 'The Above property is insured properly and fully'
         },
@@ -731,149 +722,141 @@
           id: 29,
           text: 'Copy or Photo of Customer Photo ID'
         }
-      ],
-      uploadedFiles: [],
-      filesUploading: [],
-      selectedVerification: [],
-      cusSignature: {
+      ])
+      const uploadedFiles = ref( [])
+      const filesUploading = ref( [])
+      const selectedVerification = ref( [])
+      const cusSignature = ref( {
         data: '',
         isEmpty: true
-      },
-      customerName: {
+      })
+      const customerName = ref( {
         first: '',
         last: ''
-      },
-      uploadMessage: '',
-      idImage:[],
-      frontCardImage:[],
-      backCardImage:[],
-      cardImages: [],
-      currentUploadStep: 1,
-      cardZip:"",
-      teamMemberSig: { data: '', isEmpty: true },
-      cusSignTime: "",
-      cusSignDate: "",
-      dateMask: dateMask,
-      timeMask: timeMask,
-      phoneMask: {
+      })
+      const uploadMessage = ref('')
+      const idImage = ref([])
+      const frontCardImage = ref([])
+      const backCardImage = ref([])
+      const cardImages = ref([])
+      const currentUploadStep = ref(1)
+      const cardZip = ref("")
+      const teamMemberSig = ref({ data: '', isEmpty: true })
+      const cusSignTime = ref("")
+      const cusSignDate = ref("")
+      const phoneMask = ref({
         mask: '(000) 000-0000'
-      },
-      initialData: { data: '', isEmpty: true },
-      cusInitial1: null,
-      cusInitial2: null,
-      cusInitial3: null,
-      cusInitial4: null,
-      empSig: '',
-      moistureMap: {
+      })
+      const initialData = ref({ data: '', isEmpty: true })
+      const cusInitial1 = ref(null)
+      const cusInitial2 = ref(null)
+      const cusInitial3 = ref(null)
+      const cusInitial4 = ref(null)
+      const empSig = ref('')
+      const moistureMap = ref({
         data: "",
         isEmpty: true
-      },
-      penColor: "#000",
-      dryStandardMask: {
+      })
+      const penColor = ref("#000")
+      const dryStandardMask = ref({
         mask: "00{%}",
         lazy: false
-      },
-      hasJobid: false,
-      teamMemberSignDate: '',
-      penColorArr: ["#000", "#6c8ce6", "#3047f1", "#0a2177"]
-    }),
-    watch: {
-      timeOfDispatch(val) {
-        this.timeOfDispatchFormatted = this.formatTime(val)
-      },
-      dateOfLoss(val) {
-        this.dolFormatted = this.formatDate(val)
-      },
-      dateOfEval(val) {
-        this.doeFormatted = this.formatDate(val)
-      },
-      arrivalAtProperty(val) {
-        this.arrivalFormatted = this.formatTime(val)
-      },
-      evalStart(val) {
-        this.evalStartFormatted = this.formatTime(val)
-      },
-      evalEnd(val) {
-        this.evalEndFormatted = this.formatTime(val)
-      },
-      contractSigning(val) {
-        this.contractFormatted = this.formatTime(val)
-      },
-      denialOfServices(val) {
-        this.dosformatted = this.formatTime(val)
-      },
-      departureTime(val) {
-        this.departureTimeFormatted = this.formatTime(val)
-      },
-      dateIntrusion(val) {
-        this.dateIntrusionFormatted = this.formatDate(val)
-      },
-      timeIntrusion(val) {
-        this.timeIntrusionFormatted = this.formatTime(val)
-      },
-      jobId(val) {
-        if (val !== '') {
-          this.hasJobid = true
-        } else {
-          this.hasJobid = false
-        }
-      },
-      hasJobid(val) {
-        if (val) {
-          this.animateCSS('initResponse', 'backInUp')
-        }
-      }
-    },
-    computed: {
-      ...mapGetters({getUser: 'users/getUser'}),
-      ...mapGetters({getReports: 'reports/getReports'}),
-      date() {
+      })
+      const hasJobid = ref(false)
+      const teamMemberSignDate = ref('')
+      const penColorArr = ref(["#000", "#6c8ce6", "#3047f1", "#0a2177"])
+      const postData = ref({})
+
+      const getReports = computed(() => store.getters["reports/getReports"])
+      const getUser = computed(() => store.getters["users/getUser"])
+      const date = computed(() => {
         const today = new Date()
         return (today.getMonth() + 1)+'-'+today.getUTCDate()+'-'+today.getFullYear();
+      })
+
+      function changePenColor(selectedIndex) {
+        penColor.value = penColorArr.value[selectedIndex]
+      }
+      function undoMap() {
+        map.value.undoSignature()
+        if (map.value.signaturePad._data.length === 0) {
+          map.value.clearSignature();
+          moistureMap.value.data = null; moistureMap.value.isEmpty = true
+        }
+      }
+      function saveMap() {
+        const { isEmpty, data } = map.value.saveSignature()
+        moistureMap.value.data = data
+        moistureMap.value.isEmpty = isEmpty
+      }
+      function onBegin() {
+        const { isEmpty } = map.value.saveSignature()
+        moistureMap = { isEmpty, data: "" }
+        nextTick(() => {
+          map.value.resizeCanvas()
+        })
+      }
+
+      watch(() => timeOfDispatch.value, (val) => {
+        timeOfDispatchFormatted.value = formatTime(val)
+      })
+      watch(() => arrivalAtProperty.value, (val) => {
+        arrivalFormatted.value = formatTime(val)
+      })
+      watch(() => evalStart.value, (val) => {
+        evalStartFormatted.value = formatTime(val)
+      })
+      watch(() => evalEnd.value, (val) => {
+        evalEndFormatted.value = formatTime(val)
+      })
+      watch(() => contractSigning.value, (val) => {
+        contractFormatted.value = formatTime(val)
+      })
+      watch(() => denialOfServices.value, (val) => {
+        dosformatted.value = formatTime(val)
+      })
+      watch(() => departureTime.value, (val) => {
+        departureTimeFormatted.value = formatTime(val)
+      })
+      watch(() => timeIntrusion.value, (val) => {
+        timeIntrusionFormatted.value = formatTime(val)
+      })
+
+      return {
+        errorDialog,sigDialog,uploading,successMessage,errorMessage,uploadSuccess,submitting,submitted,jobId,timeOfDispatch,timeOfDispatchFormatted,dateOfLoss,dolFormatted,
+        dateOfEval,doeFormatted,arrivalAtProperty,arrivalFormatted,evalStart,evalStartFormatted,evalEnd,evalEndFormatted,contractSigning,contractFormatted,denialOfServices,
+        dosformatted,departureTime,departureTimeFormatted,evalLogsDialog,todModal,dolModal,doeModal,contactName,propertyOwner,phoneNumber,emailAddress,location,sourceOfIntrustion,
+        intrusionLogsDialog,intrusionSection,dateIntrusion,dateIntrusionFormatted,timeIntrusion,timeIntrusionFormatted,preliminaryDetermination,moistureInspection,
+        preRestoreEval,selectedPreliminary,selectedInspection,selectedTypes,steps,selectedSteps,picturesCheck,selectedPictures,insuranceCompany,claimNumber,policyNumber,
+        adjusterName,adjusterPhone,adjusterEmail,verificationCheckboxes,uploadedFiles,filesUploading,selectedVerification,cusSignature,customerName,uploadMessage,
+        idImage,frontCardImage,backCardImage,cardImages,currentUploadStep,cardZip,teamMemberSig,cusSignTime,cusSignDate,phoneMask,initialData,cusInitial1,cusInitial2,
+        cusInitial3,cusInitial4,empSig,moistureMap,penColor,dryStandardMask,hasJobid,teamMemberSignDate,penColorArr,
+        getReports,
+        getUser,
+        date,
+        changePenColor,
+        undoMap,
+        saveMap,
+        onBegin,
+        dateMask,
+        timeMask,
+        htmlToPdfOptions,
+        beforeDownloadNoSave,
+        uploadPdf,
+        postData
       }
     },
     methods: {
-      onAccept(e) {
-        const maskRef = e.detail;
-        this.cusSignTime = maskRef.value
-      },
-      changePenColor(selectedIndex) {
-        this.penColor = this.penColorArr[selectedIndex]
-      },
-      undoMap() {
-        this.$refs.map.undoSignature()
-        if (this.$refs.map.signaturePad._data.length === 0) {
-          this.$refs.map.clearSignature();
-          this.moistureMap.data = null; this.moistureMap.isEmpty = true
-        }
-      },
-      saveMap() {
-        const { isEmpty, data } = this.$refs.map.saveSignature()
-        this.moistureMap.data = data
-        this.moistureMap.isEmpty = isEmpty
-      },
-      onBegin() {
-        const { isEmpty } = this.$refs.map.saveSignature()
-        this.moistureMap = { isEmpty, data: "" }
-        this.$nextTick(() => {
-          this.$refs.map.resizeCanvas()
-        })
-      },
-      submitForm() {
-        this.successMessage = ""
-        const evaluationLogs = []
-        const user = this.getUser
+      ...mapActions({
+          fetchReports: "reports/fetchReports"
+      }),
+      async submitForm() {
         var rapidRep = this.getReports.filter((v) => {
           return v.ReportType === 'rapid-response'
         })
-        this.submitting = true
         const reports = rapidRep.map((v) => { return v.JobId });
         let scrollTo = 0
-        evaluationLogs.push({label: 'Team Arrival at Property', value: `${this.doeFormatted} ${this.arrivalAtProperty}:00`}, 
-          {label: 'Evaluation Report Start Time', value: `${this.doeFormatted} ${this.evalStart}:00`}, 
-          {label: 'Evaluation Report End Time', value: `${this.doeFormatted} ${this.evalEnd}:00`}, 
-          {label: 'Time of Contract Signing', value: `${this.doeFormatted} ${this.contractSigning}:00`});
-        this.$refs.form.validate().then(success => {
+        await this.$refs.form.validate().then(success => {
           if (!success) {
             this.errorDialog = true
             this.submitting = false;
@@ -881,71 +864,10 @@
             return goTo(scrollTo); 
           }
           if (!reports.includes(this.jobId)) {
-            const post = {
-              JobId: this.jobId,
-              DateOfLoss: this.dolFormatted,
-              DateOfEvaluation: this.doeFormatted,
-              ContactName: this.contactName,
-              PropertyOwner: this.propertyOwner,
-              location: this.location,
-              PhoneNumber: this.phoneNumber,
-              EmailAddress: this.emailAddress,
-              ReportType: 'rapid-response',
-              formType: 'initialForms',
-              sourceWaterIntrusion: this.selectedTypes,
-              Steps: this.selectedSteps,
-              InsuranceCompany: this.insuranceCompany,
-              ClaimNumber: this.claimNumber,
-              PolicyNumber: this.policyNumber,
-              adjusterName: this.adjusterName,
-              adjusterEmail: this.adjusterEmail,
-              adjusterPhone: this.adjusterPhone,
-              evaluationLogs: evaluationLogs,
-              documentVerification: this.selectedVerification,
-              cusFirstName: this.customerName.first,
-              cusLastName: this.customerName.last,
-              customerSig: this.cusSignature.data,
-              PictureTypes: this.selectedPictures,
-              id: user.id,
-              initials: {
-                initial1: this.cusInitial1,
-                initial2: this.cusInitial2,
-                initial3: this.cusInitial3,
-                initial4: this.cusInitial4
-              },
-              moistureMap: this.moistureMap.data,
-              cusSignDate: this.cusSignDate,
-              teamMember: this.getUser,
-              dateIntrusion: this.dateIntrusionFormatted,
-              timeIntrusion: this.timeIntrusionFormatted,
-              intrusionInfo: this.intrusionSection,
-              selectedPreliminary: this.selectedPreliminary,
-              selectedInspection: this.selectedInspection,
-              preRestorationEval: this.preRestoreEval,
-              teamMemberSig: Object.keys(this.empSig).length !== 0,
-              teamMemberSignDate: this.teamMemberSignDate
-            };
-            this.$api.$post("/api/reports/rapid-response/new", post, {
-                    params: {
-                        jobid: post.JobId
-                    }
-                }).then((res) => {
-                if (res.error) {
-                    this.errorDialog = true
-                    this.submitting = false
-                    this.$refs.form.setErrors({
-                        JobId: [res.message]
-                    })
-                    return goTo(scrollTo)
-                }
-                this.successMessage = res
-                this.submitting = false
-                this.submitted = true
-                setTimeout(() => {
-                    this.successMessage = ""
-                    window.location = "/"
-                }, 2000)
-            })
+            Promise.all([this.onSubmit()]).then((result) => {
+              this.successMessage = result[0]
+              this.$refs.html2Pdf0.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
           } else {
             this.submitting = false
             this.errorDialog = true
@@ -956,29 +878,79 @@
           }
         })
       },
-      formatDate(dateReturned) {
-        if (!dateReturned) return null
-        const [year, month, day] = dateReturned.split('-')
-        return `${month}-${day}-${year}`
-      },
-      formatTime(timeReturned) {
-        if (!timeReturned) return null
-        const pieces = timeReturned.split(':')
-        let hours
-        let minutes
-        if (pieces.length === 2) {
-          hours = parseInt(pieces[0], 10)
-          minutes = parseInt(pieces[1], 10)
-        }
-        const newFormat = hours >= 12 ? 'PM' : 'AM'
-        hours = hours % 12
-        // To display "0" as "12"
-        hours = hours || 12
-        minutes = minutes < 10 ? '0' + minutes : minutes
-        return `${hours}:${minutes} ${newFormat}`
-      },
-      parseTime(time) {
-        if (!time) return null
+      onSubmit() {
+        this.successMessage = ""
+        const evaluationLogs = []
+        const user = this.getUser
+        this.submitting = true
+        evaluationLogs.push({label: 'Team Arrival at Property', value: `${this.doeFormatted} ${this.arrivalAtProperty}:00`}, 
+          {label: 'Evaluation Report Start Time', value: `${this.doeFormatted} ${this.evalStart}:00`}, 
+          {label: 'Evaluation Report End Time', value: `${this.doeFormatted} ${this.evalEnd}:00`}, 
+          {label: 'Time of Contract Signing', value: `${this.doeFormatted} ${this.contractSigning}:00`});
+        const post = {
+            JobId: this.jobId,
+            DateOfLoss: this.dolFormatted,
+            DateOfEvaluation: this.doeFormatted,
+            timeOfDispatch: this.timeOfDispatchFormatted,
+            ContactName: this.contactName,
+            PropertyOwner: this.propertyOwner,
+            location: this.location,
+            PhoneNumber: this.phoneNumber,
+            EmailAddress: this.emailAddress,
+            ReportType: 'rapid-response',
+            formType: 'initialForms',
+            sourceWaterIntrusion: this.selectedTypes,
+            Steps: this.selectedSteps,
+            InsuranceCompany: this.insuranceCompany,
+            ClaimNumber: this.claimNumber,
+            PolicyNumber: this.policyNumber,
+            adjusterName: this.adjusterName,
+            adjusterEmail: this.adjusterEmail,
+            adjusterPhone: this.adjusterPhone,
+            evaluationLogs: evaluationLogs,
+            documentVerification: this.selectedVerification,
+            cusFirstName: this.customerName.first,
+            cusLastName: this.customerName.last,
+            customerSig: this.cusSignature.data,
+            PictureTypes: this.selectedPictures,
+            id: user.id,
+            initials: {
+                initial1: this.cusInitial1,
+                initial2: this.cusInitial2,
+                initial3: this.cusInitial3,
+                initial4: this.cusInitial4
+            },
+            moistureMap: this.moistureMap.data,
+            cusSignDate: this.cusSignDate,
+            teamMember: this.getUser,
+            dateIntrusion: this.dateIntrusionFormatted,
+            timeIntrusion: this.timeIntrusionFormatted,
+            intrusionInfo: this.intrusionSection,
+            selectedPreliminary: this.selectedPreliminary,
+            selectedInspection: this.selectedInspection,
+            preRestorationEval: this.preRestoreEval,
+            teamMemberSig: Object.keys(this.empSig).length !== 0,
+            teamMemberSignDate: this.teamMemberSignDate
+        };
+        this.postData = post
+        this.$api.$post("/api/reports/rapid-response/new", post, {
+            params: {
+                jobid: post.JobId
+            }
+        }).then((res) => {
+            if (res.error) {
+                this.errorDialog = true
+                this.submitting = false
+                this.$refs.form.setErrors({
+                    JobId: [res.message]
+                })
+                return goTo(scrollTo)
+            }
+            this.successMessage = res
+            this.submitting = false
+            this.submitted = true
+            this.fetchReports()
+        })
       },
       acceptNumber() {
         const x = this.phoneNumber
@@ -1025,7 +997,8 @@
         });
       }
     }
-  }
+  })
+  
 </script>
 <style lang="scss">
   .signature-area {

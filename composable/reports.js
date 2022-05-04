@@ -13,7 +13,7 @@ export default function useReports() {
     let filters = ref([])
     const { $axios, $fire, $api, $gcs } = useContext()
     const store = useStore()
-    const { groupByKey } = genericFuncs()
+    const { groupByKey, dataURLtoFile } = genericFuncs()
 
     function htmlToPdfOptions(reportType, jobid) {
         return {
@@ -230,7 +230,7 @@ export default function useReports() {
             }
         }).save()
     }
-    async function beforeDownloadNoSave({ html2pdf, options, pdfContent }) {
+    async function beforeDownloadNoSave({ html2pdf, options, pdfContent }, reportType, jobid) {
         await html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
             const totalPages = pdf.internal.getNumberOfPages()
             for (let i = 0; i <= totalPages; i++) {
@@ -239,24 +239,25 @@ export default function useReports() {
                 pdf.text('Page ' + i + ' of ' + totalPages, (pdf.internal.pageSize.getWidth() * 0.88), (pdf.internal.pageSize.getHeight() - 10))
             }
         }).outputPdf().then((result) => {
-            return Promise.resolve(result)
+            var file = dataURLtoFile(`data:application/pdf;base64,${btoa(result)}`, `${reportType}-${jobid}`);
+            return Promise.resolve(file)
         })
     }
-    async function uploadPdf(file, filename, jobId) {
+    function uploadPdf(file, filename, jobId) {
         const finalPdf = new File([file], `${filename}.pdf`, {
             type: file.type
         })
         const formData = new FormData();
         formData.append('path', `${jobId}/pdfs/`)
         formData.append('multiFiles', finalPdf)
-        await $gcs.$post("/upload", formData, {
+        $gcs.$post("/upload", formData, {
             params: {
                 folder: 'pdfs',
                 subfolder: '',
                 delimiter: '/'
             }
         }).then(() => {
-            return Promise.resolve(file)
+            console.log("pdf uploaded")
         })
     }
     return {
