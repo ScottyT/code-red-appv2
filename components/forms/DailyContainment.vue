@@ -2,8 +2,11 @@
   <div class="form-wrapper form-wrapper__case-file">
     <h1 class="text-center">{{company}}</h1>
     <h2 class="text-center">Daily Containement Case File Report</h2>
-    <ValidationObserver ref="form" v-slot="{ errors}">
+    <ValidationObserver ref="form">
       <h2>{{message}}</h2>
+      <ul v-if="errors.length > 0">
+        <li v-for="(error, i) in errors" :key="`listing-${i}`">{{error}}</li>
+      </ul>
       <v-dialog width="400px" v-model="errorDialog">
         <div class="modal__error">
           <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -30,16 +33,7 @@
           </div>
           <div class="form__input-group form__input-group--short">
             <label for="date" class="form__label">Date</label>
-            <v-dialog ref="dateDialog" v-model="dateDialog" :return-value.sync="date" persistent width="400px">
-              <template v-slot:activator="{on, attrs}">
-                <input id="date" v-model="dateFormatted" v-bind="attrs" class="form__input" v-on="on" @blur="date = parseDate(dateFormatted)" />
-              </template>
-              <v-date-picker v-model="date" scrollable>
-                <v-spacer></v-spacer>
-                <v-btn text color="#fff" @click="dateDialog = false">Cancel</v-btn>
-                <v-btn text color="#fff" @click="$refs.dateDialog.save(date)">OK</v-btn>
-              </v-date-picker>
-            </v-dialog>
+            <UiDatePicker dateId="date" dialogId="dateDialog" @date="dateFormatted = $event" @unformattedDate="date = $event" />
           </div>
           <div class="form__input-group form__input-group--long">
             <label for="location" class="form__label">Location</label>
@@ -185,28 +179,44 @@
         <div class="form__button-wrapper"><button class="button form__button-wrapper--submit" type="submit">{{ submitting ? 'Submitting' : 'Submit' }}</button></div>
       </form>
     </ValidationObserver>
+    <div>
+      <client-only>
+          <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('case-file-containment', selectedJobId)"
+                        :paginate-elements-by-height="800" :manual-pagination="false" :show-layout="false"
+                        :preview-modal="true" :enable-download="false" @hasDownloaded="uploadPdf($event, `case-file-containment-${selectedJobId}`, selectedJobId)"
+                        @beforeDownload="beforeDownloadNoSave($event, `case-file-containment-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
+              <LazyLayoutCaseFileDetails form_name="Case File Containment" :notPdf="false" :report="postedData" slot="pdf-content" />
+          </vue-html2pdf>
+      </client-only>
+    </div>
   </div>
 </template>
 <script>
-  import {
-    mapGetters, mapActions
-  } from 'vuex'
-  import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
-  import goTo from 'vuetify/es5/services/goto'
   import moment from 'moment';
-  export default {
-    props: ['slice', 'company', 'abbreviation'],
-    data: (vm) => ({
-      date: new Date().toISOString().substr(0, 10),
-      dateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-      dateDialog: false,
-      location: {
+  import { defineComponent, ref, useStore, computed, useContext, watch } from '@nuxtjs/composition-api';
+  import genericFuncs from '@/composable/utilityFunctions'
+  import useReports from '@/composable/reports'
+  export default defineComponent({
+    props: {
+      slice: String,
+      company: String,
+      abbreviation: String
+    },
+    setup(props) {
+      const store = useStore()
+      const { $api } = useContext()
+      const { formatTime, formatDate, parseDate } = genericFuncs()
+      const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+      const fetchReports = () => { store.dispatch("reports/fetchReports") }
+      const date = new Date().toISOString().substr(0, 10)
+      const dateFormatted = formatDate(new Date().toISOString().substr(0, 10))
+      const location = ref({
         address: null,
         city: null,
         cityStateZip: null
-      },
-      message: '',
-      tmpRepairSection: [{
+      })
+      const message = ref('')
+      const tmpRepairSection = ref([{
         subheading: "Temporary Repairs",
         sublist: [{
             label: "Temporary Board-Up"
@@ -218,9 +228,9 @@
             label: "Temporary Power/Generator"
           }
         ]
-      }],
-      selectedTMPRepairs: [],
-      contentSection: [
+      }])
+      const selectedTMPRepairs = ref([])
+      const contentSection = ref([
           {
               subheading: "Content - (On-site)",
               sublist: [
@@ -243,9 +253,9 @@
                   {label: "Warehouse Clean Technician", group: "Content - (Off-site)"}
               ]
           }
-      ],
-      selectedContent:[],
-      structualDryingSection: [
+      ])
+      const selectedContent = ref([])
+      const structualDryingSection = ref([
         {
           subheading: "Water Removal Services (Multiple Extractions may be required)",
           sublist: [
@@ -305,9 +315,9 @@
             {label: "Dish Washer", group: "Material Detach"},
           ]
         }
-      ],
-      selectedStructualDrying:[],
-      structualCleaningSection: [
+      ])
+      const selectedStructualDrying = ref([])
+      const structualCleaningSection = ref([
         {
           subheading: "Cleaning (Initial Clean) - (Bulk Clean) - (Final Clean)",
           sublist: [
@@ -338,175 +348,193 @@
             {label: "Encapsulate Sealant", group: "Agents & Sealants"}
           ]
         }
-      ],
-      selectedStructualCleaning: [],
-      evalLogsDialog: {
+      ])
+      const selectedStructualCleaning = ref([])
+      const evalLogsDialog = ref({
         dispatchToProperty: false,
         evalStart: false,
         evalEnd: false,
         evalTotalTime: false
-      },
-      dispatchToProperty: null,
-      dispatchPropertyFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      evalStart: new Date().toTimeString().substr(0, 5),
-      evalStartFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      evalEnd: new Date().toTimeString().substr(0, 5),
-      evalEndFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-      verifySig: {
+      })
+      const dispatchToProperty = ref(null)
+      const dispatchPropertyFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const evalStart = ref(new Date().toTimeString().substring(0, 5))
+      const evalStartFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const evalEnd = ref(new Date().toTimeString().substring(0, 5))
+      const evalEndFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+      const verifySig = ref({
         data: '',
         isEmpty: true
-      },
-      empSig: "",
-      submitting: false,
-      submitted: false,
-      selectedJobId: "",
-      errorDialog: false,
-      uploadedImages:[]
-    }),
-    watch: {
-      date(val) {
-        this.dateFormatted = this.formatDate(val)
-      },
-      dispatchToProperty(val) {
-        this.dispatchPropertyFormatted = this.formatTime(val)
-      },
-      evalStart(val) {
-        this.evalStartFormatted = this.formatTime(val)
-      },
-      evalEnd(val) {
-        this.evalEndFormatted = this.formatTime(val)
-      }
-    },
-    computed: {
-      ...mapGetters({getUser:'users/getUser', getReports:'reports/getReports'}),
-      duration() {
-        let start = moment(this.date + 'T' + this.evalStart)
-        let end = moment(this.date + 'T' + this.evalEnd)
+      })
+      const empSig = ref("")
+      const submitting = ref(false)
+      const submitted = ref(false)
+      const selectedJobId = ref("")
+      const errorDialog = ref(false)
+      const errors = ref([])
+      const uploadedImages = ref([])
+      const form = ref(null)
+      const html2Pdf0 = ref(null)
+      const postedData = ref({})
+
+      const getUser = computed(() => store.getters["users/getUser"])
+      const getReports = computed(() => store.getters["reports/getReports"])
+      const duration = computed(() => {
+        let start = moment(`${date} ${evalStart.value}`, "YYYY-MM-DD hh:mm")
+        let end = moment(`${date} ${evalEnd.value}`, "YYYY-MM-DD hh:mm")
         let duration = moment.duration(end.diff(start)).asMinutes()
         return duration + ' minutes'
-      },
-      currentDate() {
-        const today = new Date()
-        return (today.getMonth() + 1)+'-'+today.getUTCDate()+'-'+today.getFullYear();
-      }
-    },
-    methods: {
-      formatDate(dateReturned) {
-        if (!dateReturned) return null
-        const [year, month, day] = dateReturned.split('-')
-        return `${month}/${day}/${year}`
-      },
-      formatTime(timeReturned) {
-        if (!timeReturned) return null
-        
-        const pieces = timeReturned.split(':')
-        let hours
-        let minutes
-        if (pieces.length === 2) {
-          hours = parseInt(pieces[0], 10)
-          minutes = parseInt(pieces[1], 10)
-        }
-        const newFormat = hours >= 12 ? 'PM' : 'AM'
-        hours = hours % 12
-        // To display "0" as "12"
-        hours = hours || 12
-        minutes = minutes < 10 ? '0' + minutes : minutes
-        return `${hours}:${minutes} ${newFormat}`
-      },
-      parseDate(date) {
-        if (!date) return null
-        const [month, day, year] = date.split('/')
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-      },
-      submitForm() {
-        this.message = ''
-        this.submitting = true
-        const user = this.getUser;
-        const reports = this.getReports.filter((v) => {
+      })
+      const parsedDate = computed(() => {
+        return moment(dateFormatted, "MM-DD-YYYY").format("MM-DD-YYYY")
+      })
+
+      async function submitForm() {
+        const reports = getReports.value.filter((v) => {
           return v.ReportType === 'case-file-containment'
         })
         const dates = reports.map((v) => {
           return v.date
         })
+        
+        await form.value.validate().then(success => {
+          if (!success) {
+            submitting.value = false
+            submitted.value = false
+            return
+          }
+          if (!dates.includes(dateFormatted.value)) {
+            Promise.all([onSubmit()]).then((result) => {
+              console.log(result)
+              message.value = result[0]
+              html2Pdf0.value.generatePdf()
+            })
+          } else {
+              submitted.value = false
+              submitting.value = false
+              errorDialog.value = true
+              errors.value.push('Cannot have two containment reports with the same date')
+              return
+          }
+        })
+      }
+      function onSubmit() {
+        message.value = ''
+        submitting.value = true
+        const user = getUser.value;
+        
         const evaluationLogs = [{
             label: 'Dispatch to Property',
-            value: this.dispatchPropertyFormatted
+            value: `${parsedDate.value} ${dispatchPropertyFormatted.value}:00`
           },
           {
             label: 'Start Time',
-            value: this.evalStart
+            value: `${parsedDate.value} ${evalStart.value}:00`
           },
           {
             label: 'End Time',
-            value: this.evalEnd
+            value: `${parsedDate.value} ${evalEnd.value}:00`
           },
           {
             label: 'Total Time',
-            value: this.duration
+            value: duration.value
           }
         ]
         const post = {
-          JobId: this.selectedJobId,
+          JobId: selectedJobId.value,
           id: user.id,
-          date: this.dateFormatted,
-          location: this.location,
-          selectedTMPRepairs: this.selectedTMPRepairs,
-          selectedContent: this.selectedContent,
-          selectedStructualCleaning: this.selectedStructualCleaning,
-          selectedStructualDrying: this.selectedStructualDrying,
-          selectedStructualCleaning: this.selectedStructualCleaning,
-          evaluationLogs: evaluationLogs,
-          verifySig: Object.keys(this.empSig).length !== 0,
+          date: dateFormatted.value,
+          location: location.value,
+          selectedTMPRepairs: selectedTMPRepairs.value,
+          selectedContent: selectedContent.value,
+          selectedStructualCleaning: selectedStructualCleaning.value,
+          selectedStructualDrying: selectedStructualDrying.value,
+          selectedStructualCleaning: selectedStructualCleaning.value,
+          evaluationLogs: evaluationLogs.value,
+          verifySig: Object.keys(empSig.value).length !== 0,
           ReportType: 'case-file-containment',
           formType: 'case-report',
-          teamMember: this.getUser,
-          afterHoursWork: 'N/A'
+          teamMember: getUser.value,
+          afterHoursWork: 'N/A',
+          date: parsedDate.value,
+          evaluationLogs: evaluationLogs
         };
-        this.$refs.form.validate().then(success => {
-          if (!success) {
-            this.submitting = false
-            this.submitted = false
-            this.errorDialog = true
-            return goTo(0)
-          }
-          if (!dates.includes(this.dateFormatted)) {
-              this.$api.$post("/api/reports/case-file-technician/new", post, {
-                    params: {
-                        jobid: selectedJobId.value
-                    }
-                }).then((res) => {
-                  if (res.error) {
-                      this.errorDialog = true
-                      this.submitting = false
-                      this.$refs.form.setErrors({
-                          JobId: [res.message]
-                      })
-                      return goTo(0)
-                  }
-                  this.message = res
-                  this.submitted = true
-                  this.submitting = false
-                  setTimeout(() => {
-                      this.message = ""
-                      window.location = "/"
-                  }, 2000)
-              })
-          } else {
-              this.submitted = false
-              this.submitting = false
-              this.errorDialog = true
-              this.$refs.form.setErrors({
-                  JobId: ['Cannot have two containment reports with the same date']
-              })
-
-              return goTo(0)
-          }
+        postedData.value = post
+        return new Promise((resolve, reject) => {
+          $api.$post("/api/reports/case-file-containment/new", post, {
+            params: {
+                jobid: selectedJobId.value
+            }
+          }).then((res) => {
+              submitted.value = true
+              submitting.value = false
+              fetchReports()
+              resolve(res)
+          }).catch((err) => {
+              errorDialog.value = true
+              submitting.value = false
+              errors.value.push(err.response.data.message)
+              reject(err)
+          })
         })
-      },
-      settingLocation(params) {
-        this.location.address = params.address
-        this.location.cityStateZip = params.cityStateZip
-      },
+      }
+      function settingLocation(params) {
+        location.value.address = params.address
+        location.value.cityStateZip = params.cityStateZip
+      }
+
+      watch(() => dispatchToProperty.value, (val) => {
+        dispatchPropertyFormatted.value = formatTime(val)
+      })
+      watch(() => evalStart.value, (val) => {
+        evalStartFormatted.value = formatTime(val)
+      })
+      watch(() => evalEnd.value, (val) => {
+        evalEndFormatted.value = formatTime(val)
+      })
+
+      return {
+        date,
+        dateFormatted,
+        location,
+        tmpRepairSection,
+        selectedTMPRepairs,
+        contentSection,
+        selectedContent,
+        structualDryingSection,
+        selectedStructualDrying,
+        structualCleaningSection,
+        selectedStructualCleaning,
+        evalLogsDialog,
+        dispatchToProperty,
+        dispatchPropertyFormatted,
+        evalStart,
+        evalStartFormatted,
+        evalEnd,
+        evalEndFormatted,
+        verifySig,
+        empSig,
+        submitting,
+        submitted,
+        selectedJobId,
+        errorDialog,
+        uploadedImages,
+        form,
+        html2Pdf0,
+        getUser,
+        submitForm,
+        htmlToPdfOptions,
+        beforeDownloadNoSave,
+        onSubmit,
+        uploadPdf,
+        duration,
+        postedData,
+        message,
+        errors,
+        settingLocation,
+        parsedDate
+      }
     }
-  }
+  })
+  
 </script>

@@ -2,7 +2,7 @@
     <div class="form-wrapper form-wrapper__case-file">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Daily Technician Case File Report</h2>
-        <ValidationObserver ref="form" v-slot="{ errors }">
+        <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }">
           <h2>{{message}}</h2>
           <v-dialog width="400px" v-model="errorDialog">
             <div class="modal__error">
@@ -11,7 +11,7 @@
               </div>
             </div>
           </v-dialog>
-          <form ref="form" class="form" @submit.prevent="submitForm" v-if="!submitted">
+          <form ref="form" class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
             <div class="form__form-group">
               <ValidationProvider rules="required" vid="JobId" v-slot="{ errors, ariaMsg }" name="Job Id" class="form__input-group form__input-group--normal">
                 <input type="hidden" v-model="selectedJobId" />
@@ -237,27 +237,34 @@
       </div>
 </template>
 <script>
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
-import goTo from 'vuetify/es5/services/goto'
 import { mapGetters, mapActions } from 'vuex';
 import moment from 'moment';
-export default {
-    props: ['slice', 'company', 'abbreviation'],
-    data: (vm) => ({
-        jobId: null,
-        date: new Date().toISOString().substr(0, 10),
-        dateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        dateDialog: false,
-        location: {
-          address: null,
-          city: null,
-          cityStateZip: null
-        },
-        message: '',
-        errorMessage: [],
-        submitted: false,
-        submitting: false,
-        contentCleaningInspection: [
+import genericFuncs from '@/composable/utilityFunctions'
+import useReports from '@/composable/reports'
+import { defineComponent, useStore, ref, computed, useContext, watch } from '@nuxtjs/composition-api';
+
+export default defineComponent({
+  props: {
+    slice: String,
+    company: String,
+    abbreviation: String
+  },
+  setup(props) {
+    const store = useStore()
+    const { formatTime, formatDate, parseDate } = genericFuncs()
+    const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+    const { $api } = useContext()
+    const date = new Date().toISOString().substring(0, 10)
+    const dateFormatted = formatDate(new Date().toISOString().substring(0, 10))
+    const location = ref({
+        address: null,
+        city: null,
+        cityStateZip: null
+    })
+    const message = ref('')
+    const submitting = ref(false)
+    const submitted = ref(false)
+    const contentCleaningInspection = ref([
             {
                 subheading: "Content - (On-site Emergency Action Plan)",
                 sublist: [
@@ -280,9 +287,9 @@ export default {
                     {label: "Dumpster 12 Yard or Greater", group: "Content - (Off-site Emergency Action Plan)"}
                 ]
             }
-        ],
-        selectedContentCleaning:[],
-        waterRestorationInspection: [
+      ])
+    const selectedContentCleaning = ref([])
+    const waterRestorationInspection = ref([
             {
                 subheading: "Daily Preliminary Determination",
                 sublist: [
@@ -321,9 +328,9 @@ export default {
                     {label: "Class 4 Intrusion (Bound)", group: "Daily Moisture Determinations"}
                 ]
             }
-        ],
-        selectedWaterRestoration: [],
-        waterRemediationAssesment: [
+    ])
+    const selectedWaterRestoration = ref([])
+    const waterRemediationAssesment = ref([
             {
                 subheading: "Restorer Occupant Protection",
                 sublist: [
@@ -376,9 +383,9 @@ export default {
                     {label: "Report Injuries Immediately", group: "Safe Work Practices in Contaminated Environments"},
                 ]
             }
-        ],
-        selectedWaterRemediation: [],
-        overviewScopeOfWork: [
+        ])
+    const selectedWaterRemediation = ref([])
+    const overviewScopeOfWork = ref([
             {
                 subheading: "Itemization of services to be performed Overview",
                 sublist: [
@@ -413,9 +420,9 @@ export default {
                     {label: "Encapsulate Sealant", group: "Anti-Microbial Technology"}
                 ]
             }
-        ],
-        selectedOverviewScope: [],
-        specializedExpert: [
+    ])
+    const selectedOverviewScope = ref([])
+    const specializedExpert = ref([
             {
                 subheading:"Category Two & Three Remediation, Regulated, HMR, Mold",
                 sublist: [
@@ -429,9 +436,9 @@ export default {
                     {label:"BIO Protocol Reporting", group: "Category Two & Three Remediation, Regulated, HMR, Mold"}
                 ]
             }
-        ],
-        selectedExpert: [],
-        scopeOfWork: [
+        ])
+    const selectedExpert = ref([])
+    const scopeOfWork = ref([
             {
                 subheading: "Itemization Scope of Work: Water Removal Equipment, and Tools",
                 sublist: [
@@ -521,9 +528,9 @@ export default {
                     {label: "Fungicides (Fungi)", group: "Itemization Scope of Work: Antimicrobial (biocide) Technology"}
                 ]
             }
-        ],
-        selectedScope: [],
-        projectWorkPlans:[
+    ])
+    const selectedScope = ref([])
+    const projectWorkPlans = ref([
             {
                 subheading: "Ongoing Inspections and Monitoring",
                 sublist: [
@@ -553,173 +560,122 @@ export default {
                     {label: "AFD Capacity", group: "Ongoing Inspections and Monitoring"}
                 ]
             }
-        ],
-        selectedWorkPlans: [],
-        notes: "",
-        evalLogsDialog: {
-            dispatchToProperty: false,
-            evalStart: false,
-            evalEnd: false,
-            evalTotalTime: false
-        },
-        dispatchToProperty: new Date().toTimeString().substr(0, 5),
-        dispatchPropertyFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-        evalStart: new Date().toTimeString().substr(0, 5),
-        evalStartFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-        evalEnd: new Date().toTimeString().substr(0, 5),
-        evalEndFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-        verifySig: {
-            data: '',
-            isEmpty: true
-        },
-        empSig: "",
-        workCompletedAfterHours: false,
-        selectedJobId: "",
-        errorDialog: false,
-        uploadedImages: [],
-        numberOfDehus: "",
-        amountOfWater: {
-          gallons: '',
-          pounds: ''
-        }
-    }),
-    
-    watch: {
-        dispatchToProperty(val) {
-            this.dispatchPropertyFormatted = this.formatTime(val)
-        },
-        evalStart(val) {
-            this.evalStartFormatted = this.formatTime(val)
-        },
-        evalEnd(val) {
-            this.evalEndFormatted = this.formatTime(val)
-        }
-    },
-    computed: {
-      ...mapGetters({getUser:"users/getUser", getReports:'reports/getReports'}),
-      duration() {
-        let start = moment(this.date + 'T' + this.evalStart)
-        let end = moment(this.date + 'T' + this.evalEnd)
+    ])
+    const selectedWorkPlans = ref([])
+    const notes = ref("")
+    const evalLogsDialog = ref({
+        dispatchToProperty: false,
+        evalStart: false,
+        evalEnd: false,
+        evalTotalTime: false
+    })
+    const dispatchToProperty = ref(null)
+    const dispatchPropertyFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+    const evalStart = ref(new Date().toTimeString().substring(0, 5))
+    const evalStartFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+    const evalEnd = ref(new Date().toTimeString().substring(0, 5))
+    const evalEndFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+    const verifySig = ref({
+        data: '',
+        isEmpty: true
+    })
+    const empSig = ref("")
+    const workCompletedAfterHours = ref(false)
+    const selectedJobId = ref("")
+    const errorDialog = ref(false)
+    const errors = ref([])
+    const uploadedImages = ref([])
+    const form = ref(null)
+    const html2Pdf0 = ref(null)
+    const postedData = ref({})
+    const numberOfDehus = ref("")
+    const amountOfWater = ref({
+      gallons: '',
+      pounds: ''
+    })
+
+    const getUser = computed(() => store.getters["users/getUser"])
+    const getReports = computed(() => store.getters["reports/getReports"])
+    const duration = computed(() => {
+        let start = moment(`${date} ${evalStart.value}`, "YYYY-MM-DD hh:mm")
+        let end = moment(`${date} ${evalEnd.value}`, "YYYY-MM-DD hh:mm")
         let duration = moment.duration(end.diff(start)).asMinutes()
         return duration + ' minutes'
-      },
-      currentDate() {
-        const today = new Date()
-        return (today.getMonth() + 1)+'-'+today.getUTCDate()+'-'+today.getFullYear();
-      }
-    },
-    methods: {
-      formatDate(dateReturned) {
-        if (!dateReturned) return null
-        const [year, month, day] = dateReturned.split('-')
-        return `${month}-${day}-${year}`
-      },
-      formatTime(timeReturned) {
-        if (!timeReturned) return null
-        
-        const pieces = timeReturned.split(':')
-        let hours
-        let minutes
-        if (pieces.length === 2) {
-          hours = parseInt(pieces[0], 10)
-          minutes = parseInt(pieces[1], 10)
-        }
-        const newFormat = hours >= 12 ? 'PM' : 'AM'
-        hours = hours % 12
-        // To display "0" as "12"
-        hours = hours || 12
-        minutes = minutes < 10 ? '0' + minutes : minutes
-        return `${hours}:${minutes} ${newFormat}`
-      },
-      parseDate(date) {
-        if (!date) return null
-        const [month, day, year] = date.split('-')
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-      },
-      settingLocation(params) {
-        this.location.address = params.address
-        this.location.cityStateZip = params.cityStateZip
-      },
-      async submitForm() {
-          this.message = ''
-          this.submitting = true
-          const reports = this.getReports.filter((v) => {
-            return v.ReportType === 'case-file-technician'
+    })
+    const parsedDate = computed(() => {
+        return moment(dateFormatted, "MM-DD-YYYY").format("MM-DD-YYYY")
+    })
+
+    function settingLocation(params) {
+        location.value.address = params.address
+        location.value.cityStateZip = params.cityStateZip
+    }
+    async function submitForm() {
+      const reports = getReports.value.filter((v) => {
+          return v.ReportType === 'case-file-technician'
+      })
+      const dates = reports.map((v) => {
+          return v.date
+      })
+      if (!dates.includes(this.dateFormatted)) {
+          Promise.all([onSubmit()]).then((result) => {
+            message.value = result[0]
+            html2Pdf0.value.generatePdf()
+          }).catch(error => console.log(`Error in promises ${error}`))
+      } else {
+          this.submitted = false
+          this.submitting = false
+          this.errorDialog = true
+          this.$refs.form.setErrors({
+              JobId: ['Cannot have two technician reports on the same date']
           })
-          const dates = reports.map((v) => {
-            return v.date
-          })
-          const evaluationLogs = [
-            {label: 'Dispatch to Property', value: `${this.dateFormatted} ${this.dispatchToProperty}:00`},
-            {label: 'Start Time', value: `${this.dateFormatted} ${this.evalStart}:00`},
-            {label: 'End Time', value: `${this.dateFormatted} ${this.evalEnd}:00`},
-            {label: 'Total Time', value: this.duration}
-          ]
-          const post = {
-            JobId: this.selectedJobId,
-            date: this.dateFormatted,
-            location: this.location,
-            contentCleaningInspection: this.selectedContentCleaning,
-            waterRestorationInspection: this.selectedWaterRestoration,
-            waterRemediationAssesment: this.selectedWaterRemediation,
-            overviewScopeOfWork: this.selectedOverviewScope,
-            specializedExpert: this.selectedExpert,
-            scopeOfWork: this.selectedScope,
-            projectWorkPlans: this.selectedWorkPlans,
-            notes: this.notes,
-            evaluationLogs: evaluationLogs,
-            id: this.getUser.id,
-            ReportType: 'case-file-technician',
-            formType: 'case-report',
-            teamMember: this.getUser,
-            verifySig: Object.keys(this.empSig).length !== 0,
-            afterHoursWork: this.workCompletedAfterHours ? 'Yes' : 'No',
-            notes: this.notes,
-            numberOfDehus: this.numberOfDehus.toString(),
-            waterGallons: this.amountOfWater.gallons.toString(),
-            waterPounds: this.amountOfWater.pounds.toString()
-          };
-          await this.$refs.form.validate().then(success => {
-            if (!success) {
-              this.submitting = false;
-              this.submitted = false;
-              this.errorDialog = true
-              return goTo(0)
-            }
-            if (!dates.includes(this.dateFormatted)) {
-                this.$api.$post("/api/reports/case-file-technician/new", post, {
-                    params: {
-                        jobid: this.selectedJobId
-                    }
-                }).then((res) => {
-                  if (res.error) {
-                      this.errorDialog = true
-                      this.submitting = false
-                      this.$refs.form.setErrors({
-                          JobId: [res.message]
-                      })
-                      return goTo(0)
-                  }
-                  this.message = res
-                  this.submitted = true
-                  this.submitting = false
-                  setTimeout(() => {
-                      this.message = ""
-                      window.location = "/"
-                  }, 2000)
-              })
-              } else {
-                this.submitted = false
-                this.submitting = false
-                this.errorDialog = true
-                this.$refs.form.setErrors({
-                  JobId: ['Cannot have two technician reports on the same date']
-                })
-                return goTo(0)
-              }
-          })
-          
+          return
       }
     }
-}
+    function onSubmit() {
+      message.value = ''
+      submitting.value = true
+      const evaluationLogs = [{
+              label: 'Dispatch to Property',
+              value: `${parsedDate.value} ${dispatchPropertyFormatted.value}:00`
+          },
+          {
+              label: 'Start Time',
+              value: `${parsedDate.value} ${evalStart.value}:00`
+          },
+          {
+              label: 'End Time',
+              value: `${parsedDate.value} ${evalEnd.value}:00`
+          },
+          {
+              label: 'Total Time',
+              value: duration.value
+          }
+      ]
+      const post = {
+        JobId: selectedJobId.value,
+        date: dateFormatted.value,
+        location: location.value,
+        contentCleaningInspection: selectedContentCleaning.value,
+        waterRestorationInspection: selectedWaterRestoration.value,
+        waterRemediationAssesment: selectedWaterRemediation.value,
+        overviewScopeOfWork: selectedOverviewScope.value,
+        specializedExpert: selectedExpert.value,
+        scopeOfWork: selectedScope.value,
+        projectWorkPlans: selectedWorkPlans,
+        notes: notes.value,
+        evaluationLogs: evaluationLogs.value,
+        id: getUser.value.id,
+        ReportType: 'case-file-technician',
+        formType: 'case-report',
+        teamMember: getUser.value,
+        verifySig: Object.keys(empSig.value).length !== 0,
+        afterHoursWork: workCompletedAfterHours.value ? 'Yes' : 'No',
+        numberOfDehus: numberOfDehus.value.toString(),
+        waterGallons: amountOfWater.value.gallons.toString(),
+        waterPounds: amountOfWater.value.pounds.toString()
+      };
+    }
+  }
+})
 </script>

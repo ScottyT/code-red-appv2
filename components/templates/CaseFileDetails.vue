@@ -16,11 +16,11 @@
             </div>
             <div class="report-details__data">
                 <label>Address:</label>
-                <span class="report-details__data-field">{{report.location.address}}</span>
+                <span class="report-details__data-field">{{report && report.location ? report.location.address : null}}</span>
             </div>
             <div class="report-details__data">
                 <label>City, State, Zip:</label>
-                <span class="report-details__data-field">{{report.location.cityStateZip}}</span>
+                <span class="report-details__data-field">{{report && report.location ? report.location.cityStateZip : null}}</span>
             </div>
         </div>
         <div class="report-details__section--case-file">

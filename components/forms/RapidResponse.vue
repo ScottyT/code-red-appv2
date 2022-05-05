@@ -855,13 +855,12 @@
           return v.ReportType === 'rapid-response'
         })
         const reports = rapidRep.map((v) => { return v.JobId });
-        let scrollTo = 0
         await this.$refs.form.validate().then(success => {
           if (!success) {
             this.errorDialog = true
             this.submitting = false;
             this.submitted = false;
-            return goTo(scrollTo); 
+            return;
           }
           if (!reports.includes(this.jobId)) {
             Promise.all([this.onSubmit()]).then((result) => {
@@ -874,7 +873,7 @@
             this.$refs.form.setErrors({
               JobId: ["Duplicate Job ID can't exist"]
             })
-            return goTo(0)
+            return
           }
         })
       },
@@ -938,18 +937,16 @@
                 jobid: post.JobId
             }
         }).then((res) => {
-            if (res.error) {
-                this.errorDialog = true
-                this.submitting = false
-                this.$refs.form.setErrors({
-                    JobId: [res.message]
-                })
-                return goTo(scrollTo)
-            }
             this.successMessage = res
             this.submitting = false
             this.submitted = true
             this.fetchReports()
+        }).catch(err => {
+            this.errorDialog = true
+            this.submitting = false
+            this.$refs.form.setErrors({
+              JobId: [err.response.data.message]
+            })
         })
       },
       acceptNumber() {

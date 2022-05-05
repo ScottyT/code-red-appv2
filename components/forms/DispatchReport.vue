@@ -518,25 +518,23 @@
         };
         postedReport.value = post
         submitting.value = true
-        $api.$post("/api/reports/dispatch/new", post, {
+        return new Promise((resolve, reject) => {
+          $api.$post("/api/reports/dispatch/new", post, {
             params: {
                 jobid: post.JobId
             }
-        }).then((res) => {
-            if (res.error) {
-                errorDialog.value = true
-                submitting.value = false
-                refs.form.setErrors({
-                    JobId: [res.message],
-                })
-                return
-            }
-            message.value = res
-            submitted.value = true
-            submitting.value = false
-            fetchReports()
+          }).then((res) => {
+              submitted.value = true
+              submitting.value = false
+              fetchReports()
+              resolve(res)
+          }).catch(err => {
+              errorDialog.value = true
+              refs.form.setErrors({
+                JobId: [err.response.data.message]
+              })
+          })
         })
-        return Promise.resolve("Dispatch form submitted!")
       }
 
       watch(() => appointmentTimeFormatted.value, (val) => {

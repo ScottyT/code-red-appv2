@@ -3,18 +3,21 @@
     <div class="form-wrapper form-wrapper__upholstery">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Upholstery Cleaning Pre-Inspection Form</h2>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{handleSubmit}">
             <h2 v-if="message !== ''">{{message}}</h2>
+            <ul>
+                <li v-for="(error, i) in errors" :key="`listing-${i}`">{{error}}</li>
+            </ul>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
-                        <h3 class="form__input--error">{{ error[0] }}</h3>
+                        <h3 class="form__input--error">{{ error }}</h3>
                     </div>
                 </div>
             </v-dialog>
             <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
                 <div class="form__form-group">
-                    <ValidationProvider rules="required" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
+                    <ValidationProvider rules="required" v-slot="{errors, ariaMsg}" vid="JobId" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
                         <label class="form__label">Job ID:</label>
                         <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
@@ -102,22 +105,37 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <div>
+            <client-only>
+                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('upholstery-form', selectedJobId)" :paginate-elements-by-height="1000" :manual-pagination="false"
+                    :show-layout="false" :preview-modal="true" :enable-download="false" @hasDownloaded="uploadPdf($event, `upholstery-form-${selectedJobId}`, selectedJobId)" 
+                    @beforeDownload="beforeDownloadNoSave($event, `upholstery-form-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
+                    <LazyLayoutUpholsteryDetails slot="pdf-content" :report="postedData" :notPdf="false" />
+                </vue-html2pdf>
+            </client-only>
+        </div>
     </div>
 </template>
 <script>
 import { computed, defineComponent, onMounted, reactive, ref, useContext, useStore, watch } from '@nuxtjs/composition-api'
 import { dateMask } from "@/data/masks";
 import genericFuncs from '@/composable/utilityFunctions'
+import useReports from '@/composable/reports';
 export default defineComponent({
     props: {
         company: String,
         abbreviation: String
     },
-    setup(props, { refs }) {
+    setup(props) {
         const { formatDate, groupByKey } = genericFuncs()
+        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const { $api } = useContext()
         const store = useStore()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const errorDialog = ref(false)
+        const errors = ref([])
+        const form = ref(null)
+        const html2Pdf0 = ref(null)
         const submitted = ref(false)
         const submitting = ref(false)
         const customer = ref("")
@@ -214,6 +232,7 @@ export default defineComponent({
         const phoneMask = ref({
             mask: '(000) 000-0000'
         })
+        const postedData = ref({})
 
         const user = computed(() => store.getters['users/getUser'])
         const groupedData = () => {
@@ -234,6 +253,13 @@ export default defineComponent({
             if (property === "phoneNumber") phoneNumber.value = maskRef.value
         }
         async function submitForm() {
+            errors.value = []
+            Promise.all([onSubmit()]).then((result) => {
+                message.value = result[0]
+                html2Pdf0.value.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
+        }
+        function onSubmit() {
             message.value = ""
             const post = {
                 JobId: selectedJobId.value,
@@ -252,34 +278,24 @@ export default defineComponent({
                 customerSignDate: cusSignDate.value,
                 techSig: empSig.value !== ''
             }
-            await refs.form.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return
-                }
-                submitting.value = true
-                $api.$post(`/api/reports/upholstery-form/new`, post, {params: {jobid: selectedJobId.value}}).then((res) => {
-                    if (res.error) {
-                        errorDialog.value = true
-                        submitting.value = false
-                        refs.form.setErrors({
-                            JobId: [res.message]
-                        })
-                        return;
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$post(`/api/reports/upholstery-form/new`, post, {
+                    params: {
+                        jobid: selectedJobId.value
                     }
+                }).then((res) => {
                     submitted.value = true
                     submitting.value = false
-                    message.value = res
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                    fetchReports()
+                    resolve(res)
                 }).catch((err) => {
                     errorDialog.value = true
-                    message.value = err
+                    errors.value.push(err.response.data.message)
+                    reject(err)
                 })
             })
+            
         }
         function settingLocation(params) {
             location.value.address = params.address
@@ -298,7 +314,14 @@ export default defineComponent({
             dateMask,
             empSig,
             cusSignDate,
-            dateFormatted
+            dateFormatted,
+            beforeDownloadNoSave,
+            htmlToPdfOptions,
+            uploadPdf,
+            postedData,
+            form,
+            html2Pdf0,
+            errors
         }
     },
 })

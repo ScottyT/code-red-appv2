@@ -9,10 +9,10 @@
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1300" :enable-download="false" 
                     @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
                     <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" :notPdf="false" 
-                        :rep="$store.state.reports.report" slot="pdf-content" />
+                        :report="$store.state.reports.report" slot="pdf-content" />
                 </vue-html2pdf>
             </client-only>
-            <LazyLayoutResponseReportDetails :notPdf="true" reportName="Rapid Response Report" :rep="$store.state.reports.report" />
+            <LazyLayoutResponseReportDetails :notPdf="true" reportName="Rapid Response Report" :report="$store.state.reports.report" />
         </span>
         <span v-if="reportType === 'dispatch'">
             <client-only>
