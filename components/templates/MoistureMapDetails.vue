@@ -47,7 +47,7 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, toRefs, ref } from '@nuxtjs/composition-api'
+import { defineComponent, onMounted, toRefs, ref, watch } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 export default defineComponent({
     props: {
@@ -61,11 +61,14 @@ export default defineComponent({
         const baseline = ref([])
 
         function loadedReport() {
+            console.log("loading:", report.value)
             report.value.baselineReadings.forEach((item) => {
                 baseline.value.push(item)
             })
         }
-        onMounted(loadedReport)
+        watch(() => report.value, (val) => {
+            loadedReport()
+        })
         getReportImages(report.value.JobId, "moisture-images", "", "/").fetchImages()
         return {
             images, baseline

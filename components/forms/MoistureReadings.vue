@@ -141,33 +141,50 @@
                 </v-dialog>
             </form>
         </ValidationObserver>
+        <div>
+            <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('moisture-map', selectedJobId)" :paginate-elements-by-height="800" :manual-pagination="false"
+                 :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)" 
+                 @beforeDownload="beforeDownloadNoSave($event, `moisture-map-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
+                    <LayoutMoistureMapDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated" />
+            </vue-html2pdf>
+        </div>
     </div>
 </template>
 <script>
 import {mapActions, mapGetters} from 'vuex';
 import genericFuncs from '@/composable/utilityFunctions'
+import useReports from '@/composable/reports'
 import { dateMask } from "@/data/masks";
-export default {
-    name: "MoistureReadings",
-    data: (vm) => ({
-        errorDialog: false,
-        uploading:false,
-        submittedMessage: "",
-        errorMessage: "",
-        submitted: false,
-        submitting: false,
-        selectedJobId: "",
-        uploadedFiles:[],
-        initialEvalDate: new Date().toISOString().substr(0, 10),
-        initialEvalDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        initEvalDateModal: false,
-        location: {
+import { defineComponent, ref, computed, watch, useStore, useContext } from '@nuxtjs/composition-api';
+export default defineComponent({
+    props: {
+        company: String,
+        abbreviation: String
+    },
+    setup(props) {
+        const store = useStore()
+        const { $api } = useContext()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
+        const { formatDate, parseDate } = genericFuncs()
+        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+        const errorDialog = ref(false)
+        const uploading = ref(false)
+        const submittedMessage = ref("")
+        const errorMessage = ref("")
+        const submitted = ref(false)
+        const submitting = ref(false)
+        const selectedJobId = ref("")
+        const uploadedFiles = ref([])
+        const initialEvalDate = new Date().toISOString().substr(0, 10)
+        const initialEvalDateFormatted = formatDate(new Date().toISOString().substr(0, 10))
+        const initEvalDateModal = ref(false)
+        const location = ref({
             address: null,
             city: null,
             cityStateZip: null,
-        },
-        areaCols: ["A"],
-        subAreas: [
+        })
+        const areaCols = ref(["A"])
+        const subAreas = ref([
             {
                 areaCols: ["A"],
                 subLabel: 'sub0',
@@ -186,139 +203,68 @@ export default {
                     }
                 ],
             }
-        ],
-        baseline: [
+        ])
+        const baseline = ref([
             {
                 date: '',
                 subareas: [{label: "sub1", val: ""}],
                 label: 'baseline0'
             }
-        ],
-        uploadProgress: "",
-        uploadMessage: "",
-        filesUpload: [],
-        notes: '',
-        disabled: false,
-        tables:[false, false, false],
-        active: null,
-        reportFetched: false,
-        warningDialog: false,
-        loaded: false,
-        uploaded:false,
-        isLoading: false,
-        dateMask: dateMask
-    }),
-    props:['company', 'abbreviation'],
-    head() {
-        return {
-            title: "Moisture Readings"
-        }
-    },
-    computed: {
-        ...mapGetters({getReports:'reports/getReports', getUser:'users/getUser'}),
-        date() {
+        ])
+        const uploadProgress = ref("")
+        const uploadMessage = ref("")
+        const filesUpload = ref([])
+        const notes = ref('')
+        const disabled = ref(false)
+        const tables = ref([false, false, false])
+        const active = ref(null)
+        const reportFetched = ref(false)
+        const warningDialog = ref(false)
+        const loaded = ref(false)
+        const uploaded = ref(false)
+        const isLoading = ref(false)
+        const form = ref(null)
+        const html2Pdf0 = ref(null)
+        const postedData = ref({})
+
+        const getUser = computed(() => store.getters["users/getUser"])
+        const getReports = computed(() => store.getters["reports/getReports"])
+        const date = computed(() => {
             const today = new Date()
             return (today.getMonth() + 1)+'-'+today.getUTCDate()+'-'+today.getFullYear();
-        }
-    },
-    watch: {
-        initialEvalDate(val) {
-            this.initialEvalDateFormatted = this.formatDate(val)
-        },
-        selectedJobId(val) {
-            this.loaded = true
-            this.isLoading = true
-            this.$api.$get(`/api/reports/details/moisture-map/${val}`).then((res) => {
-                this.reportFetched = true
-                this.isLoading = false
-                this.initialEvalDateFormatted = res.initialEvalDate
-                this.location = res.location
-                this.subAreas = res.readingsRow
-                this.baseline = res.baselineReadings
-                this.notes = res.notes
-                var areas = genericFuncs().groupByKey(res.readingsRow, 'label')
-                for (const property in areas) {
-                    this[property] = areas[property]
-                }
-            }).catch(err => {
-                this.isLoading = false
-                var initReport = this.$store.state.reports.all.find(obj => obj.ReportType === 'dispatch')
-                if (initReport !== undefined) {
-                    this.location.address = initReport.location.address
-                    this.location.cityStateZip = initReport.location.cityStateZip
-                } else {
-                    this.location = {
-                        address: null,
-                        city: null,
-                        cityStateZip: null,
-                    }
-                }
-                this.initialEvalDateFormatted = this.formatDate(new Date().toISOString().substr(0, 10))
-                this.subAreas = [{
-                    areaCols: ["A"],
-                    subLabel: 'sub0',
-                    areaName: "",
-                    reading: "",
-                    areas: [{
-                        date: "",
-                        label: "row0",
-                        area: [{
-                            label: 'A',
-                            val: ''
-                        }]
-                    }],
-                }]
-                this.baseline = [{
-                    date: '',
-                    subareas: [{
-                        label: "sub1",
-                        val: ""
-                    }],
-                    label: 'baseline0'
-                }]
-                this.notes = ""
-                this.reportFetched = false
-                return;
-            })
-        }
-    },
-    methods: {
-        updateChart() {
-            this.$emit('updatingChart', this.baseline)
-            this.loaded = false
+        })
+
+        function updateChart() {
+            emit('updatingChart', baseline.value)
+            loaded.value = false
             setTimeout(() => {
-                this.loaded = true
+                loaded.value = true
             }, 500)
-        },
-        addDays(d, days) {
+        }
+        function addDays(d, days) {
             if (d === undefined) return
             const date = new Date(d);
             
             date.setDate(date.getDate() + days);
             return date;
-        },
-        formatDate(dateReturned) {
-            if (!dateReturned) return null
-            const [year, month, day] = dateReturned.split('-')
-            return `${month}/${day}/${year}`
-        },
-        addRow(area, subarea, subIndex, areaType) {
+        }
+        function addRow(area, subarea, subIndex, areaType) {
             switch (areaType) {
                 case "area-readings":
-                    var sub = this.subAreas.find(el => el.subLabel === subarea)
+                    var sub = subAreas.value.find(el => el.subLabel === subarea)
                     if (sub.areas[sub.areas.length - 1].date === "") {
                         alert("You must add a date for sub area row.")
                         break;
                     }
                     var cols = []
-                    this.subAreas[subIndex].areaCols.forEach((col) => {
+                    subAreas.value[subIndex].areaCols.forEach((col) => {
                         cols.push({label: col, val: ''})
                     })
-                    var nextDate = this.formatDate(this.addDays(sub.areas[sub.areas.length - 1].date, 1).toISOString().substr(0,10))
+                    var nextDate = formatDate(addDays(sub.areas[sub.areas.length - 1].date, 1).toISOString().substr(0,10))
                     sub.areas.push({ date: nextDate,label: area,area: cols })
                     break;
                 case "baseline-readings":
-                    var baselineRow = this.baseline.find(el => el.label === area)
+                    var baselineRow = baseline.value.find(el => el.label === area)
                     if (baselineRow.date === "") {
                         alert("You must add a date for sub area row.")
                         break;
@@ -327,12 +273,12 @@ export default {
                     baselineRow.subareas.forEach((item) => {
                         cols.push({label: `sub${subIndex+1}`, val: ""})
                     })
-                    this.baseline.push({date: "", label: `baseline${subIndex}`, subareas: cols})
+                    baseline.value.push({date: "", label: `baseline${subIndex}`, subareas: cols})
                     break;
             }           
-        },
-        addSub(sub, index) {
-            this.subAreas.push({
+        }
+        function addSub(sub, index) {
+            subAreas.value.push({
                 subLabel: sub,
                 areaName: "",
                 areaCols: ["A"],
@@ -350,14 +296,14 @@ export default {
                 ],
             })
             var subColLabels = []
-            this.subAreas.forEach((item) => {
+            subAreas.value.forEach((item) => {
                 subColLabels.push(item.subLabel)
             })
-            this.baseline.forEach((col) => {
+            baseline.value.forEach((col) => {
                 col.subareas.push({label: subColLabels[index], val: ""})
             })
-        },
-        addColumn(colArr, subIndex, rowIndex) {
+        }
+        function addColumn(colArr, subIndex, rowIndex) {
             var char2 = new Array(27)
             var char1 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
             char2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -371,77 +317,121 @@ export default {
             }
             
             var colToAdd = result[colArr.length]
-            if (!this.subAreas[subIndex].areaCols.includes(colToAdd)) {
-                this.subAreas[subIndex].areaCols.push(colToAdd)
+            if (!subAreas.value[subIndex].areaCols.includes(colToAdd)) {
+                subAreas.value[subIndex].areaCols.push(colToAdd)
             }
-            if (!this.areaCols.includes(colToAdd)) {
-                this.areaCols.push(colToAdd)
+            if (!areaCols.value.includes(colToAdd)) {
+                areaCols.value.push(colToAdd)
             }
 
-            this.subAreas[subIndex].areas[rowIndex].area.push({label: result[colArr.length], val: ""})
-        },
-        formatDate(dateReturned) {
-            if (!dateReturned) return null
-            const [year, month, day] = dateReturned.split('-')
-            return `${month}/${day}/${year}`
-        },
-        parseDate(date) {
-            if (!date) return null
-            const [month, day, year] = date.split('/')
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-        },
-        submitForm() {
-            this.submitting = true
-            this.submittedMessage = ""
-            const reports = this.getReports.filter((v) => {
+            subAreas.value[subIndex].areas[rowIndex].area.push({label: result[colArr.length], val: ""})
+        }
+        async function submitForm() {
+            const reports = getReports.value.filter((v) => {
                 return v.ReportType === 'moisture-map'
             })
             const jobids = reports.map((v) => {
                 return v.JobId
             })
-            
-            const post = {
-                JobId: this.selectedJobId,
-                ReportType: "moisture-map",
-                formType: "logs-report",
-                initialEvalDate: this.initialEvalDateFormatted,
-                baselineReadings: this.baseline,
-                readingsRow: this.subAreas,
-                location: this.location,
-                notes: this.notes,
-                teamMember: this.getUser
-            };
-            this.$refs.form.validate().then(success => {
+            await form.value.validate().then(success => {
                 if (!success) {
-                    this.submitting = false
-                    this.errorDialog = true
+                    submitting.value = false
+                    errorDialog.value = true
                     return;
                 }
-                this.$api.$put(`/api/reports/moisture-map/${this.selectedJobId}/update`, post).then((res) => {
-                    this.submittedMessage = res
-                    this.submitting = false
-                    this.submitted = true
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                Promise.all([onSubmit()]).then((result) => {
+                    submittedMessage.value = result[0]
+                    html2Pdf0.value.generatePdf()
+                }).catch(error => console.log(`Error in promises ${error}`))
+            })
+        }
+        function onSubmit() {
+            submittedMessage.value = ""
+            const post = {
+                JobId: selectedJobId.value,
+                ReportType: "moisture-map",
+                formType: "logs-report",
+                initialEvalDate: initialEvalDateFormatted.value,
+                baselineReadings: baseline.value,
+                readingsRow: subAreas.value,
+                location: location.value,
+                notes: notes.value,
+                teamMember: getUser.value
+            };
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$put(`/api/reports/moisture-map/${selectedJobId.value}/update`, post).then((res) => {
+                    submittedMessage.value = res
+                    submitting.value = false
+                    submitted.value = true
+                    fetchReports()
+                    resolve(res)
                 }).catch(err => {
                     if (err.response) {
-                        this.errorMessage = err.response.data
-                        this.errorDialog = true
-                        this.submitting = false
+                        errorMessage.value = err.response.data.message
+                        errorDialog.value = true
+                        submitting.value = false
+                        reject(err.response.data.message)
                     }
                 })
             })
-        },
-        openTable(index) {
-            this.active = index
-        },
-        settingLocation(params) {
-            this.location.cityStateZip = params.cityStateZip
-            this.location.address = params.address
+        }
+        function openTable(index) {
+            active.value = index
+        }
+        function settingLocation(params) {
+            location.value.cityStateZip = params.cityStateZip
+            location.value.address = params.address
+        }
+
+        return {
+            errorDialog,
+            uploading,
+            submittedMessage,
+            errorMessage,
+            submitted,
+            submitting,
+            selectedJobId,
+            uploadedFiles,
+            initialEvalDate,
+            initialEvalDateFormatted,
+            initEvalDateModal,
+            location,
+            areaCols,
+            subAreas,
+            baseline,
+            uploadProgress,
+            uploadMessage,
+            filesUpload,
+            notes,
+            disabled,
+            tables,
+            active,
+            reportFetched,
+            warningDialog,
+            loaded,
+            uploaded,
+            isLoading,
+            form,
+            html2Pdf0,
+            getUser,
+            getReports,
+            updateChart,
+            addRow,
+            addSub,
+            addColumn,
+            submitForm,
+            htmlToPdfOptions,
+            beforeDownloadNoSave,
+            uploadPdf,
+            parseDate,
+            dateMask,
+            postedData,
+            openTable,
+            settingLocation
         }
     }
-}
+})
 </script>
 <style lang="scss">
 .moisture-map {

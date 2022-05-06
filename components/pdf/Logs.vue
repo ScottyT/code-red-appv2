@@ -163,20 +163,6 @@ export default {
         }
     },
     methods: {
-        updateReport() {
-            // use indexDb for offline support here
-            this.$axios.$post(`/api/logs-report/${this.reportType}/${this.report.JobId}/update`, this.newdata).then((res) => {
-                if (res.errors) {
-                    this.errorMessage = res.errors
-                    return;
-                }
-                this.updateMessage = res.message
-                setTimeout(() => {
-                    this.updateMessage = ""
-                    this.$router.push("/saved-reports")
-                }, 5000)
-            })
-        },
         loadedReport() {
             this.report.baselineReadings.forEach((item) => {
                 this.baseline.push(item)
@@ -189,13 +175,17 @@ export default {
         },
         getReportImages(jobid, folder, subfolder, delimiter) {
             return new Promise((resolve, reject) => {
-                this.$fire.auth.currentUser.getIdToken().then((idToken) => {
-                    this.$axios.$get(`${process.env.gsutil}/list/${jobid}`, {
-                        params: {folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter, bucket: "default" }, headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
-                        resolve(res.images)
-                    }).catch((err) => {
-                        reject(err)
-                    })
+                this.$gcs.$get(`/list/${jobid}`, {
+                    params: {
+                        folder: folder,
+                        subfolder: folder + "/" + subfolder,
+                        delimiter: delimiter,
+                        bucket: "default"
+                    }
+                }).then((res) => {
+                    resolve(res.images)
+                }).catch((err) => {
+                    reject(err)
                 })
             })
         }

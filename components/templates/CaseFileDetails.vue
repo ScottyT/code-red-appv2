@@ -24,15 +24,7 @@
             </div>
         </div>
         <div class="report-details__section--case-file">
-            <div class="report-details__data" v-if="report && report.contentCleaningInspection !== undefined">
-                <!-- content cleaning section -->
-                <h4>{{report.contentCleaningInspection[0].group}}</h4>
-                <ul>                   
-                    <li v-for="(item, i) in report.contentCleaningInspection" :key="`cleaning-${i}`">
-                        {{item.label}}
-                    </li>
-                </ul>
-            </div>
+            
             <div class="report-details__data" v-if="report && report.selectedTmpRepairs !== undefined">
                 <!-- tmp repairs -->
                 <h4>TMP Repairs</h4>

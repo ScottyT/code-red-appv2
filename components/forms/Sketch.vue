@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="onSubmit" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" name="Job ID" v-slot="{errors}" rules="required" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -59,16 +59,27 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <div>
+            <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions(`${postedData.ReportType}-${postedData.title}`, selectedJobId)" 
+                    :enable-download="false" :paginate-elements-by-height="900" :manual-pagination="false" :show-layout="false"
+                    @beforeDownload="beforeDownloadNoSave($event, `${postedData.ReportType}-${postedData.title}-${selectedJobId}`, selectedJobId)" :preview-modal="true" 
+                    @hasDownloaded="uploadPdf($event, `${postedData.ReportType}-${postedData.title}-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
+                <PdfSketch :reportName="`${postedData.ReportType} ${postedData.title}`" :reportType="postedData.ReportType" :report="postedData"
+                           company="Water Emergency Services Incorporated" slot="pdf-content" />
+            </vue-html2pdf>
+        </div>
     </div>
     </span>
 </template>
 <script>
 import { defineComponent, useStore, computed, ref, onMounted } from '@nuxtjs/composition-api'
 import {mapActions} from 'vuex'
+import useReports from '@/composable/reports'
 export default defineComponent({
     props: ['formname'],
     setup(props, {root, refs}) {
         const store = useStore()
+        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const sketchRef = ref(null)
         const penColorArr = ref(["#000", "#6c8ce6", "#3047f1", "#0a2177"])
         const penColor = ref("#000")
@@ -80,6 +91,7 @@ export default defineComponent({
         
         const sketchData = ref({}); const sketchFormData = ref(null); const selectedJobId = ref(""); const submittedMessage = ref("");
         const errorDialog = ref(false); const submitting = ref(false);
+        const postedData = ref({})
         function clear() {
             sketchRef.value.clearSignature();
             sketchData.value.data = null; sketchData.value.isEmpty = true
@@ -117,13 +129,30 @@ export default defineComponent({
             user, getReports,
             loggedIn: computed(() => isUserAuth.value),
             changePenColor,
-            notes
+            notes,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            postedData
         }
     },
     methods: {
         ...mapActions({
             fetchReports: "reports/fetchReports"
         }),
+        async submitForm() {
+            await this.$refs.form.validate().then(success => {
+                if (!success) {
+                    this.submitting = false
+                    this.errorDialog = true
+                    return;
+                }
+                Promise.all([this.onSubmit()]).then((result) => {
+                    this.submittedMessage = result[0]
+                    this.$refs.html2Pdf0.generatePdf()
+                }).catch(error => console.log(`Error in promises ${error}`))
+            })
+        },
         onSubmit() {
             this.submittedMessage = ""
             const post = {
@@ -136,30 +165,16 @@ export default defineComponent({
                 notes: this.notes
             };
             this.submitting = true
-            this.$refs.form.validate().then(success => {
-                if (!success) {
-                    this.submitting = false
-                    this.errorDialog = true
-                    return;
-                }
-                this.$api.$post(`/api/sketch`, post).then((res) => {
-                    if (res.error) {
-                        this.errorDialog = true
-                        this.submitting = false
-                        this.$refs.form.setErrors({
-                            JobId: [res.message]
-                        })
-                        return
-                    }
-                    this.fetchReports()
-                    this.submittedMessage = res
-                    this.submitting = false
-                    this.submitted = true
-                }).catch(err => {
-                    this.submitting = false
-                    this.submitted = false
-                    console.error(err)
-                })
+            this.postedData = post
+            this.$api.$post(`/api/sketch`, post).then((res) => {
+                this.fetchReports()
+                this.submittedMessage = res
+                this.submitting = false
+                this.submitted = true
+            }).catch(err => {
+                this.submitting = false
+                this.submitted = false
+                console.error(err)
             })
         }
     }

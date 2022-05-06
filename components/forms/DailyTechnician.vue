@@ -30,8 +30,7 @@
               </div>
               <div class="form__input-group form__input-group--short">
                 <label for="date" class="form__label">Date</label>
-                <input @click="$refs.dateError.textContent = 'You are not allowed to edit the date'" id="date" v-model="dateFormatted" readonly class="form__input" />
-                <span class="error--text" ref="dateError"></span>
+                <UiDatePicker dateId="date" dialogId="dateDialog" @date="dateFormatted = $event" @unformattedDate="date = $event" />
               </div>
               <div class="form__input-group form__input-group--long">
                 <label for="location" class="form__label">Location</label>
@@ -229,15 +228,21 @@
                   <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                 </ValidationProvider>
               </div>
-
             </div>
             <div class="form__button-wrapper"><button class="button form__button-wrapper--submit" type="submit">{{ submitting ? 'Submitting' : 'Submit' }}</button></div>
           </form>
         </ValidationObserver>
+        <div>
+          <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('case-file-technician', selectedJobId)"
+                        :paginate-elements-by-height="800" :manual-pagination="false" :show-layout="false" :preview-modal="true" :enable-download="false"
+                        @hasDownloaded="uploadPdf($event, `case-file-technician-${selectedJobId}`, selectedJobId)"
+                        @beforeDownload="beforeDownloadNoSave($event, `case-file-technician-${selectedJobId}`, selectedJobId)"  ref="html2Pdf0">
+              <LazyLayoutCaseFileDetails form_name="Case File Technician" :notPdf="false" :report="postedData" slot="pdf-content" />
+          </vue-html2pdf>
+        </div>
       </div>
 </template>
 <script>
-import { mapGetters, mapActions } from 'vuex';
 import moment from 'moment';
 import genericFuncs from '@/composable/utilityFunctions'
 import useReports from '@/composable/reports'
@@ -254,6 +259,7 @@ export default defineComponent({
     const { formatTime, formatDate, parseDate } = genericFuncs()
     const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
     const { $api } = useContext()
+    const fetchReports = () => { store.dispatch("reports/fetchReports") }
     const date = new Date().toISOString().substring(0, 10)
     const dateFormatted = formatDate(new Date().toISOString().substring(0, 10))
     const location = ref({
@@ -675,6 +681,86 @@ export default defineComponent({
         waterGallons: amountOfWater.value.gallons.toString(),
         waterPounds: amountOfWater.value.pounds.toString()
       };
+      postedData.value = post
+      return new Promise((resolve, reject) => {
+        $api.$post("/api/reports/case-file-containment/new", post, {
+            params: {
+                jobid: selectedJobId.value
+            }
+        }).then((res) => {
+            submitted.value = true
+            submitting.value = false
+            fetchReports()
+            resolve(res)
+        }).catch((err) => {
+            errorDialog.value = true
+            submitting.value = false
+            errors.value.push(err.response.data.message)
+            reject(err)
+        })
+      })
+    }
+
+    watch(() => dispatchToProperty.value, (val) => {
+      dispatchPropertyFormatted.value = formatTime(val)
+    })
+    watch(() => evalStart.value, (val) => {
+      evalStartFormatted.value = formatTime(val)
+    })
+    watch(() => evalEnd.value, (val) => {
+      evalEndFormatted.value = formatTime(val)
+    })
+
+    return {
+      date,
+      dateFormatted,
+      location,
+      message,
+      submitting,
+      submitted,
+      contentCleaningInspection,
+      selectedContentCleaning,
+      waterRestorationInspection,
+      selectedWaterRestoration,
+      waterRemediationAssesment,
+      selectedWaterRemediation,
+      overviewScopeOfWork,
+      selectedOverviewScope,
+      specializedExpert,
+      selectedExpert,
+      scopeOfWork,
+      selectedScope,
+      projectWorkPlans,
+      selectedWorkPlans,
+      notes,
+      evalLogsDialog,
+      dispatchToProperty,
+      dispatchPropertyFormatted,
+      evalStart,
+      evalStartFormatted,
+      evalEnd,
+      evalEndFormatted,
+      verifySig,
+      empSig,
+      workCompletedAfterHours,
+      selectedJobId,
+      errorDialog,
+      errors,
+      uploadedImages,
+      form,
+      html2Pdf0,
+      postedData,
+      numberOfDehus,
+      amountOfWater,
+      getUser,
+      getReports,
+      duration,
+      parsedDate,
+      settingLocation,
+      submitForm,
+      htmlToPdfOptions,
+      beforeDownloadNoSave,
+      uploadPdf
     }
   }
 })
