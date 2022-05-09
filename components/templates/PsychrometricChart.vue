@@ -137,16 +137,16 @@ export default defineComponent({
                         return
                     }
                     var tempArr = []
-                    for (var i = 0; i < result.data.jobProgress.length; i++) {
+                    for (var i = 0; i < result.jobProgress.length; i++) {
                         var data = {
-                            x: result.data.jobProgress[i].info.dryBulbTemp,
-                            y: result.data.jobProgress[i].info.humidityRatio
+                            x: result.jobProgress[i].info.dryBulbTemp,
+                            y: result.jobProgress[i].info.humidityRatio
                         }
                         var dataset = { 
-                            readingsType: result.data.jobProgress[i].readingsType, 
+                            readingsType: result.jobProgress[i].readingsType, 
                             pointRadius: 5, data: [data], 
-                            label: result.data.jobProgress[i].date, 
-                            backgroundColor: result.data.jobProgress[i].color 
+                            label: result.jobProgress[i].date, 
+                            backgroundColor: result.jobProgress[i].color 
                         }
                         tempArr.push(dataset)
                         chartData.value.push(dataset)
@@ -191,8 +191,9 @@ export default defineComponent({
         }
         watch(jobid, (val) => {
             chartData.value = []
-            getExistingChart(val)
-            emit('existingChart', chartData.value)
+            getExistingChart(val).then((result) => {
+                emit('existingChart', chartData.value)
+            })
         })
         watch(readingsType, (val) => {
             loaded.value = true

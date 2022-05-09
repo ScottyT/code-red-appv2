@@ -38,7 +38,7 @@
                 </div>
             </div>
         </div>
-        <LazyLayoutMoistureCompare :width="700" :height="500" onPdf :jobid="report.JobId" :existingChart="baseline" class="chart__moisture-map" />
+        <LazyLayoutMoistureCompare :width="700" :height="500" :chartLoaded="loaded" onPdf :jobid="report.JobId" :existingChart="baseline" class="chart__moisture-map" />
         <div class="report-details__section--pictures">
             <div class="report-details__image" v-for="(image, i) in images" :key="`image-${i}`">
                 <img :src="image.url" />
@@ -53,15 +53,20 @@ export default defineComponent({
     props: {
         company: String,
         reportName: String,
-        report: Object
+        report: Object,
+        pdf: {
+            type: Boolean,
+            default: true
+        },
+        loaded: Boolean
     },
     setup(props, { root }) {
-        const { report } = toRefs(props)
+        const { report, pdf } = toRefs(props)
         const { getReportImages, images } = useReports()
         const baseline = ref([])
 
         function loadedReport() {
-            console.log("loading:", report.value)
+            baseline.value = []
             report.value.baselineReadings.forEach((item) => {
                 baseline.value.push(item)
             })
@@ -70,6 +75,7 @@ export default defineComponent({
             loadedReport()
         })
         getReportImages(report.value.JobId, "moisture-images", "", "/").fetchImages()
+        
         return {
             images, baseline
         }

@@ -3,26 +3,26 @@
         <h1 class="text-center">Psychrometric Chart for {{report.JobId}}</h1>
         <section class="pdf-item" v-for="(chart, key) in sameTypes" :key="key">            
             <h3>{{key}}</h3>
-            <LazyLayoutPsychrometricChart :width="700" multipleCharts :dataLoaded="loaded" :existingChart="chart" :height="500" :buttonDisabled="true" 
+            <LazyLayoutPsychrometricChart :width="700" multipleCharts :dataLoaded="chartLoaded" :existingChart="chart" :height="500" :buttonDisabled="true" 
                 class="chart__psychrometric" />
             <div class="pdf-item__calculations">
                 <div class="chart-inputs__calculations" v-for="(data, i) in chart" :key="`data-${i}`">
                     <h4 class="pl-2 pt-1">{{data.label}}</h4>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Temperature</div>
-                        <div class="chart-inputs__temp">{{data.info.dryBulbTemp}}&deg;F</div>
+                        <div class="chart-inputs__temp">{{data && data.info ? data.info.dryBulbTemp : null}}&deg;F</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Humidity Ratio</div>
-                        <div class="chart-inputs__temp">{{data.info.humidityRatio}}</div>
+                        <div class="chart-inputs__temp">{{data && data.info ? data.info.humidityRatio : null}}</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Relative humidity</div>
-                        <div class="chart-inputs__calculations-col">{{data.info.relativeHumidity}}</div>
+                        <div class="chart-inputs__calculations-col">{{data && data.info ? data.info.relativeHumidity : null}}</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Dew Point</div>
-                        <div class="chart-inputs__calculations-col">{{data.info.dewPoint}}&deg;F</div>
+                        <div class="chart-inputs__calculations-col">{{data && data.info ? data.info.dewPoint : null}}&deg;F</div>
                     </div>
                 </div>
             </div>
@@ -30,22 +30,32 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, ref, computed, provide, onMounted, inject } from '@nuxtjs/composition-api'
+import { defineComponent, toRefs, ref, computed, provide, onMounted, inject, watch } from '@nuxtjs/composition-api'
 import genericFuncs from '@/composable/utilityFunctions'
+import useReports from '@/composable/reports'
 export default defineComponent({
     props: {
-        report: Object
+        report: Object,
+        chartLoaded: Boolean
     },
-    setup(props, { }) {
-        const { report } = toRefs(props)
-        const chartdata = computed(() => report.value.jobProgress)
+    setup(props) {
+        const { chartLoaded } = toRefs(props)
         const newchartdata = ref([])
         const loaded = ref(false)
+        const formdata = ref({})
+        const { getReportPromise } = useReports()
         const { groupByKey } = genericFuncs()
         const sameTypes = ref({})
-        const refactorChartData = () => {
+        const getSubmittedReport = async (data) => {
+            await getReportPromise(`psychrometric-chart/${data.JobId}`).then((result) => {
+                formdata.value = result
+                refactorChartData(data)
+            })
+        }
+        const refactorChartData = (report) => {
             var progressArr = []
-            chartdata.value.forEach((item, i) => {
+            
+            report.jobProgress.forEach((item, i) => {
                 var data = {
                     x: item.info.dryBulbTemp,
                     y: item.info.humidityRatio
@@ -64,12 +74,15 @@ export default defineComponent({
             sameTypes.value = groupByKey(progressArr, 'readingsType')
             loaded.value = true
         }
-        onMounted(refactorChartData)
+        watch(() => chartLoaded.value, (val) => {
+            getSubmittedReport(val)
+        })
+        //onMounted(refactorChartData)
         return {
             loaded,
-            chartdata,
             newchartdata,
-            sameTypes
+            sameTypes,
+            formdata
         }
     },
 })

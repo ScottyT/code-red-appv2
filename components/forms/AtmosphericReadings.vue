@@ -89,9 +89,10 @@
                             <div class="form__label">{{row.text}}</div>
                         </div>
                         <div class="form__table--cols" v-for="(item, j) in row.day" :key="`col-${j}`">
-                            <input type="text" :tabindex="j" v-on="(row.identifier === 'dryBulbTemp' || row.identifier === 'humidityRatio' || row.identifier === 'dewPoint') ? {
+                            <input :tabindex="j" v-on="(row.identifier === 'dryBulbTemp' || row.identifier === 'humidityRatio' || row.identifier === 'dewPoint') ? {
                                     input: ($event) => calculationsDp($event, row.identifier, row.label, item.date)
-                                }:{}" v-model="item.value" class="form__input" />
+                                }:{}" v-model="item.value" class="form__input" :min="row.hasOwnProperty('min') ? row.min : ''" 
+                                :type="row.identifier == 'dryBulbTemp' ? 'number' : 'text'" />
                         </div>
                     </div>
                     <div class="form__table form__table--rows row-heading">
@@ -178,7 +179,7 @@ export default defineComponent({
         const form = ref(null)
         const html2Pdf0 = ref(null)
         const readingsArr = ref([
-            {text: "Affected Temperature (fahrenheit)", label: "Affected", identifier: "dryBulbTemp", day: [
+            {text: "Affected Temperature (fahrenheit)", label: "Affected", identifier: "dryBulbTemp", min: "20", day: [
                 {text: "day1", date: "", value: ""},
                 {text: "day2",date: "",value: ""},
                 {text: "day3",date: "",value: ""},
@@ -480,7 +481,7 @@ export default defineComponent({
         const Dp = ref("")
         const readingsType = ref({})
         const fetchedPsychometric = ref({})
-        const currentDate = new Date().toISOString().substring(0, 10)
+        const currentDate = ref(formatDate(new Date().toISOString().substring(0, 10)))
         const error = ref(false)
         const reportId = ref("")
         const isLoading = ref(false)
@@ -492,7 +493,7 @@ export default defineComponent({
             return groupByKey(readingsArr.value, 'label')
         })
         const dateIndex = computed(() => {
-            return dateRanges.value.indexOf(currentDate)
+            return dateRanges.value.indexOf(currentDate.value)
         })
         const dateRanges = computed(() => {
             var datediff = new Date(endDateFormatted.value) - new Date(initDateFormatted.value)
@@ -525,7 +526,7 @@ export default defineComponent({
         })
 
         function calculationsDp(e, param, label, date) {
-            var dateIndex = dateRanges.value.indexOf(date)
+            let dateIndex = dateRanges.value.indexOf(date)
             var affectedTemp = groupingData.value["Affected"].find(el => el.identifier === "dryBulbTemp" && el.label === "Affected")
             var exteriorTemp = groupingData.value["Exterior"].find(el => el.identifier === "dryBulbTemp" && el.label === "Exterior")
             var unaffectedTemp = groupingData.value["Unaffected"].find(el => el.identifier === "dryBulbTemp" && el.label === "Unaffected")
@@ -556,39 +557,49 @@ export default defineComponent({
                     if (param === "humidityRatio" && label === "Affected") {
                         let vapor = e.target.value
                         affectedVapor.day[dateIndex].value = calcVapor(vapor, "Affected")
+                        psychrometricData.value["Affected"].info.humidityRatio = e.target.value
+                        psychrometricData.value["Affected"].info.vaporPressure = calcVapor(vapor, "Affected")
                     }
                     if (param === "humidityRatio" && label === "Unaffected") {
                         unaffectedVapor.day[dateIndex].value = calcVapor(e.target.value, "Unaffected")
+                        psychrometricData.value["Unaffected"].info.humidityRatio = calcVapor(e.target.value, "Unaffected")
                     }
                     if (param === "humidityRatio" && label === "Exterior") {
                         exteriorVapor = calcVapor(e.target.value, "Exterior")
+                        psychrometricData.value["Exterior"].info.humidityRatio = e.target.value
                     }
                     if (item.identifier === "dewPoint" && label === "Affected") {
                         var ln = affectedVapor.day[dateIndex].value / hPa.value
                         var dewPointF = convertToF((temp.value * Math.log(ln)) / (beta.value - Math.log(ln)))
                         affectedDp.day[dateIndex].value = round(dewPointF, 3)
+                        psychrometricData.value["Affected"].info.dewPoint = round(dewPointF, 3)
                     }
                     if (item.identifier === "dewPoint" && label === "Unaffected") {
                         var ln = unaffectedVapor.day[dateIndex].value / hPa.value
                         var dewPointF = convertToF((temp.value * Math.log(ln)) / (beta.value - Math.log(ln)))
                         unaffectedDp.day[dateIndex].value = round(dewPointF, 3)
+                        psychrometricData.value["Unaffected"].info.dewPoint = round(dewPointF, 3)
                     }
                     if (item.identifier === "dewPoint" && label === "Exterior") {
                         var ln = exteriorVapor / hPa.value
                         var dewPointF = convertToF((temp.value * Math.log(ln)) / (beta.value - Math.log(ln)))
                         exteriorDp.day[dateIndex].value = round(dewPointF, 3)
+                        psychrometricData.value["Exterior"].info.dewPoint = round(dewPointF, 3)
                     }  
                     if (item.identifier === "relativeHumidity" && label === "Affected") {
                         var satVapor = hPa.value * Math.exp((beta.value * tempInCAffected) / (temp.value + tempInCAffected))
                         affectedRH.day[dateIndex].value = `${(affectedVapor.day[dateIndex].value / satVapor * 100).toFixed(2)}%`
+                        psychrometricData.value["Affected"].info.relativeHumidity = `${(affectedVapor.day[dateIndex].value / satVapor * 100).toFixed(2)}%`
                     }
                     if (item.identifier === "relativeHumidity" && label === "Unaffected") {
                         var satVapor = hPa.value * Math.exp((beta.value * tempInCUnaffected) / (temp.value + tempInCUnaffected))
                         unaffectedRH.day[dateIndex].value = `${(unaffectedVapor.day[dateIndex].value / satVapor * 100).toFixed(2)}%`
+                        psychrometricData.value["Unaffected"].info.relativeHumidity = `${(unaffectedVapor.day[dateIndex].value / satVapor * 100).toFixed(2)}%`
                     }
                     if (item.identifier === "relativeHumidity" && label === "Exterior") {
                         var satVapor = hPa.value * Math.exp((beta.value * tempInCExterior) / (temp.value + tempInCExterior))
                         exteriorRH.day[dateIndex].value = `${(exteriorVapor / satVapor * 100).toFixed(2)}%`
+                        psychrometricData.value["Exterior"].info.relativeHumidity = `${(exteriorVapor / satVapor * 100).toFixed(2)}%`
                     }
                 })
             }
@@ -628,8 +639,8 @@ export default defineComponent({
                     errorDialog.value = true
                     return
                 }
-                Promise.all([onSubmit()]).then((result) => {
-                    submittedMessage.value = ""
+                Promise.all([submitPsychrometic(), onSubmit()]).then((result) => {
+                    submittedMessage.value = result[1]
                     html2Pdf0.value.generatePdf()
                 }).catch(error => console.log(`Error in promises ${error}`))
             })
@@ -650,21 +661,18 @@ export default defineComponent({
             };
             postedData.value = post
             return new Promise((resolve, reject) => {
-                submitPsychrometic().then(result => {
-                    $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
-                        submittedMessage.value = res
-                        submitting.value = false
-                        submitted.value = true
-                        fetchReports()
-                        resolve(res)
-                    }).catch(err => {
-                        errorDialog.value = true
-                        submitting.value = false
-                        reject(err)
-                        if (err.response) {
-                            console.error(err.response.data)
-                        }
-                    })
+                $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
+                    submitting.value = false
+                    submitted.value = true
+                    fetchReports()
+                    resolve(res)
+                }).catch(err => {
+                    errorDialog.value = true
+                    submitting.value = false
+                    reject(err)
+                    if (err.response) {
+                        console.error(err.response.data)
+                    }
                 })
             })
         }
@@ -676,7 +684,7 @@ export default defineComponent({
                         if (filteredResults.length > 0) {
                             psychrometricData.value[property].info[item.identifier] = filteredResults[0].value
                             psychrometricData.value[property].date = filteredResults[0].date
-                            psychrometricData.value[property].color = colors.value[dateIndex]
+                            psychrometricData.value[property].color = colors.value[dateIndex.value]
                         }
                     })
                 }
@@ -713,7 +721,9 @@ export default defineComponent({
                     })
                     resolve("chart posting is done")
                     submittedMessage.value = "Psychrometric chart data sent"
-                })
+                }).catch(err => {
+                    reject(err)
+                }) 
             })
         }
 
@@ -739,8 +749,8 @@ export default defineComponent({
                 reportId.value = res.Id
             }).catch((error) => {
                 isLoading.value = false
-                initDateFormatted.value = this.formatDate(new Date().toISOString().substring(0, 10))
-                endDateFormatted.value = this.formatDate(this.addDays(new Date(), 6).toISOString().substring(0, 10))
+                initDateFormatted.value = formatDate(new Date().toISOString().substring(0, 10))
+                endDateFormatted.value = formatDate(addDays(new Date(), 6).toISOString().substring(0, 10))
                 readingsArr.value.forEach((item, i) => {
                     item.day.forEach((d, j) => {
                         d.value = ""
@@ -817,7 +827,8 @@ export default defineComponent({
             postedData,
             parseDate,
             form,
-            html2Pdf0
+            html2Pdf0,
+            dateIndex
         }
     }
 })

@@ -124,7 +124,7 @@
                     </ValidationProvider>
                 </div>
                 <div class="form__form-group">
-                    <UiFilesUpload :singleImage="false" :subDir="`moisture-images`" :rootPath="selectedJobId" @uploadDone="uploaded = $event" @sendDownloadUrl="uploadedFiles = $event" />
+                    <UiFilesUpload :singleImage="false" path="moisture-images" subDir="" :rootPath="selectedJobId" @uploadDone="uploaded = $event" @sendDownloadUrl="uploadedFiles = $event" />
                 </div>
                 <button type="submit" class="button button--normal" v-show="!reportFetched">{{ submitting ? 'Submitting' : 'Submit' }}</button>
                 <v-dialog width="400px" v-model="warningDialog">
@@ -142,11 +142,12 @@
             </form>
         </ValidationObserver>
         <div>
-            <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('moisture-map', selectedJobId)" :paginate-elements-by-height="800" :manual-pagination="false"
-                 :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)" 
-                 @beforeDownload="beforeDownloadNoSave($event, `moisture-map-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
-                    <LayoutMoistureMapDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated" />
-            </vue-html2pdf>
+                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('moisture-map', selectedJobId)" :paginate-elements-by-height="800" :manual-pagination="false"
+                    :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)" 
+                    @beforeDownload="beforeDownloadNoSave($event, `moisture-map-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
+                        <LayoutMoistureMapDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated"
+                            :pdf="true" :loaded="chartCreated" :existingChart="baseline" />
+                </vue-html2pdf>
         </div>
     </div>
 </template>
@@ -226,6 +227,7 @@ export default defineComponent({
         const form = ref(null)
         const html2Pdf0 = ref(null)
         const postedData = ref({})
+        const chartCreated = ref(false)
 
         const getUser = computed(() => store.getters["users/getUser"])
         const getReports = computed(() => store.getters["reports/getReports"])
@@ -341,6 +343,8 @@ export default defineComponent({
                 }
                 Promise.all([onSubmit()]).then((result) => {
                     submittedMessage.value = result[0]
+                    console.log(result)
+                    chartCreated.value = true
                     html2Pdf0.value.generatePdf()
                 }).catch(error => console.log(`Error in promises ${error}`))
             })
@@ -359,6 +363,7 @@ export default defineComponent({
                 teamMember: getUser.value
             };
             postedData.value = post
+            chartCreated.value = true
             return new Promise((resolve, reject) => {
                 $api.$put(`/api/reports/moisture-map/${selectedJobId.value}/update`, post).then((res) => {
                     submittedMessage.value = res
@@ -428,7 +433,8 @@ export default defineComponent({
             dateMask,
             postedData,
             openTable,
-            settingLocation
+            settingLocation,
+            chartCreated
         }
     }
 })

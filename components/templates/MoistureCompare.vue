@@ -12,7 +12,7 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, watch, ref, computed } from '@nuxtjs/composition-api'
+import { defineComponent, toRefs, watch, ref, computed, onMounted } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
@@ -21,10 +21,11 @@ export default defineComponent({
         height: Number,
         jobid: String,
         existingChart: Array,
-        onPdf: Boolean
+        onPdf: Boolean,
+        chartLoaded: Boolean
     },
     setup(props, { root }) {
-        const { jobid, existingChart, onPdf } = toRefs(props)
+        const { jobid, existingChart, onPdf, chartLoaded } = toRefs(props)
         const loaded = ref(true)
         const { getReportPromise, loading } = useReports()
         const { groupByKey, namedColor } = genericFuncs()
@@ -80,7 +81,8 @@ export default defineComponent({
             loading.value = true
             setTimeout(() => {
                 loading.value = false
-            }, 500)
+            }, 1)
+            console.log("on form submit")
             var tempArr = []
             var datasets = []
             var labels = []
@@ -113,9 +115,24 @@ export default defineComponent({
         watch(existingChart, (val) => {
             populateChart(val)
         })
-        if (onPdf.value) {
-            populateChart(existingChart.value)
-        }
+        onMounted(() => {
+            if (onPdf.value) {
+                populateChart(existingChart.value)
+                /* const loadingChart = () => {
+                    return new Promise((resolve, reject) => {
+                        loading.value = true
+                        setTimeout(() => {
+                            loading.value = false
+                            resolve(true)
+                        }, 500)
+                    })
+                }
+                loadingChart().then(() => {
+                    populateChart(existingChart.value)
+                }) */
+            }
+        })
+        
         return {
             options,
             chartData,

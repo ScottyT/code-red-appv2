@@ -106,6 +106,7 @@ export default defineComponent({
         const reportType = root.$route.params.type
         const jobId = root.$route.params.slug
         const report = computed(() => store.getters["reports/getReport"]);
+
         const fetchSignature = (signType, email) => { store.dispatch("users/getSigOrInitialImage", {signType, email}); }
         const htmlToPdfOptions = computed(() => {
             return {
@@ -131,11 +132,12 @@ export default defineComponent({
         })
 
         const fetchingReport = () => { 
+            console.log("fetching report")
             store.dispatch("reports/fetchReport", { authUser: $auth.user, path: `${reportType}/${jobId}` }).then(() => {
-                if (store.getters["reports/getReport"].hasOwnProperty('evaluationLogs')) {
+                if (store.getters["reports/getReport"].hasOwnProperty('evaluationLogs') && report.value.evaluationLogs !== "N/A") {
                     store.dispatch("reports/formatEvalTimes")
                 }
-                store.dispatch("users/getSigOrInitialImage", {signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email})
+                //store.dispatch("users/getSigOrInitialImage", {signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email})
             }) 
         }
         function generateReport(key) {
@@ -143,6 +145,9 @@ export default defineComponent({
             refs["html2Pdf"+key].generatePdf()
         }
         function hasDownloaded(blob) {
+            uploadPdf(blob).then(() => {
+                console.log("uploaded pdf")
+            })
             clickedOn.value = null
         }
         async function uploadPdf(file) {
@@ -152,7 +157,7 @@ export default defineComponent({
                 type: 'application/pdf'
             });
             formData.append('multiFiles', pdf) // The method in the gsutil web api looks for a form file named multiFiles
-            formData.append('path', 'pdfs/')
+            formData.append('path', `${jobId}/pdfs/`)
             $gcs.$post(`/upload`, formData)
         }
         onMounted(fetchingReport)
@@ -165,7 +170,8 @@ export default defineComponent({
             clickedOn,
             beforeDownload,
             generateReport,
-            hasDownloaded
+            hasDownloaded,
+            uploadPdf
         }
     },
 })

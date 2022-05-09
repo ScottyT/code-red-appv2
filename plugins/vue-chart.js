@@ -31,9 +31,9 @@ Vue.component("scatter-chart", {
     },
     watch: {
         chartdata() {
-            this.$data._chart.destroy();
+            //this.$data._chart.destroy();
             this.renderScatterChart()
-            this.$data._chart.update();
+            //this.$data._chart.update();
         }
     }
 });
