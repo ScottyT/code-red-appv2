@@ -43,7 +43,7 @@
             <LazyLayoutCaseFileDetails :form_name="report.ReportType" :notPdf="true" :report="report" />
         </span>
         <span v-if="report.formType === 'logs-report' && report.ReportType !== 'moisture-map' && report.ReportType !== 'personal-content-inventory'">
-            <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
+            <h1><span v-uppercase>{{reportType}}</span> for job {{jobId}}</h1>
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1400" :manual-pagination="false"
                  :show-layout="false" :enable-download="false" @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :preview-modal="true" ref="html2Pdf0">
@@ -66,18 +66,16 @@
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="800" :manual-pagination="false"
                  :show-layout="false" :enable-download="false" @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :preview-modal="true" ref="html2Pdf0">
-                    <LayoutMoistureMapDetails slot="pdf-content" :reportName="report.ReportType" :report="report" company="Water Emergency Services Incorporated" />
+                    <LayoutMoistureMapDetails slot="pdf-content" :reportName="report.ReportType" :report="report" company="Water Emergency Services Incorporated" :pdf="true" />
                 </vue-html2pdf>
             </client-only>
         </span>
         <span v-if="report.ReportType === 'psychrometric-chart'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
-            <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1000" :manual-pagination="false"
                  :show-layout="false" :preview-modal="true" ref="html2Pdf0" @hasDownloaded="hasDownloaded($event)">
-                    <PdfChart :report="report" slot="pdf-content" />
+                    <PdfChart :pdf="true" :chartLoaded="chartloaded" :report="report" slot="pdf-content" />
                 </vue-html2pdf>
-            </client-only>
             <!-- <PdfChart :report="report" /> -->
         </span>
         <span v-if="report.ReportType === 'quality-control'">
@@ -106,6 +104,7 @@ export default defineComponent({
         const reportType = root.$route.params.type
         const jobId = root.$route.params.slug
         const report = computed(() => store.getters["reports/getReport"]);
+        const chartloaded = ref(false)
 
         const fetchSignature = (signType, email) => { store.dispatch("users/getSigOrInitialImage", {signType, email}); }
         const htmlToPdfOptions = computed(() => {
@@ -132,7 +131,7 @@ export default defineComponent({
         })
 
         const fetchingReport = () => { 
-            console.log("fetching report")
+            chartloaded.value = true
             store.dispatch("reports/fetchReport", { authUser: $auth.user, path: `${reportType}/${jobId}` }).then(() => {
                 if (store.getters["reports/getReport"].hasOwnProperty('evaluationLogs') && report.value.evaluationLogs !== "N/A") {
                     store.dispatch("reports/formatEvalTimes")
@@ -171,7 +170,8 @@ export default defineComponent({
             beforeDownload,
             generateReport,
             hasDownloaded,
-            uploadPdf
+            uploadPdf,
+            chartloaded
         }
     },
 })

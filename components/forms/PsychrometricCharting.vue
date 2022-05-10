@@ -3,7 +3,7 @@
         <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
             :width="860" :height="700" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" />
         <h2 v-show="submittedMessage !== ''">{{submittedMessage}}</h2>
-        <ValidationObserver ref="form" v-slot="{ errors }" v-if="!submitted">
+        <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }" v-if="!submitted">
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form form__psychrometric-chart" @submit.prevent="onSubmit">
+            <form class="form form__psychrometric-chart" @submit.prevent="handleSubmit(submitForm)">
                 <div class="d-flex">
                     <ValidationProvider vid="JobId" name="Job ID" v-slot="{errors}" rules="required" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -85,14 +85,13 @@
             </form>
         </ValidationObserver>
         <div>
-            <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('psychrometric-chart', selectedJobId)" 
                     :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false" :preview-modal="true"  
                     @hasDownloaded="uploadPdf($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" 
                     @beforeDownload="beforeDownloadNoSave($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
-                        <PdfChart :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
+                        <PdfChart :pdf="false" :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
                 </vue-html2pdf>
-            </client-only>
+                <button class="button--normal" ref="downloadBtn" v-show="false" @click="generateBtn()">Download PDF</button>
         </div>
     </div>
 </template>
@@ -367,6 +366,7 @@ export default defineComponent({
         const postedData = ref({})
         const chartloaded = ref(false)
         const existingJobProgress = ref({})
+        const downloadBtn = ref(null)
 
         const user = computed(() => store.getters['users/getUser'])
         const date = ref("")
@@ -405,6 +405,8 @@ export default defineComponent({
         const getPsychrometricChart = async (jobid) => {
             await getReportPromise(`psychrometric-chart/${jobid}`).then((result) => {
                 existingJobProgress.value = result.jobProgress
+            }).catch(err => {
+                existingJobProgress.value = []
             })
         }
         const changeAtmosArr = () => {
@@ -510,19 +512,20 @@ export default defineComponent({
                 })
             })
         }
+        function timeout(ms) {
+            console.log("timeout")
+            return new Promise(resolve => setTimeout(resolve, ms))
+        }
+        async function generateBtn() {
+            await html2Pdf0.value.generatePdf()
+        }
         async function submitForm() {
-            await form.value.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return;
-                }
-                Promise.all([onSubmit()]).then((result) => {
-                    submittedMessage.value = result[0]
-                    html2Pdf0.value.generatePdf()
-                }).catch(error => console.log(`Error in promises ${error}`))
-            })
+            await Promise.all([onSubmit(), timeout(100)]).then((result) => {
+                submitting.value = false
+                submittedMessage.value = result[0]
+                chartloaded.value = true
+                downloadBtn.value.click()
+            }).catch(error => console.log(`Error in promises ${error}`))
         }
         function onSubmit() {
             const post = {
@@ -533,15 +536,17 @@ export default defineComponent({
                 ReportType: 'psychrometric-chart'
             };
             postedData.value = post
-            chartloaded.value = true
+            
             return new Promise((resolve, reject) => {
-                submitAtmosReadings().then((result) => {
-                    submitting.value = true
-                    let update = existingJobProgress.value.includes(post.jobProgress.readingsType)
-                    console.log(update)
+                submitting.value = true
+                    let update = existingJobProgress.value.some(el => {
+                        if (el.readingsType == post.jobProgress.readingsType) {
+                            return true
+                        }
+                        return false
+                    })
                     if (update) {
                         $api.$post(`/api/reports/psychrometric-chart/update-progress`, post).then((res) => {
-                            submitting.value = false
                             submitted.value = true
                             fetchReports()
                             resolve(res)
@@ -555,10 +560,15 @@ export default defineComponent({
                         fetchReports()
                         resolve(res)
                     })
+                /* submitAtmosReadings().then((result) => {
+                    
                 }).catch(err => {
                     console.error(err)
                     reject(err)
-                })
+                }) */
+            }).catch(err => {
+                reject(err)
+                console.log(err)
             })
         }
         watch(readingsType, (val) => {
@@ -626,7 +636,9 @@ export default defineComponent({
             postedData,
             htmlToPdfOptions,
             chartloaded,
-            existingJobProgress
+            existingJobProgress,
+            downloadBtn,
+            generateBtn
         }
     }
 })

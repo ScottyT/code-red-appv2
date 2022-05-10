@@ -5,7 +5,7 @@
         <v-overlay :value="isLoading" v-show="isLoading" light>
             <v-progress-circular indeterminate size="64"></v-progress-circular>
         </v-overlay>
-        <ValidationObserver ref="form" v-slot="{ errors }">
+        <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }">
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -14,7 +14,7 @@
                 </div>
             </v-dialog>
             <p class="font-weight-bold">{{submittedMessage}}</p>
-            <form class="form" v-if="!submitted" @submit.prevent="submitForm">
+            <form class="form" v-if="!submitted" @submit.prevent="handleSubmit(submitForm)">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -146,8 +146,9 @@
                     :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)" 
                     @beforeDownload="beforeDownloadNoSave($event, `moisture-map-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
                         <LayoutMoistureMapDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated"
-                            :pdf="true" :loaded="chartCreated" :existingChart="baseline" />
+                            :pdf="false" :loaded="chartCreated" :existingChart="baseline" />
                 </vue-html2pdf>
+                <button class="button--normal" ref="downloadBtn" v-show="false" @click="generateBtn()">Download PDF</button>
         </div>
     </div>
 </template>
@@ -226,6 +227,7 @@ export default defineComponent({
         const isLoading = ref(false)
         const form = ref(null)
         const html2Pdf0 = ref(null)
+        const downloadBtn = ref(null)
         const postedData = ref({})
         const chartCreated = ref(false)
 
@@ -328,6 +330,9 @@ export default defineComponent({
 
             subAreas.value[subIndex].areas[rowIndex].area.push({label: result[colArr.length], val: ""})
         }
+        function timeout(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms))
+        }
         async function submitForm() {
             const reports = getReports.value.filter((v) => {
                 return v.ReportType === 'moisture-map'
@@ -335,22 +340,19 @@ export default defineComponent({
             const jobids = reports.map((v) => {
                 return v.JobId
             })
-            await form.value.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    errorDialog.value = true
-                    return;
-                }
-                Promise.all([onSubmit()]).then((result) => {
-                    submittedMessage.value = result[0]
-                    console.log(result)
-                    chartCreated.value = true
-                    html2Pdf0.value.generatePdf()
-                }).catch(error => console.log(`Error in promises ${error}`))
-            })
+            await Promise.all([onSubmit(), timeout(100)]).then((result) => {
+                submittedMessage.value = result[0]
+                submitting.value = false
+                chartCreated.value = true
+                downloadBtn.value.click()
+            }).catch(error => console.log(`Error in promises ${error}`))
+        }
+        async function generateBtn() {
+            await html2Pdf0.value.generatePdf()
         }
         function onSubmit() {
             submittedMessage.value = ""
+            submitting.value = true
             const post = {
                 JobId: selectedJobId.value,
                 ReportType: "moisture-map",
@@ -367,7 +369,6 @@ export default defineComponent({
             return new Promise((resolve, reject) => {
                 $api.$put(`/api/reports/moisture-map/${selectedJobId.value}/update`, post).then((res) => {
                     submittedMessage.value = res
-                    submitting.value = false
                     submitted.value = true
                     fetchReports()
                     resolve(res)
@@ -434,7 +435,9 @@ export default defineComponent({
             postedData,
             openTable,
             settingLocation,
-            chartCreated
+            downloadBtn,
+            chartCreated,
+            generateBtn
         }
     }
 })

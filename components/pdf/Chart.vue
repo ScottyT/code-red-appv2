@@ -36,10 +36,11 @@ import useReports from '@/composable/reports'
 export default defineComponent({
     props: {
         report: Object,
-        chartLoaded: Boolean
+        chartLoaded: Boolean,
+        pdf: Boolean
     },
     setup(props) {
-        const { chartLoaded } = toRefs(props)
+        const { chartLoaded, report, pdf } = toRefs(props)
         const newchartdata = ref([])
         const loaded = ref(false)
         const formdata = ref({})
@@ -52,10 +53,10 @@ export default defineComponent({
                 refactorChartData(data)
             })
         }
-        const refactorChartData = (report) => {
+        const refactorChartData = () => {
             var progressArr = []
             
-            report.jobProgress.forEach((item, i) => {
+            report.value.jobProgress.forEach((item, i) => {
                 var data = {
                     x: item.info.dryBulbTemp,
                     y: item.info.humidityRatio
@@ -75,9 +76,13 @@ export default defineComponent({
             loaded.value = true
         }
         watch(() => chartLoaded.value, (val) => {
-            getSubmittedReport(val)
+            getSubmittedReport(report.value.JobId)
         })
-        //onMounted(refactorChartData)
+        onMounted(() => {
+            if (pdf.value) {
+                refactorChartData()
+            }
+        })
         return {
             loaded,
             newchartdata,

@@ -6,7 +6,7 @@
           size="64"
         ></v-progress-circular>
     </v-overlay>
-    <LayoutReportsList :reportslist="storage" :sortoptions="sortOptions" page="storagePage" :darkMode="true" />
+    <LayoutReportsList :reportslist="storage" :sketchlist="[]" :sortoptions="sortOptions" page="storagePage" :darkMode="true" />
   </div>
 </template>
 <script>

@@ -55,8 +55,7 @@ export default defineComponent({
         reportName: String,
         report: Object,
         pdf: {
-            type: Boolean,
-            default: true
+            type: Boolean
         },
         loaded: Boolean
     },
@@ -73,6 +72,11 @@ export default defineComponent({
         }
         watch(() => report.value, (val) => {
             loadedReport()
+        })
+        onMounted(() => {
+            if (pdf.value) {
+                loadedReport()
+            }
         })
         getReportImages(report.value.JobId, "moisture-images", "", "/").fetchImages()
         

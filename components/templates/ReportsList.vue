@@ -5,7 +5,7 @@
   <div class="reports-list" v-else>
     <div class="info-bar">
       <div class="info-bar__search-wrapper">
-        <UiAutocomplete @sendReportsToParent="reportsfetched" :items="reportslist" theme="light" />
+        <UiAutocomplete @sendReportsToParent="reportsfetched" :items="reportslist" theme="light" searchKey="JobId" />
       </div>
     </div>
     <v-dialog v-model="createDirDialog" persistent max-width="500px">
@@ -102,16 +102,18 @@ export default {
   mounted() {
     this.reports = this.reportslist
     const map = new Map();
-    for (const item of this.sketchlist) {
-      if (!map.has(item.JobId)) {
-        map.set(item.JobId, true);
-        this.sketches.push({
-          JobId: item.JobId,
-          Title: item.Title,
-          sketch: item.sketch,
-          ReportType: item.ReportType,
-          notes: item.notes
-        })
+    if (this.sketchlist !== undefined) {
+      for (const item of this.sketchlist) {
+        if (!map.has(item.JobId)) {
+          map.set(item.JobId, true);
+          this.sketches.push({
+            JobId: item.JobId,
+            Title: item.Title,
+            sketch: item.sketch,
+            ReportType: item.ReportType,
+            notes: item.notes
+          })
+        }
       }
     }
   }

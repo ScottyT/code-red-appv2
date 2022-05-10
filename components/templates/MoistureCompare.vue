@@ -7,6 +7,7 @@
             <v-progress-circular indeterminate size="64"></v-progress-circular>
         </v-overlay>
         <client-only>
+            {{loading}}
             <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
         </client-only>
     </div>
@@ -81,8 +82,7 @@ export default defineComponent({
             loading.value = true
             setTimeout(() => {
                 loading.value = false
-            }, 1)
-            console.log("on form submit")
+            }, 10)
             var tempArr = []
             var datasets = []
             var labels = []
