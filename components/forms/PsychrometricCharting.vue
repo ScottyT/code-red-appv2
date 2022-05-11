@@ -1,9 +1,10 @@
 <template>
     <div :class="`form-wrapper`">
-        <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
-            :width="860" :height="700" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" />
+        
         <h2 v-show="submittedMessage !== ''">{{submittedMessage}}</h2>
         <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }" v-if="!submitted">
+            <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
+                :width="700" :height="550" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" :pdf="false" />
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -89,7 +90,7 @@
                     :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false" :preview-modal="true"  
                     @hasDownloaded="uploadPdf($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" 
                     @beforeDownload="beforeDownloadNoSave($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
-                        <PdfChart :pdf="false" :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
+                        <PdfChart :height="500" :pdf="false" :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
                 </vue-html2pdf>
                 <button class="button--normal" ref="downloadBtn" v-show="false" @click="generateBtn()">Download PDF</button>
         </div>
@@ -508,6 +509,8 @@ export default defineComponent({
                     }
                     $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
                         resolve("finished updating atmos")
+                    }).catch(err => {
+                        reject(err)
                     })
                 })
             })
@@ -520,10 +523,10 @@ export default defineComponent({
             await html2Pdf0.value.generatePdf()
         }
         async function submitForm() {
-            await Promise.all([onSubmit(), timeout(100)]).then((result) => {
+            await Promise.all([submitAtmosReadings(), onSubmit(), timeout(100)]).then((result) => {
                 submitting.value = false
                 submittedMessage.value = result[0]
-                chartloaded.value = true
+                
                 downloadBtn.value.click()
             }).catch(error => console.log(`Error in promises ${error}`))
         }
@@ -536,7 +539,7 @@ export default defineComponent({
                 ReportType: 'psychrometric-chart'
             };
             postedData.value = post
-            
+            chartloaded.value = true
             return new Promise((resolve, reject) => {
                 submitting.value = true
                     let update = existingJobProgress.value.some(el => {
@@ -566,6 +569,7 @@ export default defineComponent({
                     console.error(err)
                     reject(err)
                 }) */
+                resolve(true)
             }).catch(err => {
                 reject(err)
                 console.log(err)

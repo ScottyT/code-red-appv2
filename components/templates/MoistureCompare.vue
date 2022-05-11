@@ -7,7 +7,6 @@
             <v-progress-circular indeterminate size="64"></v-progress-circular>
         </v-overlay>
         <client-only>
-            {{loading}}
             <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
         </client-only>
     </div>
@@ -38,16 +37,17 @@ export default defineComponent({
             },
             scales: {
                 yAxes: [{
+                    type: 'linear',
                     display:true,
                     scaleLabel: {
                         display:true,
                         labelString: "Moisture Readings in %",
                         fontSize: 14
                     },
-                    suggestedMin: 0,
-                    suggestedMax: 100,
+                    
                     ticks: {
-                        min: 0
+                        suggestedMin: 0,
+                        suggestedMax: 100,
                     }
                 }]
             },
@@ -62,7 +62,6 @@ export default defineComponent({
 
         async function getExistingMoistureReport(jobid) {
             getReportPromise(`moisture-map/${jobid}`).then((result) => {
-                console.log(result.data)
                 var baselineData = {
                     label: '',
                     data:[]

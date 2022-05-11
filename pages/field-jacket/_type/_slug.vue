@@ -74,7 +74,7 @@
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1000" :manual-pagination="false"
                  :show-layout="false" :preview-modal="true" ref="html2Pdf0" @hasDownloaded="hasDownloaded($event)">
-                    <PdfChart :pdf="true" :chartLoaded="chartloaded" :report="report" slot="pdf-content" />
+                    <PdfChart :height="550" :pdf="true" :chartLoaded="chartloaded" :report="report" slot="pdf-content" />
                 </vue-html2pdf>
             <!-- <PdfChart :report="report" /> -->
         </span>
@@ -144,9 +144,9 @@ export default defineComponent({
             refs["html2Pdf"+key].generatePdf()
         }
         function hasDownloaded(blob) {
-            uploadPdf(blob).then(() => {
+            /* uploadPdf(blob).then(() => {
                 console.log("uploaded pdf")
-            })
+            }) */
             clickedOn.value = null
         }
         async function uploadPdf(file) {

@@ -1,10 +1,12 @@
 <template>
     <div class="pdf-content" slot="pdf-content">
         <h1 class="text-center">Psychrometric Chart for {{report.JobId}}</h1>
+        <!-- <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="sameTypes['Affected']" :height="500" 
+            :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf /> -->
         <section class="pdf-item" v-for="(chart, key) in sameTypes" :key="key">            
             <h3>{{key}}</h3>
-            <LazyLayoutPsychrometricChart :width="700" multipleCharts :dataLoaded="chartLoaded" :existingChart="chart" :height="500" :buttonDisabled="true" 
-                class="chart__psychrometric" />
+            <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="chart" :height="500" 
+                :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf />
             <div class="pdf-item__calculations">
                 <div class="chart-inputs__calculations" v-for="(data, i) in chart" :key="`data-${i}`">
                     <h4 class="pl-2 pt-1">{{data.label}}</h4>
@@ -37,26 +39,27 @@ export default defineComponent({
     props: {
         report: Object,
         chartLoaded: Boolean,
-        pdf: Boolean
+        pdf: Boolean,
+        height: Number
     },
     setup(props) {
         const { chartLoaded, report, pdf } = toRefs(props)
         const newchartdata = ref([])
         const loaded = ref(false)
-        const formdata = ref({})
+        const existingdata = ref({})
         const { getReportPromise } = useReports()
         const { groupByKey } = genericFuncs()
         const sameTypes = ref({})
         const getSubmittedReport = async (data) => {
             await getReportPromise(`psychrometric-chart/${data.JobId}`).then((result) => {
-                formdata.value = result
-                refactorChartData(data)
+                existingdata.value = result
+                refactorChartData(result)
             })
         }
-        const refactorChartData = () => {
+        const refactorChartData = (r) => {
             var progressArr = []
-            
-            report.value.jobProgress.forEach((item, i) => {
+            console.log(Array.isArray(report.value.jobProgress))
+            r.jobProgress.forEach((item, i) => {
                 var data = {
                     x: item.info.dryBulbTemp,
                     y: item.info.humidityRatio
@@ -69,6 +72,21 @@ export default defineComponent({
                     backgroundColor: item.color,
                     info: item.info
                 }
+                
+                if (!Array.isArray(report.value.jobProgress) && Object.keys(existingdata.value).length > 0) {
+                    data = {
+                        x: report.value.jobProgress.info.dryBulbTemp,
+                        y: report.value.jobProgress.info.humidityRatio
+                    }
+                    dataset = {
+                        readingsType: report.value.jobProgress.readingsType,
+                        pointRadius: 5,
+                        data: [data],
+                        label: report.value.jobProgress.date,
+                        backgroundColor: report.value.jobProgress.color,
+                        info: report.value.jobProgress.info
+                    }
+                }
                 progressArr.push(dataset)
                 newchartdata.value.push(dataset)
             })
@@ -76,18 +94,18 @@ export default defineComponent({
             loaded.value = true
         }
         watch(() => chartLoaded.value, (val) => {
-            getSubmittedReport(report.value.JobId)
+            getSubmittedReport(report.value)
         })
         onMounted(() => {
             if (pdf.value) {
-                refactorChartData()
+                refactorChartData(report.value)
             }
         })
         return {
             loaded,
             newchartdata,
             sameTypes,
-            formdata
+            existingdata
         }
     },
 })

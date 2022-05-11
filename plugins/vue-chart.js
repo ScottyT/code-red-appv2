@@ -24,7 +24,7 @@ Vue.component("scatter-chart", {
                 ]
             }, this.options) */
             this.renderChart({
-                labels: [],
+                labels: ['label'],
                 datasets: this.chartData
             }, this.options)
         }
@@ -32,7 +32,6 @@ Vue.component("scatter-chart", {
     watch: {
         chartdata() {
             this.$data._chart.destroy();
-            this.renderScatterChart()
             this.$data._chart.update();
         }
     }
@@ -57,7 +56,6 @@ Vue.component("bar-chart", {
     watch: {
         bardata() {
             this.$data._chart.destroy();
-            this.renderBarChart()
             this.$data._chart.update();
         }
     }
