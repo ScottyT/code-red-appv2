@@ -89,7 +89,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .chart {
     &__moisture-map {
-        max-width:700px;
+        width:700px;
+        height:500px;
     }
 }
 .moisture-data {

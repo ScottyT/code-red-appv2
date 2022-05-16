@@ -3,10 +3,10 @@
         <h1 class="text-center">Psychrometric Chart for {{report.JobId}}</h1>
         <!-- <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="sameTypes['Affected']" :height="500" 
             :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf /> -->
-        <section class="pdf-item" v-for="(chart, key) in sameTypes" :key="key">            
+        <section class="pdf-item" v-for="(chart, key) in groupByKey(newchartdata, 'readingsType')" :key="key">            
             <h3>{{key}}</h3>
             <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="chart" :height="500" 
-                :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf />
+                :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf  />
             <div class="pdf-item__calculations">
                 <div class="chart-inputs__calculations" v-for="(data, i) in chart" :key="`data-${i}`">
                     <h4 class="pl-2 pt-1">{{data.label}}</h4>
@@ -57,9 +57,30 @@ export default defineComponent({
             })
         }
         const refactorChartData = (r) => {
+            sameTypes.value = {}
+            console.log(r)
             var progressArr = []
-            console.log(Array.isArray(report.value.jobProgress))
-            r.jobProgress.forEach((item, i) => {
+            for (const key in r) {
+                r[key].forEach((item, i) => {
+                    var data = {
+                        x: item.info.dryBulbTemp,
+                        y: item.info.humidityRatio
+                    }
+                    var dataset = {
+                        readingsType: item.readingsType,
+                        pointRadius: 5,
+                        data: [data],
+                        label: item.date,
+                        backgroundColor: item.color,
+                        info: item.info
+                    }
+                    newchartdata.value.push(dataset)
+                    
+                })
+            }
+            
+            
+            /* r.jobProgress.forEach((item, i) => {
                 var data = {
                     x: item.info.dryBulbTemp,
                     y: item.info.humidityRatio
@@ -89,23 +110,36 @@ export default defineComponent({
                 }
                 progressArr.push(dataset)
                 newchartdata.value.push(dataset)
-            })
-            sameTypes.value = groupByKey(progressArr, 'readingsType')
+            }) */
+            
+           // sameTypes.value = test
             loaded.value = true
         }
         watch(() => chartLoaded.value, (val) => {
-            getSubmittedReport(report.value)
+            //getSubmittedReport(report.value)
+        })
+        watch(() => report.value, (val) => {
+            
+            console.log("report changed on Chart.vue")
+            
         })
         onMounted(() => {
+            console.log("mounted")
+            console.log(report.value)
+            var groupedReports = groupByKey(report.value.jobProgress, 'readingsType')
+            refactorChartData(groupedReports)
             if (pdf.value) {
-                refactorChartData(report.value)
+                /* var test = groupByKey(report.value.jobProgress, 'readingsType')
+                refactorChartData(test) */
+                //getSubmittedReport(report.value)
             }
         })
         return {
             loaded,
             newchartdata,
             sameTypes,
-            existingdata
+            existingdata,
+            groupByKey
         }
     },
 })

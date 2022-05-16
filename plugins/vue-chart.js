@@ -2,7 +2,7 @@ import { Scatter, mixins, Bar } from 'vue-chartjs'
 import Vue from 'vue';
 
 Vue.component("scatter-chart", {
-    props: ['chartdata', 'options'],
+    props: ['chartdata', 'options', 'height'],
     extends: Scatter,
     mounted() {
         this.renderScatterChart()

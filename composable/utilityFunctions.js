@@ -93,7 +93,6 @@ export default function genericFuncs() {
         return `${month}/${day}/${year}`
     }
     function formatTime(timeReturned) {
-        console.log("time returend:", timeReturned)
         if (!timeReturned) return null
         const pieces = timeReturned.split(':')
         let hours

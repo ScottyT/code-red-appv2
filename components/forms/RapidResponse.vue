@@ -791,7 +791,7 @@
       }
       function onBegin() {
         const { isEmpty } = map.value.saveSignature()
-        moistureMap = { isEmpty, data: "" }
+        moistureMap.value = { isEmpty, data: "" }
         nextTick(() => {
           map.value.resizeCanvas()
         })
@@ -843,7 +843,8 @@
         htmlToPdfOptions,
         beforeDownloadNoSave,
         uploadPdf,
-        postData
+        postData,
+        map
       }
     },
     methods: {

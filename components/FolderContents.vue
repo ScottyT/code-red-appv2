@@ -80,7 +80,7 @@
                 <img class="file-listing__preview" :src="file.imageUrl" />
                 <v-icon class="file-listing__remove-file" @click="removeFile(key)" tag="i" large>mdi-close-circle</v-icon>
             </div>
-            <UiLightbox :selecting="editing" :images="report.images" :imagesPerPage="1" :dialog="sliderDialog">
+            <UiLightbox v-if="report.images !== null" :selecting="editing" :images="report.images" :imagesPerPage="1" :dialog="sliderDialog">
                 <template v-slot:image="slotProps">
                   <div class="folder-contents__item" :class="{'folder-contents__item--selected': selectedFiles.find(obj => obj.name === slotProps.image.name) && editing}">
                       <input type="checkbox" v-if="editing" :value="slotProps.image" v-model="selectedFiles" class="folder-contents__content--checkbox" />

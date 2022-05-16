@@ -2,16 +2,9 @@
     <div class="form-wrapper">
         <h1 class="text-center">{{company}}</h1>
         <h3 class="text-center">UNIT QUANTITY AND EQUIPMENT INVENTORY</h3>
-        <ValidationObserver ref="form" v-slot="{errors}">
+        <ValidationObserver ref="form" v-slot="{handleSubmit}">
             <p class="font-weight-bold">{{submittedMessage}}</p>
-            <v-dialog width="400px" v-model="errorDialog">
-                <div class="modal__error">
-                    <div v-for="(error, i) in errors" :key="`error-${i}`">
-                        <h3 class="form__input--error">{{ error[0] }}</h3>
-                    </div>
-                </div>
-            </v-dialog>
-            <form ref="form" class="form" @submit.prevent="onSubmit" v-if="!submitted">
+            <form ref="form" class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" rules="required" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -107,28 +100,44 @@
                 <div class="form__button-wrapper"><button class="button form__button-wrapper--submit" type="submit">{{ submitting ? 'Submitting' : 'Submit' }}</button></div>
             </form>
         </ValidationObserver>
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('quantity-inventory-logs', selectedJobId)"
+                      :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false"
+                      :enable-download="false" @hasDownloaded="uploadPdf($event, `quantity-inventory-logs-${selectedJobId}`, selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `quantity-inventory-logs-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
+            <PdfLogs :reportName="postedData.ReportType" :reportType="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated" slot="pdf-content" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
-import {mapGetters, mapActions} from 'vuex';
-import goTo from 'vuetify/es5/services/goto'
 import genericFuncs from '@/composable/utilityFunctions'
-export default {
-    name: "InventoryLog",
-    data: (vm) => ({
-        submittedMessage: "",
-        submitting: false,
-        submitted: false,
-        errorDialog: false,
-        selectedJobId: "",
-        initDate: new Date().toISOString().substr(0, 10),
-        initDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        endDate: vm.addDays(new Date(), 7).toISOString().substr(0, 10),
-        endDateFormatted: vm.formatDate(vm.addDays(new Date(), 7).toISOString().substr(0, 10)),
-        initDateModal: false,
-        endDateModal: false,
-        authUser: false,
-        techIdArr: [
+import useReports from '@/composable/reports'
+import { defineComponent, ref, watch, useStore, useContext, computed } from '@nuxtjs/composition-api';
+
+export default defineComponent({
+    props: {
+        company: String,
+        abbreviation: String
+    },
+    setup(props) {
+        const store = useStore()
+        const { $api } = useContext()
+        const { formatDate, parseDate, genRandHex } = genericFuncs()
+        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
+        const errorDialog = ref(false)
+        const submittedMessage = ref("")
+        const submitting = ref(false)
+        const submitted = ref(false)
+        const errorMessage = ref("")
+        const selectedJobId = ref("")
+        const initDate = ref(new Date().toISOString().substring(0, 10))
+        const initDateFormatted = ref(formatDate(new Date().toISOString().substr(0, 10)))
+        const endDate = ref(addDays(new Date(), 6).toISOString().substr(0, 10))
+        const endDateFormatted = ref(formatDate(addDays(new Date(), 6).toISOString().substr(0, 10)))
+        const initDateModal = ref(false)
+        const endDateModal = ref(false)
+        const authUser = ref(false)
+        const techIdArr = ref([
             {text: "Tech ID #",
             day: [
                 {text: "day1", value: ""},
@@ -139,8 +148,8 @@ export default {
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]}
-        ],
-        unitQuantityArr: [
+        ])
+        const unitQuantityArr = ref([
             {text: "Air Mover", day: [
                 {text: "day1", value: ""},
                 {text: "day2",value: ""},
@@ -339,8 +348,8 @@ export default {
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]}
-        ],
-        checkBoxArr: [
+        ])
+        const checkBoxArr = ref([
             {text: "Evaluation", day: [
                 {text: "day1", value: false},
                 {text: "day2",value: false},
@@ -422,8 +431,8 @@ export default {
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]}
-        ],
-        serviceArr: [
+        ])
+        const serviceArr = ref([
             {text: "Plumber", day: [
                 {text: "day1", value: ""},
                 {text: "day2",value: ""},
@@ -451,8 +460,8 @@ export default {
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]}
-        ],
-        onSiteArr: [
+        ])
+        const onSiteArr = ref([
             {text: "(On-Site) Textile Bag #", day: [
                 {text: "day1", value: ""},
                 {text: "day2",value: ""},
@@ -516,126 +525,118 @@ export default {
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]}
-        ],
-        reportId: ""
-    }),
-    props: ['company', 'abbreviation'],
-    head() {
-        return {
-            title: "Unit Quantity and Equipment Inventory"
-        }
-    },
-    watch: {
-        initDate(val) {
-            this.initDateFormatted = this.formatDate(val)
-            this.endDateFormatted = this.formatDate(this.addDays(val, 7).toISOString().substr(0, 10))
-        },
-        endDate(val) {
-            this.endDateFormatted = this.formatDate(val)
-        },
-        selectedJobId(val) {
-            this.$api.$get(`/api/reports/details/quantity-inventory-logs/${val}`).then((res) => {
-                this.initDateFormatted = res.startDate
-                this.endDateFormatted = res.endDate
-                this.checkBoxArr = res.checkData
-                this.serviceArr = res.serviceArr
-                this.unitQuantityArr = res.quantityData
-                this.reportId = res.Id
-            }).catch((err) => {
-                if (err.response) {
-                    this.initDateFormatted = this.formatDate(new Date().toISOString().substr(0, 10))
-                    this.endDateFormatted = this.formatDate(this.addDays(new Date(), 7).toISOString().substr(0, 10))
-                    this.checkBoxArr.forEach((item) => {
-                        item.day.forEach((d) => {
-                            d.value = false
-                        })
-                    })
-                    this.serviceArr.forEach((item) => {
-                        item.day.forEach((d) => {
-                            d.value = ""
-                        })
-                    })
-                    this.unitQuantityArr.forEach((item) => {
-                        item.day.forEach((d) => {
-                            d.value = ""
-                        })
-                    })
-                    this.reportId = ""
-                }
-            })
-        }
-    },
-    computed: {
-        ...mapGetters({getReports:'reports/getReports', getUser:'users/getUser'})
-    },
-    methods: {
-        addDays(d, days) {
+        ])
+        const reportId = ref("")
+        const postedData = ref({})
+        const html2Pdf0 = ref(null)
+
+        const getUser = computed(() => store.getters["users/getUser"])
+        const getReports = computed(() => store.getters["reports/getReports"])
+
+        function addDays(d, days) {
             const date = new Date(d);
             date.setDate(date.getDate() + days);
             return date;
-        },
-        formatDate(dateReturned) {
-            if (!dateReturned) return null
-            const [year, month, day] = dateReturned.split('-')
-            return `${month}/${day}/${year}`
-        },
-        parseDate(date) {
-            if (!date) return null
-            const [month, day, year] = date.split('/')
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-        },
-        parentClick(event) {
+        }
+        function parentClick(event) {
             var childArr = event.target.childNodes;
             childArr.forEach(child => {
                 if (child.type === 'checkbox') {
                     child.checked = !child.checked
                 }
             })
-        },
-        onSubmit() {
-            this.submittedMessage = ""
-            this.submitting = true
-            const reports = this.getReports.filter((v) => {
-                return v.ReportType === 'quantity-inventory-logs'
-            })
-            const jobids = reports.map((v) => {
-                return v.JobId
-            })
-            if (this.reportId === "") this.reportId = genericFuncs().genRandHex(24)
+        }
+        async function submitForm() {
+            await Promise.all([onSubmit()]).then((result) => {
+                submittedMessage.value = result[0]
+                submitting.value = false
+                submitted.value = true
+                html2Pdf0.value.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
+        }
+        function onSubmit() {
+            submitting.value = true
+            if (reportId.value === "") reportId.value = genRandHex(24)
             const post = {
-                JobId: this.selectedJobId,
+                JobId: selectedJobId.value,
                 ReportType: "quantity-inventory-logs",
-                startDate: this.initDateFormatted,
-                endDate: this.endDateFormatted,
+                startDate: initDateFormatted.value,
+                endDate: endDateFormatted.value,
                 formType: "logs-report",
-                quantityData: this.unitQuantityArr,
-                checkData: this.checkBoxArr,
-                serviceArr: this.serviceArr,
-                teamMember: this.getUser
-            };
-            this.$refs.form.validate().then(success => {
-                if (!success) {
-                    this.submitted = false
-                    this.errorDialog = true;
-                    return goTo(0)
-                }
-                this.$api.$put(`/api/reports/quantity-inventory-logs/${this.selectedJobId}/update`, post).then((res) => {
-                    this.submittedMessage = res
-                    this.submitting = false
-                    this.submitted = true
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                quantityData: unitQuantityArr.value,
+                checkData: checkBoxArr.value,
+                serviceArr: serviceArr.value,
+                teamMember: getUser.value
+            }
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$put(`/api/reports/quantity-inventory-logs/${selectedJobId.value}/update`, post).then((res) => {
+                    fetchReports()
+                    resolve(res)
                 }).catch((err) => {
-                    this.submitting = false
+                    submitting.value = false
                     if (err.response) {
+                        reject(err)
                         console.error(err.response.data)
                     }
                 })
             })
         }
+
+        watch(() => initDate.value, (val) => {
+            initDateFormatted.value = formatDate(val)
+            endDateFormatted.value = formatDate(addDays(val, 6).toISOString().substring(0, 10))
+        })
+        watch(() => endDate.value, (val) => {
+            endDateFormatted.value = formatDate(val)
+        })
+        watch(() => selectedJobId.value, (val) => {
+            $api.$get(`/api/reports/details/quantity-inventory-logs/${val}`).then((res) => {
+                initDateFormatted.value = res.startDate
+                endDateFormatted.value = res.endDate
+                checkBoxArr.value = res.checkData
+                serviceArr.value = res.serviceArr
+                unitQuantityArr.value = res.quantityData
+                reportId.value = res.Id
+            }).catch((err) => {
+                if (err.response) {
+                    initDateFormatted.value = formatDate(new Date().toISOString().substring(0, 10))
+                    endDateFormatted.value = formatDate(addDays(new Date(), 7).toISOString().substring(0, 10))
+                    checkBoxArr.value.forEach((item) => {
+                        item.day.forEach((d) => {
+                            d.value = false
+                        })
+                    })
+                    serviceArr.value.forEach((item) => {
+                        item.day.forEach((d) => {
+                            d.value = ""
+                        })
+                    })
+                    unitQuantityArr.value.forEach((item) => {
+                        item.day.forEach((d) => {
+                            d.value = ""
+                        })
+                    })
+                    reportId.value = ""
+                }
+            })
+        })
+
+        return {
+            errorDialog, submittedMessage, submitting, submitted, errorMessage,
+            selectedJobId, initDate, initDateFormatted, endDate, endDateFormatted, initDateModal, endDateModal, techIdArr, unitQuantityArr, checkBoxArr, serviceArr, onSiteArr,
+            beforeDownloadNoSave,
+            uploadPdf,
+            getUser,
+            htmlToPdfOptions,
+            submitForm,
+            parseDate,
+            html2Pdf0,
+            postedData,
+            parentClick
+        }
     }
-}
+})
 </script>
 <style lang="scss">
 .inventory-logs {

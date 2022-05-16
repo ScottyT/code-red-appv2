@@ -6,13 +6,11 @@
         <v-overlay absolute :value="loading" v-show="!onPdf">
             <v-progress-circular indeterminate size="64"></v-progress-circular>
         </v-overlay>
-        <client-only>
-            <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
-        </client-only>
+        <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, watch, ref, computed, onMounted } from '@nuxtjs/composition-api'
+import { defineComponent, toRefs, watch, ref, computed, onMounted, useContext } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
@@ -26,7 +24,9 @@ export default defineComponent({
     },
     setup(props, { root }) {
         const { jobid, existingChart, onPdf, chartLoaded } = toRefs(props)
+        const { $axios } = useContext()
         const loaded = ref(true)
+        const chartImage = ref(null)
         const { getReportPromise, loading } = useReports()
         const { groupByKey, namedColor } = genericFuncs()
         const options = ref({
@@ -51,7 +51,8 @@ export default defineComponent({
                     }
                 }]
             },
-            responsive: true
+            responsive: true,
+            maintainAspectRatio: false
         })
         const chartData = ref({
             labels: [],
@@ -86,8 +87,11 @@ export default defineComponent({
             var datasets = []
             var labels = []
             v.forEach((item) => {
-                for (var i=0;i<item.subareas.length;i++) {                
-                    tempArr.push({ data: item.subareas[i].val, index: i })
+                for (var i = 0; i < item.subareas.length; i++) {
+                    tempArr.push({
+                        data: parseInt(item.subareas[i].val),
+                        index: i
+                    })
                 }
                 labels.push(item.date)
             })
@@ -101,8 +105,13 @@ export default defineComponent({
                 /* if (property % 2 == 0) color = "rgba(202, 21, 21, .5)"
                 else if (property % 2 !== 0) color = "rgba(42, 91, 199, .5)" */
                 color = namedColor(property)
-                datasets.push({label: `Area Sub-${groupedByIndex[property][0].index + 1}`, data: data, backgroundColor: color, barPercentage: .95,
-                    maxBarThickness: 150})
+                datasets.push({
+                    label: `Area Sub-${groupedByIndex[property][0].index + 1}`,
+                    data: data,
+                    backgroundColor: color,
+                    barPercentage: .95,
+                    maxBarThickness: 150
+                })
             }
             chartData.value.labels = labels
             chartData.value.datasets = datasets
@@ -139,7 +148,8 @@ export default defineComponent({
             baselineReadings,
             baselineDates,
             loaded,
-            populateChart
+            populateChart,
+            chartImage
         }
     },
 })

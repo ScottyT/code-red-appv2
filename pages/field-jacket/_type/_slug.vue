@@ -45,11 +45,11 @@
         <span v-if="report.formType === 'logs-report' && report.ReportType !== 'moisture-map' && report.ReportType !== 'personal-content-inventory'">
             <h1><span v-uppercase>{{reportType}}</span> for job {{jobId}}</h1>
             <client-only>
-                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1400" :manual-pagination="false"
+                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1000" :manual-pagination="false"
                  :show-layout="false" :enable-download="false" @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :preview-modal="true" ref="html2Pdf0">
                     <PdfLogs :reportName="report.ReportType" :reportType="reportType" :report="report" company="Water Emergency Services Incorporated" slot="pdf-content" />
                 </vue-html2pdf>
-            </client-only>        
+            </client-only>
         </span>
         <span v-if="report.ReportType === 'personal-content-inventory'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
@@ -73,10 +73,9 @@
         <span v-if="report.ReportType === 'psychrometric-chart'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1000" :manual-pagination="false"
-                 :show-layout="false" :preview-modal="true" ref="html2Pdf0" @hasDownloaded="hasDownloaded($event)">
+                 :show-layout="false" :preview-modal="true" ref="html2Pdf0" @hasDownloaded="uploadPdf($event)">
                     <PdfChart :height="550" :pdf="true" :chartLoaded="chartloaded" :report="report" slot="pdf-content" />
                 </vue-html2pdf>
-            <!-- <PdfChart :report="report" /> -->
         </span>
         <span v-if="report.ReportType === 'quality-control'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>
@@ -150,7 +149,6 @@ export default defineComponent({
             clickedOn.value = null
         }
         async function uploadPdf(file) {
-
             let formData = new FormData();
             const pdf = new File([file], `${reportType}-${jobId}.pdf`, {
                 type: 'application/pdf'
@@ -158,6 +156,7 @@ export default defineComponent({
             formData.append('multiFiles', pdf) // The method in the gsutil web api looks for a form file named multiFiles
             formData.append('path', `${jobId}/pdfs/`)
             $gcs.$post(`/upload`, formData)
+            clickedOn.value = null
         }
         onMounted(fetchingReport)
         return {

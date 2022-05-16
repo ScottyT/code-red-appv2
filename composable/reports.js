@@ -62,6 +62,7 @@ export default function useReports() {
                     }
                     promises.push(addHeadingToReports(res[i]))
                 }
+                
                 Promise.all(promises).then((result) => {
                     var formTypeFilter = result.filter(el => filters.value.includes(el.formType))
                     var reportTypeFilter = result.filter(el => filters.value.includes(el.ReportType))
@@ -189,8 +190,6 @@ export default function useReports() {
                 return "Measurements and Sketch"
             case "equipment-location-sketch":
                 return "Equipment Location and Sketch"
-            case "moisture-map":
-                return "Moisture Readings"
             case "psychrometric-chart":
                 return "Psychrometric Chart"
             case "quality-control":

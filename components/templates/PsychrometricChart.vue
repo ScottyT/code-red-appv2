@@ -1,11 +1,6 @@
 <template>
     <div class="chart__container">
-        <client-only>
-            <scatter-chart class="chart__scatter" v-if="!loading" :chartdata="chartData" :options="options" :width="700" :height="500" />
-        </client-only>
-        
-        <!-- <scatter-chart class="chart__scatter" v-if="loaded && pdf" :chartdata="chartData" :options="options" :width="700" :height="500" /> -->
-        
+        <scatter-chart class="chart__scatter" v-if="!loading" :chartdata="chartData" :options="options" :width="width" :height="height" />
         <div class="d-flex chart__bottom" v-if="!pdf && dataLoaded">
             <button class="button--normal" v-show="dayOfJob !== undefined" @click="addData(dayOfJob)">Create Chart</button>
             <ValidationProvider v-show="!multipleCharts" vid="Chart type" name="Chart type" rules="required" class="form__input-group form__input-group--normal">
@@ -42,7 +37,7 @@ export default defineComponent({
         pdf: Boolean
     },
     setup(props, {root, emit}) {
-        const { xaxes, yaxes, existingChart, multipleCharts, jobid, dayOfJob, dataLoaded, report } = toRefs(props)
+        const { xaxes, yaxes, existingChart, multipleCharts, jobid, dayOfJob, dataLoaded, report, height, pdf } = toRefs(props)
         let jobId = root.$route.params.slug
         const buttonDisabled = ref(false)
         const { getRandomUnique, groupByKey } = genericFuncs()
@@ -50,6 +45,7 @@ export default defineComponent({
         const colors = ref(['#157f27', '#900C3F', '#0A9C8F', '#FF5733', '#EB1F28', '#343434', '#C70039'])
         const loaded = ref(false)
         const loading = ref(false)
+        const chartHeight = ref(0)
         const tempData = ref({})
         const readingsType = ref("")
         const readingsGroup = ref({})
@@ -122,15 +118,19 @@ export default defineComponent({
                 }]
             },
             responsive: true,
-           // maintainAspectRatio: false
+            maintainAspectRatio: false
         })
         const { getReportPromise } = useReports()
         const getExistingChart = async (jobid) => {
-            loading.value = true
+            
             await getReportPromise(`psychrometric-chart/${jobid}`).then((result) => {
                 if (result.error) {
                     return
                 }
+                loading.value = true
+                setTimeout(() => {
+                    loading.value = false
+                }, 10)
                 var tempArr = []
                 for (var i = 0; i < result.jobProgress.length; i++) {
                     var data = {
@@ -146,10 +146,8 @@ export default defineComponent({
                     }
                     tempArr.push(dataset)
                     chartData.value.push(dataset)
-                    // readingsGroup.value = groupByKey(dataset, 'readingsType')
                 }
                 readingsGroup.value = groupByKey(tempArr, 'readingsType')
-                loading.value = false
                 emit('existingChart', chartData.value)
             })
         }
@@ -159,7 +157,7 @@ export default defineComponent({
                 loading.value = false
             }, 10)
             var tempArr = []
-
+            chartData.value = []
             for (var i = 0; i < v.jobProgress.length; i++) {
                 var data = {
                     x: v.jobProgress[i].info.dryBulbTemp,
@@ -174,7 +172,6 @@ export default defineComponent({
                 }
                 tempArr.push(dataset)
                 chartData.value.push(dataset)
-                // readingsGroup.value = groupByKey(dataset, 'readingsType')
             }
         }
         function addData(label) {
@@ -189,15 +186,20 @@ export default defineComponent({
             var existingDotColor = existingChart.value.map((e) => { return e.backgroundColor })
             var dotColor = getRandomUnique(existingChart.value, existingDotColor, colors.value)
             var dataset = { pointRadius: 5, data: [newData], readingsType: readingsType.value, label: label, backgroundColor: dotColor };
-            chartData.value.forEach((item, i) => {
-                var dataIndex = chartData.value.findIndex(el => el.label === dayOfJob.value)
-                if (dataIndex > -1) {
-                    chartData.value[dataIndex] = dataset
-                } else {
-                    //chartData.value.pop()
-                    chartData.value.push(dataset)
-                }
-            })
+            if (chartData.value !== undefined) {
+                chartData.value.forEach((item, i) => {
+                    var dataIndex = chartData.value.findIndex(el => el.label === dayOfJob.value)
+                    if (dataIndex > -1) {
+                        chartData.value[dataIndex] = dataset
+                    } else {
+                        chartData.value.push(dataset)
+                    }
+                })
+            } else {
+                chartData.value = []
+                chartData.value.push(dataset)
+            }
+            
             /* if (chartData.value.length === 1) {  // Object.keys(tempData.value).length === 0            
                 chartData.value[0] = dataset
             } else {
@@ -207,13 +209,15 @@ export default defineComponent({
             emit('addData', {data: newData, date: label, title: readingsType.value, color: dataset.backgroundColor})
             buttonDisabled.value = true
             tempData.value = dataset
-            if (chartData.value.length === 0) {
+            /* if (chartData.value.length === 0) {
                 chartData.value.push(dataset)
-            }
+            } */
         }
+
         watch(() => jobid.value, (val) => {
-            //chartData.value = null
-            getExistingChart(val)
+            if (!pdf.value) {
+                getExistingChart(val)
+            }
         })
         watch(readingsType, (val) => {
             loading.value = true
@@ -222,19 +226,15 @@ export default defineComponent({
             }, 10)
             options.value.title.text = val
             emit("sendChartType", val)
-            /* for (const property in readingsGroup.value) {
-                chartData.value = readingsGroup.value[val]
-            } */
             chartData.value = readingsGroup.value[val]
         })
-        watch(report, (val) => {
-            populateData(val)
-        })
+        
         if (multipleCharts.value) {
             chartData.value = existingChart.value
         }
+
         return { 
-            chartData, options, loaded, loading, addData, tempData, buttonDisabled, readingsType, readingsGroup
+            chartData, options, loaded, loading, addData, tempData, buttonDisabled, readingsType, readingsGroup, chartHeight
         }
     }
 })
@@ -255,11 +255,12 @@ export default defineComponent({
     }
 
     &__scatter {
-        width:700px;
-        //height:62vh;
+        max-width:860px;
+        @include respond(mobileLargeMax) {
+            height: 450px;
+        }
         &--thin {
             width:100px;
-            //max-width:63px;
             max-height:636px;
             top:23px;
         }

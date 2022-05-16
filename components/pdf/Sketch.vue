@@ -35,7 +35,7 @@ export default {
     },
     watch: {
         report(val) {
-            var title = val.title.charAt(0).toUpperCase() + val.title.slice(1)
+            var title = val.Title.charAt(0).toUpperCase() + val.Title.slice(1)
             var type = this.reportType.split('-')
             for (var i = 0; i < type.length; i++) {
                 type[i] = type[i].charAt(0).toUpperCase() + type[i].substring(1)

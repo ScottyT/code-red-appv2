@@ -141,19 +141,17 @@
                 </v-dialog>
             </form>
         </ValidationObserver>
-        <div>
+            <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('moisture-map', selectedJobId)" :paginate-elements-by-height="800" :manual-pagination="false"
-                    :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)" 
+                    :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `moisture-map-${selectedJobId}`, selectedJobId)"
                     @beforeDownload="beforeDownloadNoSave($event, `moisture-map-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
                         <LayoutMoistureMapDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated"
                             :pdf="false" :loaded="chartCreated" :existingChart="baseline" />
                 </vue-html2pdf>
-                <button class="button--normal" ref="downloadBtn" v-show="false" @click="generateBtn()">Download PDF</button>
-        </div>
+            </client-only>
     </div>
 </template>
 <script>
-import {mapActions, mapGetters} from 'vuex';
 import genericFuncs from '@/composable/utilityFunctions'
 import useReports from '@/composable/reports'
 import { dateMask } from "@/data/masks";
@@ -167,8 +165,8 @@ export default defineComponent({
         const store = useStore()
         const { $api } = useContext()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
-        const { formatDate, parseDate } = genericFuncs()
-        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+        const { formatDate, parseDate, groupByKey } = genericFuncs()
+        const { htmlToPdfOptions, uploadPdf, getReportPromise, beforeDownloadNoSave, report } = useReports()
         const errorDialog = ref(false)
         const uploading = ref(false)
         const submittedMessage = ref("")
@@ -177,8 +175,8 @@ export default defineComponent({
         const submitting = ref(false)
         const selectedJobId = ref("")
         const uploadedFiles = ref([])
-        const initialEvalDate = new Date().toISOString().substr(0, 10)
-        const initialEvalDateFormatted = formatDate(new Date().toISOString().substr(0, 10))
+        const initialEvalDate = ref(new Date().toISOString().substr(0, 10))
+        const initialEvalDateFormatted = ref(formatDate(new Date().toISOString().substr(0, 10)))
         const initEvalDateModal = ref(false)
         const location = ref({
             address: null,
@@ -227,7 +225,6 @@ export default defineComponent({
         const isLoading = ref(false)
         const form = ref(null)
         const html2Pdf0 = ref(null)
-        const downloadBtn = ref(null)
         const postedData = ref({})
         const chartCreated = ref(false)
 
@@ -340,15 +337,17 @@ export default defineComponent({
             const jobids = reports.map((v) => {
                 return v.JobId
             })
-            await Promise.all([onSubmit(), timeout(100)]).then((result) => {
+            await Promise.all([onSubmit(), timeout(1000)]).then((result) => {
                 submittedMessage.value = result[0]
                 submitting.value = false
                 chartCreated.value = true
-                downloadBtn.value.click()
+                html2Pdf0.value.generatePdf()
             }).catch(error => console.log(`Error in promises ${error}`))
         }
         async function generateBtn() {
-            await html2Pdf0.value.generatePdf()
+            await Promise.all([onSubmit(), timeout(1000)]).then((result) => {
+                html2Pdf0.value.generatePdf()
+            })
         }
         function onSubmit() {
             submittedMessage.value = ""
@@ -380,6 +379,7 @@ export default defineComponent({
                         reject(err.response.data.message)
                     }
                 })
+                //resolve(true)
             })
         }
         function openTable(index) {
@@ -389,6 +389,67 @@ export default defineComponent({
             location.value.cityStateZip = params.cityStateZip
             location.value.address = params.address
         }
+
+        watch(() => initialEvalDate.value, (val) => {
+            initialEvalDateFormatted.value = formatDate(val)
+        })
+        watch(() => selectedJobId.value, (val) => {
+            loaded.value = true
+            isLoading.value = true
+            $api.$get(`/api/reports/details/moisture-map/${val}`).then((res) => {
+                reportFetched.value = true
+                isLoading.value = false
+                initialEvalDateFormatted.value = res.initialEvalDate
+                location.value = res.location
+                subAreas.value = res.readingsRow
+                baseline.value = res.baselineReadings
+                notes.value = res.notes
+                var areas = groupByKey(res.readingsRow, 'label')
+                for (const property in areas) {
+                    this[property] = areas[property]
+                }
+            }).catch(err => {
+                isLoading.value = false
+                getReportPromise(`dispatch/${selectedJobId.value}`)
+
+                if (report.value !== undefined) {
+                    location.value.address = report.value.location.address
+                    location.value.cityStateZip = report.value.location.cityStateZip
+                } else {
+                    location.value = {
+                        address: null,
+                        city: null,
+                        cityStateZip: null,
+                    }
+                }
+                initialEvalDateFormatted.value = formatDate(new Date().toISOString().substr(0, 10))
+                subAreas.value = [{
+                    areaCols: ["A"],
+                    subLabel: 'sub0',
+                    areaName: "",
+                    reading: "",
+                    areas: [{
+                        date: "",
+                        label: "row0",
+                        area: [{
+                            label: 'A',
+                            val: ''
+                        }]
+                    }],
+                }]
+                baseline.value = [{
+                    date: '',
+                    subareas: [{
+                        label: "sub1",
+                        val: ""
+                    }],
+                    label: 'baseline0'
+                }]
+                notes.value = ""
+                reportFetched.value = false
+                return;
+            })
+        })
 
         return {
             errorDialog,
@@ -435,7 +496,6 @@ export default defineComponent({
             postedData,
             openTable,
             settingLocation,
-            downloadBtn,
             chartCreated,
             generateBtn
         }

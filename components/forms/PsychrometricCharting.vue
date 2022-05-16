@@ -1,10 +1,9 @@
 <template>
     <div :class="`form-wrapper`">
-        
+        <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata[0]" :report="existingReport" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
+            :width="860" :height="700" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" :pdf="false" />
         <h2 v-show="submittedMessage !== ''">{{submittedMessage}}</h2>
         <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }" v-if="!submitted">
-            <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
-                :width="700" :height="550" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" :pdf="false" />
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -85,15 +84,15 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
-        <div>
+        <!-- THIS IS CAUSING ISSUES! COMMENTING OUT INSTEAD OF DELETEING BECAUSE MIGHT ADD IT IN LATER. -->
+            <!-- <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('psychrometric-chart', selectedJobId)" 
                     :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false" :preview-modal="true"  
                     @hasDownloaded="uploadPdf($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" 
                     @beforeDownload="beforeDownloadNoSave($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
                         <PdfChart :height="500" :pdf="false" :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
                 </vue-html2pdf>
-                <button class="button--normal" ref="downloadBtn" v-show="false" @click="generateBtn()">Download PDF</button>
-        </div>
+            </client-only> -->
     </div>
 </template>
 <script>
@@ -366,8 +365,9 @@ export default defineComponent({
         const html2Pdf0 = ref(null)
         const postedData = ref({})
         const chartloaded = ref(false)
-        const existingJobProgress = ref({})
+        const existingJobProgress = ref([])
         const downloadBtn = ref(null)
+        const existingReport = ref({})
 
         const user = computed(() => store.getters['users/getUser'])
         const date = ref("")
@@ -406,6 +406,7 @@ export default defineComponent({
         const getPsychrometricChart = async (jobid) => {
             await getReportPromise(`psychrometric-chart/${jobid}`).then((result) => {
                 existingJobProgress.value = result.jobProgress
+                existingReport.value = result
             }).catch(err => {
                 existingJobProgress.value = []
             })
@@ -508,7 +509,7 @@ export default defineComponent({
                         teamMember: user.value
                     }
                     $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
-                        resolve("finished updating atmos")
+                        resolve("finished updating atmospheric readings")
                     }).catch(err => {
                         reject(err)
                     })
@@ -516,18 +517,18 @@ export default defineComponent({
             })
         }
         function timeout(ms) {
-            console.log("timeout")
             return new Promise(resolve => setTimeout(resolve, ms))
         }
         async function generateBtn() {
             await html2Pdf0.value.generatePdf()
         }
         async function submitForm() {
-            await Promise.all([submitAtmosReadings(), onSubmit(), timeout(100)]).then((result) => {
+            await Promise.all([submitAtmosReadings(), onSubmit(), timeout(1000)]).then((result) => {
                 submitting.value = false
                 submittedMessage.value = result[0]
-                
-                downloadBtn.value.click()
+                submitted.value = true
+                chartloaded.value = true
+                html2Pdf0.value.generatePdf()
             }).catch(error => console.log(`Error in promises ${error}`))
         }
         function onSubmit() {
@@ -539,40 +540,33 @@ export default defineComponent({
                 ReportType: 'psychrometric-chart'
             };
             postedData.value = post
-            chartloaded.value = true
             return new Promise((resolve, reject) => {
                 submitting.value = true
-                    let update = existingJobProgress.value.some(el => {
-                        if (el.readingsType == post.jobProgress.readingsType) {
+                    const update = existingJobProgress.value.some(el => {
+                        if (el.readingsType == post.jobProgress.readingsType && el.date == post.jobProgress.date) {
                             return true
                         }
                         return false
                     })
                     if (update) {
                         $api.$post(`/api/reports/psychrometric-chart/update-progress`, post).then((res) => {
-                            submitted.value = true
                             fetchReports()
                             resolve(res)
+                        }).catch(err => {
+                            reject(err)
+                            console.log(err)
                         })
-                        return;
+                        return
                     }
                     $api.$post(`/api/reports/psychrometric-chart/update-chart`, post).then((res) => {
-                        submittedMessage.value = res
-                        submitting.value = false
-                        submitted.value = true
                         fetchReports()
                         resolve(res)
+                    }).catch(err => {
+                        reject(err)
+                        console.log(err)
                     })
-                /* submitAtmosReadings().then((result) => {
-                    
-                }).catch(err => {
-                    console.error(err)
-                    reject(err)
-                }) */
-                resolve(true)
-            }).catch(err => {
-                reject(err)
-                console.log(err)
+                    return
+               // resolve(true)
             })
         }
         watch(readingsType, (val) => {
@@ -642,7 +636,8 @@ export default defineComponent({
             chartloaded,
             existingJobProgress,
             downloadBtn,
-            generateBtn
+            generateBtn,
+            existingReport
         }
     }
 })

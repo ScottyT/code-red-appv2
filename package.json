@@ -51,7 +51,7 @@
     "signature_pad": "^3.0.0-beta.4",
     "v-mask": "^2.2.4",
     "vee-validate": "^3.4.5",
-    "vue-chartjs": "^3.5.1",
+    "vue-chartjs": "3.5.1",
     "vue-html2pdf": "^1.8.0",
     "vue-imask": "^6.1.0",
     "vue-lazy-hydration": "^2.0.0-beta.4",
