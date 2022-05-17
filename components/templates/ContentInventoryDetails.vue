@@ -2,13 +2,13 @@
     <div class="pdf-content" slot="pdf-content">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center" v-uppercase>{{reportName}}</h2>
-        <div class="report-details__section">
+        <!-- <div class="report-details__section">
             <div class="report-details__data" v-for="(item, key) in introSection" :key="key">
                 <h4 v-uppercase>{{key}}:</h4>
                 <span>{{item}}</span>
             </div>
-        </div>
-        <div class="report-details__section content-inventory">
+        </div> -->
+        <div class="report-details__section content-inventory" v-if="report !== undefined && report.inventory !== undefined">
             <h3>Inventory</h3>
             <div class="content-inventory__table">
                 <div class="content-inventory__row">
@@ -29,39 +29,54 @@
         <div class="report-details__section">
             <div class="report-details__data">
                 <h4>Total inventory amount</h4>
-                <span>${{report.totalAmount}}</span>
+                <span>${{report ? report.totalAmount : null}}</span>
             </div>
             <div class="report-details__data">
                 <h4>Technician Signature</h4>
-                <div class="report-details__signature" v-if="report.techSig"><img :src="$store.state.users.signature" /></div>
+                <div class="report-details__signature" v-if="report && report.techSig"><img :src="$store.state.users.signature" /></div>
             </div>
             <div class="report-details__data">
                 <h4>Customer Signature</h4>
-                <div class="report-details__signature"><img :src="report.cusSig" /></div>
+                <div class="report-details__signature"><img :src="report ? report.cusSig : ''" /></div>
             </div>
         </div>
     </div>
 </template>
 <script>
-import { computed, defineComponent, onMounted, toRefs, useContext } from '@nuxtjs/composition-api'
-
+import { computed, defineComponent, onMounted, ref, toRefs, watch, useContext } from '@nuxtjs/composition-api'
+import useReports from '~/composable/reports'
 export default defineComponent({
     props: {
         company: String,
         reportName: String,
         report: Object
     },
-    setup(props) {
+    setup(props, { root }) {
+        //const { getReport, report } = useReports()
         const { report } = toRefs(props)
-        const { $axios } = useContext()
+        const images = ref([])
         const introSection = computed(() => {
             return Object.fromEntries(Object.entries(report.value).filter(([key]) => 
                 key.includes('JobId') || key.includes('customer') || key.includes('claimNumber') || key.includes('insurance') || key.includes('dateCompleted') 
             ))
         })
 
+        /* watch(() => report.value, (val) => {
+            val.inventoryImages.forEach((image) => {
+                images.value.push({
+                    image: image.img,
+                    itemNum: image.ItemNumber
+                })
+                var row = val.inventory.findIndex(i => i.cols[2].value === image.img.filename)
+                if (row >= 0) {
+                    val.inventory[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
+                }
+            })
+        }) */
+        //getReport(`${root.$route.params.type}/${root.$route.params.slug}`)
+
         return {
-            introSection
+            //introSection
         }
     },
 })

@@ -56,10 +56,10 @@
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="800" :manual-pagination="false"
                  :show-layout="false" :enable-download="false" @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :preview-modal="true" ref="html2Pdf0">
-                    <LayoutContentInventoryDetails slot="pdf-content" :reportName="report.ReportType" :report="report" company="Water Emergency Services Incorporated" />
+                    <LayoutContentInventoryDetails slot="pdf-content" company="Water Emergency Services Incorporated" />
                 </vue-html2pdf>
             </client-only>
-            <LayoutContentInventoryDetails slot="pdf-content" :reportName="report.ReportType" :report="report" company="Water Emergency Services Incorporated" />
+            <LayoutContentInventoryDetails slot="pdf-content" notPdf :report="report" company="Water Emergency Services Incorporated" />
         </span>
         <span v-if="report.ReportType === 'moisture-map'">
             <h1><span v-uppercase>{{report.ReportType}}</span> for job {{jobId}}</h1>

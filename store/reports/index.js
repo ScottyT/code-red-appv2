@@ -56,6 +56,19 @@ const mutations = {
     updateEvalTime: (state, {label, value, index}) => {
       //onst objIndex = state.report.evaluationLogs.find(i => i.index === )
       state.report.evaluationLogs[index].value = value
+    },
+    setInventoryImages: (state, payload) => {
+      const images = []
+      payload.forEach((image) => {
+        images.push({
+            image: image.img,
+            itemNum: image.ItemNumber
+        })
+        var row = state.report.inventory.findIndex(i => i.cols[2].value === image.img.filename)
+        if (row >= 0) {
+            state.report.inventory[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
+        }
+      })
     }
 }
 const actions = {
@@ -74,6 +87,9 @@ const actions = {
         this.$api.$get(`/api/reports/details/${path}`).then((res) => {
           var report = genericFuncs().replaceEmptyFormFields(res)
           commit('setReport', report)
+          if (report.ReportType == 'personal-content-inventory') {
+            commit('setInventoryImages', report.inventoryImages)
+          }
           return res
         }).catch(err => {
           commit('setError', err)

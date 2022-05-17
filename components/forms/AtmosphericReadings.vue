@@ -92,7 +92,7 @@
                             <input :tabindex="j" v-on="(row.identifier === 'dryBulbTemp' || row.identifier === 'humidityRatio' || row.identifier === 'dewPoint') ? {
                                     input: ($event) => calculationsDp($event, row.identifier, row.label, item.date)
                                 }:{}" v-model="item.value" class="form__input" :min="row.hasOwnProperty('min') ? row.min : ''" 
-                                :type="row.identifier == 'dryBulbTemp' ? 'number' : 'text'" />
+                                :type="row.identifier == 'dryBulbTemp' || row.identifier == 'humidityRatio' ? 'number' : 'text'" />
                         </div>
                     </div>
                     <div class="form__table form__table--rows row-heading">
@@ -148,7 +148,7 @@
         </ValidationObserver>
         <div>
             <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('atmospheric-readings', selectedJobId)" 
-                :paginate-elements-by-height="1400" :manual-pagination="false" :show-layout="false" :enable-download="false" 
+                :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false" :enable-download="false" 
                 @hasDownloaded="uploadPdf($event, `atmospheric-readings-${selectedJobId}`, selectedJobId)"
                 @beforeDownload="beforeDownloadNoSave($event, `atmospheric-readings-${selectedJobId}`, selectedJobId)" 
                 :preview-modal="true" ref="html2Pdf0">
@@ -546,27 +546,28 @@ export default defineComponent({
             for (const property in groupingData.value) {
                 groupingData.value[property].forEach((item, i) => {
                     if (param === "dryBulbTemp" && label === "Affected") {
-                        psychrometricData.value["Affected"].info.dryBulbTemp = e.target.value
+                        psychrometricData.value["Affected"].info.dryBulbTemp = parseInt(e.target.value)
                     }
                     if (param === "dryBulbTemp" && label === "Exterior") {
-                        psychrometricData.value["Exterior"].info.dryBulbTemp = e.target.value
+                        psychrometricData.value["Exterior"].info.dryBulbTemp = parseInt(e.target.value)
                     }
                     if (param === "dryBulbTemp" && label === "Unaffected") {
-                        psychrometricData.value["Unaffected"].info.dryBulbTemp = e.target.value
+                        psychrometricData.value["Unaffected"].info.dryBulbTemp = parseInt(e.target.value)
                     }
                     if (param === "humidityRatio" && label === "Affected") {
                         let vapor = e.target.value
                         affectedVapor.day[dateIndex].value = calcVapor(vapor, "Affected")
-                        psychrometricData.value["Affected"].info.humidityRatio = e.target.value
+                        psychrometricData.value["Affected"].info.humidityRatio = parseInt(e.target.value)
                         psychrometricData.value["Affected"].info.vaporPressure = calcVapor(vapor, "Affected")
                     }
                     if (param === "humidityRatio" && label === "Unaffected") {
                         unaffectedVapor.day[dateIndex].value = calcVapor(e.target.value, "Unaffected")
                         psychrometricData.value["Unaffected"].info.humidityRatio = calcVapor(e.target.value, "Unaffected")
+                        psychrometricData.value["Unaffected"].info.vaporPressure = calcVapor(vapor, "Unaffected")
                     }
                     if (param === "humidityRatio" && label === "Exterior") {
                         exteriorVapor = calcVapor(e.target.value, "Exterior")
-                        psychrometricData.value["Exterior"].info.humidityRatio = e.target.value
+                        psychrometricData.value["Exterior"].info.humidityRatio = parseInt(e.target.value)
                     }
                     if (item.identifier === "dewPoint" && label === "Affected") {
                         var ln = affectedVapor.day[dateIndex].value / hPa.value
@@ -608,7 +609,7 @@ export default defineComponent({
             const closest = vaporToGGP.value.reduce((a,b) => {
                 return Math.abs(b.humidityRatio - ggp) < Math.abs(a.humidityRatio - ggp) ? b : a;
             })
-            return closest.vaporPressure
+            return closest.vaporPressure.toString()
         }
         function disableDates(curindex) {
             var dateOfRow = new Date(dateRanges.value[curindex])
@@ -633,16 +634,22 @@ export default defineComponent({
             const jobids = reports.map((v) => {
                 return v.JobId
             })
-            await form.value.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    errorDialog.value = true
-                    return
-                }
-                Promise.all([submitPsychrometic(), onSubmit()]).then((result) => {
-                    submittedMessage.value = result[1]
-                    html2Pdf0.value.generatePdf()
-                }).catch(error => console.log(`Error in promises ${error}`))
+            await submitPsychrometic().then(() => {
+                form.value.validate().then(success => {
+                    if (!success) {
+                        submitting.value = false
+                        errorDialog.value = true
+                        return
+                    }
+                    onSubmit().then((result) => {
+                        submittedMessage.value = result
+                        html2Pdf0.value.generatePdf()
+                    })
+                })
+            }).catch(err => {
+                console.log("Error ", err)
+                errorMessage.value = err
+                return
             })
         }
         function onSubmit() {
@@ -676,9 +683,8 @@ export default defineComponent({
                 })
             })
         }
-        function submitPsychrometic() {
-            return new Promise((resolve, reject) => {
-                for (const property in groupingData.value) {
+        async function submitPsychrometic() {
+            for (const property in groupingData.value) {
                     groupingData.value[property].forEach((item) => {
                         var filteredResults = item.day.filter(d => d.date === currentDate.value && d.value !== "")
                         if (filteredResults.length > 0) {
@@ -703,27 +709,28 @@ export default defineComponent({
                     }
                     promises.push(psychrometricPost)
                 }
-                Promise.all(promises).then(result => {
-                    let filteredArr = result.filter(r => r.jobProgress !== undefined)
+            return new Promise((resolve, reject) => {
+                Promise.all(promises).then((item) => {
+                    let filteredArr = item.filter(r => r.jobProgress !== undefined)
                     filteredArr.forEach((item) => {
-                        let updateReading = readingsType.value[item.jobProgress.readingsType] !== undefined
-                        //var newDateProgress = this.readingsType[item.jobProgress.readingsType].find(el => el.date === jobProgressDate) === undefined
-                        
-                        if (updateReading) {
-                            $api.$post(`/api/reports/psychrometric-chart/update-progress`, item).then((res) => {
-                                submittedMessage.value = res
-                            })
-                        } else {
-                            $api.$post(`/api/reports/psychrometric-chart/update-chart`, item).then((res) => {
-                                submittedMessage.value = res
-                            })
-                        }
-                    })
-                    resolve("chart posting is done")
-                    submittedMessage.value = "Psychrometric chart data sent"
+                            let updateReading = (readingsType.value[item.jobProgress.readingsType] !== undefined
+                                && readingsType.value[item.jobProgress.readingsType].find(el => el.date === currentDate.value) !== undefined)
+                            //var newDateProgress = this.readingsType[item.jobProgress.readingsType].find(el => el.date === jobProgressDate) === undefined
+                            console.log(item)
+                            if (updateReading) {
+                                $api.$post(`/api/reports/psychrometric-chart/update-progress`, item).then((res) => {
+                                    submittedMessage.value = res
+                                })
+                            } else {
+                                $api.$post(`/api/reports/psychrometric-chart/update-chart`, item).then((res) => {
+                                    submittedMessage.value = res
+                                })
+                            }
+                        })
+                      resolve("Updated psychrometric chart")
                 }).catch(err => {
                     reject(err)
-                }) 
+                })
             })
         }
 
