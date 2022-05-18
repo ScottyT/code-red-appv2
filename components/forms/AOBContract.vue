@@ -791,7 +791,7 @@
         </v-btn>
       </form>
     </ValidationObserver>
-    <!-- <h3>{{message}} {{submitting ? "Email being sent out..." : emailSuccess}}</h3>
+    <!-- <h3>{{message}} {{submitting ? "Email being sent out..." : emailSuccess}}</h3> -->
     <div>
     <client-only>
       <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
@@ -802,7 +802,7 @@
       </vue-html2pdf>
     </client-only>
     <button class="button--normal" ref="downloadBtn" v-show="false" @click="generatePdf()">Download PDF</button>
-    </div> -->
+    </div>
   </div>
 </template>
 <script>
@@ -1124,7 +1124,7 @@ import axios from 'axios'
                     this.submitted = true
                     this.message = result[0]
                     //I will add this back when we are able to use gmail email service
-                    //this.$refs.downloadBtn.click()
+                    this.$refs.downloadBtn.click()
                     
                   }).catch(error => console.log(`Error in promises ${error}`))
                   return;
@@ -1132,7 +1132,7 @@ import axios from 'axios'
                   Promise.all([this.onSubmit()]).then((result) => {
                     this.submitted = true
                     this.message = result[0]
-                    //this.$refs.downloadBtn.click()
+                    this.$refs.downloadBtn.click()
                   })
                 }
                 this.currentStep++;
@@ -1267,10 +1267,10 @@ import axios from 'axios'
             })
           }
           pdfDownload().then((result) => {
-            this.sendMail(result).then((message) => {
+            /* this.sendMail(result).then((message) => {
               this.emailSuccess = message
               this.submitting = false
-            })
+            }) */
           })
         },
         sendMail(attachment) {

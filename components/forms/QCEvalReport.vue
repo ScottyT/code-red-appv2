@@ -3,18 +3,18 @@
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Quality Control Evaluation Report</h2>
         <h3 v-if="serverMessage !== ''">{{serverMessage}}</h3>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{errors}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
-                        <h3 class="form__input--error">{{ error }}</h3>
+                        <h3 class="form__input--error">{{ error[0] }}</h3>
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
-                    <ValidationProvider v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
+                    <ValidationProvider v-slot="{errors, ariaMsg}" name="Job ID" vid="JobId" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
                         <label class="form__label">Job ID:</label>
                         <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
@@ -130,6 +130,12 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('quality-control', selectedJobId)"
+                      :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false"
+                      :preview-modal="true" :enable-download="false" @hasDownloaded="uploadPdf($event, `quality-control-${selectedJobId}`, selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `quality-control-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
+            <LayoutQualityControlDetails slot="pdf-content" :report="postedData" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
@@ -143,8 +149,9 @@ export default defineComponent({
     },
     setup(props, { refs, parent }) {
         const data = parent.$children[0]
-        const { getReportPromise } = useReports()
+        const { getReportPromise, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const { groupByKey } = genericFuncs()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const store = useStore()
         const { $api } = useContext()
         const submitted = ref(false)
@@ -226,6 +233,8 @@ export default defineComponent({
         const customerSig = ref("")
         const signDate = ref("")
         const allSelected = ref([false])
+        const html2Pdf0 = ref(null)
+        const postedData = ref({})
         const user = computed(() => store.getters["users/getUser"])
 
         function selectAll(arr, selectArr) {
@@ -278,6 +287,29 @@ export default defineComponent({
         }
         async function submitForm() {
             message.value = ""
+            await refs.form.validate().then(success => {
+                if (!success) {
+                    errorDialog.value = true
+                    submitting.value = false
+                    submitted.value = false
+                    return;
+                }
+                Promise.all([onSubmit()]).then((result) => {
+                    message.value = result[0]
+                    html2Pdf0.value.generatePdf()
+                }).catch(error => {
+                    if (error.response.data) {
+                        errorDialog.value = true
+                        submitting.value = false
+                        refs.form.setErrors({
+                            JobId: [error.response.data.message]
+                        })
+                    }
+                })
+            })
+        }
+        function onSubmit() {
+            submitting.value = true
             const post = {
                 JobId: selectedJobId.value,
                 ReportType: "quality-control",
@@ -295,28 +327,19 @@ export default defineComponent({
                 customerSig: customerSig.value,
                 signDate: signDate.value
             }
-            await refs.form.validate().then(success => {
-                if (!success) {
-                    errorDialog.value = true
-                    submitting.value = false
-                    submitted.value = false
-                    return;
-                }
-                $api.$post(`/api/reports/quality-control/new`, post, {params: {jobid: selectedJobId.value}}).then((res) => {
-                    if (res.error) {
-                        errorDialog.value = true
-                        submitting.value = false
-                        refs.form.setErrors({
-                            JobId: [res.message]
-                        })
-                        return
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$post(`/api/reports/quality-control/new`, post, {
+                    params: {
+                        jobid: selectedJobId.value
                     }
+                }).then((res) => {
                     submitted.value = true
                     submitting.value = false
-                    message.value = res
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                    fetchReports()
+                    resolve(res)
+                }).catch(err => {
+                    reject(err)
                 })
             })
         }
@@ -356,7 +379,13 @@ export default defineComponent({
             submitForm,
             formatSignDate,
             formatEvalDate,
-            selectAll
+            selectAll,
+            html2Pdf0,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            postedData,
+            serverMessage
         }
     }
 })

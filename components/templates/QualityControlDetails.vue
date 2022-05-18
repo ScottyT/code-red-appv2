@@ -13,11 +13,11 @@
             </div>
             <div class="report-details__data">
                 <label class="form__label">Address</label>
-                <span>{{report.location.address}}</span>
+                <span>{{report && report.location ? report.location.address : null}}</span>
             </div>
             <div class="report-details__data">
                 <label class="form__label">City, State, Zip</label>
-                <span>{{report.location.cityStateZip}}</span>
+                <span>{{report && report.location ? report.location.cityStateZip : null}}</span>
             </div>
         </div>
         <div class="pdf-item report-details__section">
@@ -70,11 +70,11 @@
                 <div class="report-details__data--row">
                     <div>
                         <label>First:</label>
-                        <span>{{report.customer.first}}</span>
+                        <span>{{report && report.customer ? report.customer.first : null}}</span>
                     </div>
                     <div>
                         <label>Last:</label>
-                        <span>{{report.customer.last}}</span>
+                        <span>{{report && report.customer ? report.customer.last : null}}</span>
                     </div>
                 </div>
             </div>

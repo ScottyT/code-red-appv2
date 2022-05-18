@@ -120,12 +120,9 @@ export default defineComponent({
         })
         watch(() => report.value, (val) => {
             
-            console.log("report changed on Chart.vue")
             
         })
         onMounted(() => {
-            console.log("mounted")
-            console.log(report.value)
             var groupedReports = groupByKey(report.value.jobProgress, 'readingsType')
             refactorChartData(groupedReports)
             if (pdf.value) {

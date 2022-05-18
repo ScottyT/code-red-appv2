@@ -170,6 +170,7 @@ export default {
             return formattedDate
         }
     },
+    
     methods: {
         loadedReport() {
             this.report.baselineReadings.forEach((item) => {
@@ -204,9 +205,7 @@ export default {
                 this.$emit("domRendered");
             }, 1000)
         })
-        this.getReportImages(this.report.JobId, "moisture-images",  "", "/").then((result) => {
-            this.images = result
-        })
+        
         if (this.report.hasOwnProperty("baselineReadings")) {
             this.loadedReport()
         }

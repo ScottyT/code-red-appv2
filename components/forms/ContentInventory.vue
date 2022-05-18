@@ -154,17 +154,16 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
-        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('personal-content-inventory', selectedJobId)" :paginate-elements-by-height="800" 
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('personal-content-inventory', selectedJobId)" :paginate-elements-by-height="900" 
             :manual-pagination="false" :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `personal-content-inventory-${selectedJobId}`, selectedJobId)"
             @beforeDownload="beforeDownloadNoSave($event, `personal-content-inventory-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
-            <LayoutContentInventoryDetails slot="pdf-content" :reportName="postedData.ReportType" :report="postedData" company="Water Emergency Services Incorporated" />
+            <LayoutContentInventoryDetails slot="pdf-content" :reportName="postedData.ReportType" :onForm="true" :report="postedData" company="Water Emergency Services Incorporated" />
         </vue-html2pdf>
     </div>
 </template>
 <script>
 import { computed, defineComponent, ref, useContext, useStore, watch, onMounted } from '@nuxtjs/composition-api'
 import { dateMask } from "@/data/masks";
-import genericFuncs from '@/composable/utilityFunctions'
 import useReports from '@/composable/reports'
 import {compress, compressAccurately} from 'image-conversion';
 export default defineComponent({
@@ -173,7 +172,7 @@ export default defineComponent({
         abbreviation: String
     },
     setup(props, { emit, refs }) {
-        const { $api } = useContext()
+        const { $api, $auth } = useContext()
         const { getReportPromise, loading, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const store = useStore()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
@@ -226,7 +225,7 @@ export default defineComponent({
                     {
                         id: "qty",
                         label: "QTY",
-                        value: 0
+                        value: ""
                     },
                     {
                         id: "rcv",
@@ -293,30 +292,6 @@ export default defineComponent({
             uploadarr = uploadarr.filter((val) => {
                 return deletedImages.value.map(obj => obj.item_num).indexOf(val.itemNum) < 0
             })
-            /* var formData = new FormData()
-            await Promise.all(uploadarr.map(async (file) => {
-                const res = await compress(file.image.image, {
-                    quality: .7,
-                    scale: .8
-                })
-                var compressedImg = new File([res], file.image.imageName, {
-                    type: res.type
-                })
-                file.image.image = compressedImg
-                formData.set("img", compressedImg)
-                formData.set("JobId", selectedJobId.value)
-                formData.set("ItemNumber", file.itemNum)
-                await $api.$post(`/api/image/upload/content-inventory-image`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }).then((res) => {
-                    imageIds.value.push(res)
-                }).catch(err => {
-                    console.log(err)
-                })
-            }))
-            return Promise.resolve("Images uploaded") */
             for (var i = 0; i < uploadarr.length; i++) {
                 const fileFormData = await compressing(uploadarr[i])
                 await $api.$post(`/api/image/upload/content-inventory-image`, fileFormData, {
@@ -328,6 +303,9 @@ export default defineComponent({
                 })
             }
             return "Image(s) uploaded successfully!"
+        }
+        function timeout(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms))
         }
         async function submitForm() {
             submitting.value = true
@@ -354,24 +332,17 @@ export default defineComponent({
             }
             await uploadFile(filteredImages).then((result) => {
                 message.value.push(result)
-                onSubmit().then((result) => {
-                    submitted.value = true
-                    submitting.value = false
-                    message.value.push(result)
-                    html2Pdf0.value.generatePdf()
+                onSubmit().then((res) => {
+                    timeout(1500).then(() => {
+                        submitted.value = true
+                        submitting.value = false
+                        message.value.push(res)
+                        html2Pdf0.value.generatePdf()
+                    })
                 })
             }).catch(err => {
                 generalErrorMessages.value.push(err.response.data)
             });
-            
-            /* await Promise.all([uploadFile(filteredImages), onSubmit()]).then((result) => {
-                submitted.value = true
-                submitting.value = false
-                result.forEach((item) => {
-                    message.value.push(item)
-                })
-                html2Pdf0.value.generatePdf()
-            }).catch(error => console.log(`Error in promises ${error}`)) */
         }
         function onSubmit() {
             var filteredImageIds = imageIds.value.filter((el) => {
@@ -392,12 +363,15 @@ export default defineComponent({
                 totalAmount: total.value,
                 //image_ids: filteredImageIds
             }
-            postedData.value = post
+            
             return new Promise((resolve, reject) => {
                 $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
                     generalErrorMessages.value = []
                     fetchReports()
-                    resolve(res)
+                    getReportPromise(`${post.ReportType}/${selectedJobId.value}`).then((result) => {
+                        postedData.value = result
+                    })
+                    resolve(res.message)
                 }).catch((err) => {
                     errorDialog.value = true
                     submitting.value = false
@@ -515,7 +489,7 @@ export default defineComponent({
                     {
                         id: "qty",
                         label: "QTY",
-                        value: 0
+                        value: ""
                     },
                     {
                         id: "rcv",

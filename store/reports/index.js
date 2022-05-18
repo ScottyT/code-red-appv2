@@ -58,12 +58,7 @@ const mutations = {
       state.report.evaluationLogs[index].value = value
     },
     setInventoryImages: (state, payload) => {
-      const images = []
       payload.forEach((image) => {
-        images.push({
-            image: image.img,
-            itemNum: image.ItemNumber
-        })
         var row = state.report.inventory.findIndex(i => i.cols[2].value === image.img.filename)
         if (row >= 0) {
             state.report.inventory[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`

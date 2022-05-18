@@ -117,14 +117,17 @@ export default function useReports() {
     }
 
     const getReport = (path) => {
+        loading.value = true
         const { fetch: fetchReport, fetchState } = useFetch(async () => {
             await $api.$get(`/api/reports/details/${path}`).then((res) => {
                 res.heading = changeFormName(res.ReportType)
                 report.value = res
-                store.dispatch("users/getSigOrInitialImage", { signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email })
+                loading.value = false
+                //store.dispatch("users/getSigOrInitialImage", { signType: "signature.jpg", email: store.getters["reports/getReport"].teamMember.email })
 
             }).catch((err) => {
                 error.value = true
+                loading.value = false
                 errorMessage.value = err.response.data
             })
         })

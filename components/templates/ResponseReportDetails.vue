@@ -373,6 +373,13 @@ import { timeMask } from "@/data/masks"
         return `${month.padStart(2, '0')}-${day.padStart(2, '0')}-${year}`
       }
     },
+    watch: {
+      report(val) {
+        this.getFolders(val.JobId, "rapid-response", "", "/").then((result) => {
+          this.imageFolders = result.folders
+        })
+      }
+    },
     methods: {
       ...mapActions({
         fetchReport: 'reports/fetchReport'
@@ -456,7 +463,7 @@ import { timeMask } from "@/data/masks"
                   folder: folder,
                   subfolder: folder + "/" + subfolder,
                   delimiter: delimiter,
-                  bucket: "employee"
+                  bucket: "default"
               }
           }).then((res) => {
               resolve(res)
@@ -464,13 +471,14 @@ import { timeMask } from "@/data/masks"
         })
       }
     },
-    mounted() {
+    // Removing this just to see if this breaks anything
+    /* mounted() {
       this.$nextTick(() => {
         this.getFolders(this.report.JobId, "rapid-response", "", "/").then((result) => {
           this.imageFolders = result.folders
         })
       })
-    },
+    }, */
   }
 </script>
 <style lang="scss">

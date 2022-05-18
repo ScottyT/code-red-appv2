@@ -4,7 +4,7 @@
       
         <h1 v-if="message">{{message}}</h1>
         <h2 class="text-center">{{reportName}}</h2>
-        <v-btn v-if="notPdf" @click="startEditing" dark>{{ isEditing ? "Editing" : "Edit"}}</v-btn>
+        <!-- <v-btn v-if="notPdf" @click="startEditing" dark>{{ isEditing ? "Editing" : "Edit"}}</v-btn> -->
         <v-btn v-show="isEditing" @click="updateReport" dark>Update</v-btn>
         <div class="report-details__section">
           <div class="report-details__data">
@@ -178,6 +178,11 @@ import genericFuncs from '@/composable/utilityFunctions'
       textEtaTime(val) {
         this.updatedReport.textTimeUpdate = this.formatTime(val)
       },
+      report(val) {
+        this.getFolders(val.JobId, "dispatch", "", "/").then((result) => {
+          this.imageFolders = result.folders
+        })
+      }
     },
     methods: {
       ...mapActions({
@@ -259,13 +264,6 @@ import genericFuncs from '@/composable/utilityFunctions'
           })
         })
       }
-    },
-    mounted() {
-      this.$nextTick(() => {
-        this.getFolders(this.report.JobId, "dispatch", "", "/").then((result) => {
-          this.imageFolders = result.folders
-        })
-      })
     }
   }
 </script>

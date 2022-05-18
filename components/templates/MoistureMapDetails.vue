@@ -47,8 +47,8 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, toRefs, ref, watch } from '@nuxtjs/composition-api'
-import useReports from '@/composable/reports'
+import { defineComponent, onMounted, toRefs, ref, watch, useContext } from '@nuxtjs/composition-api'
+
 export default defineComponent({
     props: {
         company: String,
@@ -61,8 +61,9 @@ export default defineComponent({
     },
     setup(props, { root }) {
         const { report, pdf } = toRefs(props)
-        const { getReportImages, images } = useReports()
+        const { $gcs } = useContext()
         const baseline = ref([])
+        const images = ref([])
 
         function loadedReport() {
             baseline.value = []
@@ -70,15 +71,35 @@ export default defineComponent({
                 baseline.value.push(item)
             })
         }
+        function loadImages(jobid, folder, subfolder, delimiter) {
+            return new Promise((resolve, reject) => {
+                $gcs.$get(`/list/${jobid}`, {
+                    params: {
+                        folder: folder,
+                        subfolder: folder + "/" + subfolder,
+                        delimiter: delimiter,
+                        bucket: "default"
+                    }
+                }).then((res) => {
+                    resolve(res)
+                }).catch(err => {
+                    reject(err)
+                })
+            })
+        }
         watch(() => report.value, (val) => {
             loadedReport()
+            loadImages(val.JobId, "moisture-images", "", "/").then((result) => {
+                images.value = result.images
+            }).catch(err => {
+                images.value = []
+            })
         })
         onMounted(() => {
             if (pdf.value) {
                 loadedReport()
             }
         })
-        getReportImages(report.value.JobId, "moisture-images", "", "/").fetchImages()
         
         return {
             images, baseline
