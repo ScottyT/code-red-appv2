@@ -172,6 +172,7 @@ export default defineComponent({
                 ReportType: "guardian-aob",
                 formType: "aob",
                 contractingCompany: "Guardian Restoration",
+                companyAbbreviation: "GAURD",
                 subjectProperty: subjectProperty.value,
                 cusSign1: cusSign1.value.data,
                 cusSign2: cusSign2.value.data,

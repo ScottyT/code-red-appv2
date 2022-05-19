@@ -554,7 +554,6 @@
                         </ol>
                     </div>
                     <div class="html2pdf__page-break"/>
-                     <!-- <div class="html2pdf__page-break"/> -->
                     <div class="report-details__bordered pdf-detail">
                         <div class="report-details__data report-details__data--row">
                             <div class="report-details__data-field">
@@ -683,7 +682,7 @@
                         </div>
                     </div>
                     <div class="html2pdf__page-break"/>
-                    <div class="report-details__section">
+                    <div class="report-details__section" v-if="contracts.paymentOption == 'Card'">
                         <div class="report-details__data">
                             <p>I, <span style="font-size:20px;">{{contracts.firstName + ' ' + contracts.lastName}}</span>, authorize Water Emergency Services 
                                 Incorporated (WESI) to charge my credit card above for the agreed upon purchases and/or services within 
@@ -697,11 +696,13 @@
                         <div class="grid grid--two-column">
                             <div class="report-details__data">
                                 <label>Customer Signature:</label>
-                                <div class="report-details__signature"><img :src="contracts.cusSign2" /></div>
+                                <div class="report-details__signature">
+                                    <img :src="contracts && contracts.creditCard ? contracts.creditCard[0].customerSig : ''" />
+                                </div>
                             </div>
                             <div class="report-details__data">
                                 <label>Date:</label>
-                                <span>{{contracts.cusSignDate2}}</span>
+                                <span>{{contracts && contracts.creditCard ? contracts.creditCard[0].customerSignDate : null}}</span>
                             </div>
                         </div>
                     </div>
@@ -709,7 +710,7 @@
                     <div class="report-details__data data-section" v-else>
                         <div class="html2pdf__page-break"/>
                         <div class="data-section__heading">Debit/Credit Cards</div>
-                        <div class="data-section__data">
+                        <div class="data-section__data" v-for="(card, i) in contracts.creditCard" :key="`card-${i}`">
                             <div class="data-section__data--group">
                                 <div class="data-section__subheading">Cardholder</div>
                                 <div class="data-section__data--group-item">
@@ -772,7 +773,7 @@
                                 </div> 
                             </div>
                             <div class="data-section__card-images">
-                                <div class="card-image" v-for="(image, i) in cardImages" :key="`card-${i}`">
+                                <div class="card-image" v-for="(image, i) in images" :key="`card-${i}`">
                                     <img :src="image.imageUrl" />
                                 </div>
                             </div>
@@ -875,67 +876,43 @@
 </div>
 </template>
 <script>
-export default {
-  name: "AobContractContent",
-  props: ['jobid', 'reportType', 'cardsInfo', 'images'],
-  data() {
-    return {
-      cards: [],
-      errorMessage: "",
-      cardImages: [],
-      company: "",
-      abbreviation: "",
-      contracts: {},
-      card: {}
-    }
-  },
-  watch: {
-      cardsInfo(val) {
-          val.forEach((card) => {
-              this.cards.push(card)
-          })
-      },
-      images(val) {
-          this.cardImages = val
-      }
-  },
-  methods: {
-    getReport() {
-        return new Promise((resolve, reject) => {
-            this.$api.$get(`/api/reports/${this.reportType}/${this.jobid}/aob`).then((res) => {
-                this.abbreviation = res.ReportType === 'wesi-aob'?'WESI':'GUARD'
-                this.contracts = res
-                this.company = res.contractingCompany
-                this.card = res.creditCard
-                resolve(res.creditCard)
-            }).catch(err => {
-                reject(err)
+import { defineComponent, watch, ref, toRefs, onMounted } from "@nuxtjs/composition-api"
+import useReports from '@/composable/reports'
+export default defineComponent({
+    name: "AobContractContent",
+    props: {
+        jobid: String,
+        reportType: String,
+        contracts: Object,
+        cardsInfo: Object,
+        images: Array,
+        company: String,
+        abbreviation: String,
+        onForm: Boolean
+    },
+    setup(props) {
+        const { images, cardsInfo, onForm, contracts } = toRefs(props)
+        const { getReportPromise } = useReports()
+        const cards = ref([])
+        const cardImages = ref([])
+
+        
+        if (onForm) {
+            watch(() => contracts.value, (val) => {
+                
             })
+        }
+
+        onMounted(() => {
+            cardImages.value = []
         })
+
+        return {
+            cardImages,
+            cards
+        }
     }
-  },
-  mounted() {
-    this.$nextTick(() => {
-      setTimeout(() => {
-        this.$emit("domRendered");
-      }, 1000)
-    })
-  },
-  created() {
-      this.cardImages = []
-      this.getReport().then((res) => {
-          this.$gcs.$get(`/list/creditCard`, {
-              params: {
-                  folder: 'creditCard',
-                  subfolder: res.cardNumber,
-                  delimiter: '',
-              }
-          }).then((result) => {
-              this.cardImages = result.images
-          })
-      })
-  }
-}
+});
 </script>
 <style lang="scss">
 .bold-text {
@@ -1008,6 +985,8 @@ export default {
     display:inline-block;
 }
 .pdf-content {
+    /* max-width:750px;
+    margin:auto; */
     .report-details__listing-num {
         list-style-position: inside;
         padding-left:30px;

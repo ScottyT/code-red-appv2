@@ -4,9 +4,9 @@
     <h2 class="text-center">Assignment of Benefits & Mitigation Contract</h2>
     <h3 class="text-center">This is not an agreement to repair/rebuild/restore any property</h3>
     <h3 v-if="message !== ''">{{message}}</h3>
-    <ValidationObserver ref="form">
+    <ValidationObserver ref="form" v-slot="{handleSubmit}">
      <h3 class="alert alert--error" v-for="(error, i) in errorMessage" :key="`server-errors-${i}`">{{error}}</h3>
-      <form ref="form" class="form" @submit.prevent="submitForm" v-if="!submitted">
+      <form ref="form" class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
         <fieldset v-if="currentStep === 1">
           <div class="form__form-group">
             <ValidationProvider rules="required" name="Job ID" v-slot="{errors}" class="form__input-group form__input-group--normal">
@@ -792,17 +792,13 @@
       </form>
     </ValidationObserver>
     <!-- <h3>{{message}} {{submitting ? "Email being sent out..." : emailSuccess}}</h3> -->
-    <div>
-    <client-only>
       <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" :manual-pagination="true" :show-layout="false"
                     :enable-download="false" :preview-modal="true" :paginate-elements-by-height="10500"
-                    ref="aobhtml2pdf">
-        <PdfAobContract slot="pdf-content" :cardsInfo="cards" :images="cardImages" :contracts="data" company="Water Emergency Services Incorporated" abbreviation="WESI" />
+                    ref="aobhtml2pdf" @hasDownloaded="uploadPdf($event, `wesi-aob-${selectedJobId}`, selectedJobId)">
+        <PdfAobContract slot="pdf-content" onForm :contracts="data" :images="cardImages" company="Water Emergency Services Incorporated" abbreviation="WESI" />
       </vue-html2pdf>
-    </client-only>
     <button class="button--normal" ref="downloadBtn" v-show="false" @click="generatePdf()">Download PDF</button>
-    </div>
   </div>
 </template>
 <script>
@@ -810,6 +806,7 @@ import goTo from 'vuetify/es5/services/goto'
 import {mapGetters, mapActions} from 'vuex'
 import { statesArr } from "@/data/states"
 import { driversLicenseMask } from "@/data/masks";
+import useReports from '@/composable/reports'
 import axios from 'axios'
   export default {
     props: ['company', 'abbreviation'],
@@ -989,7 +986,7 @@ import axios from 'axios'
         cardObj: {},
         states: statesArr,
         data: {},
-        cards: [],
+        cards: {},
         cardImages: [],
         emailSuccess: "",
         licenseMask: driversLicenseMask
@@ -1026,12 +1023,13 @@ import axios from 'axios'
             this.cusSignDateFormatted = this.formatDate(val)
         },
         selectedJobId(val) {
+          this.errorMessage = ""
           this.$api.$get(`/api/reports/details/dispatch/${val}`).then((res) => {
             this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
             this.numberOfFloors = res.intrusion.find(e => e.label === 'Number of Floors').value
             this.numberOfRooms = res.intrusion.find(e => e.label === 'Number of Rooms').value
           }).catch(err => {
-            this.errorMessage = err
+            this.errorMessage = err.response.data
           })
         },
         paymentOption(val) {
@@ -1103,6 +1101,19 @@ import axios from 'axios'
             const [month, day, year] = date.split('/')
             return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
         },
+        getContract() {
+          return new Promise((resolve, reject) => {
+            this.$api.$get(`/api/reports/details/wesi-aob/${this.selectedJobId}`).then((res) => {
+                this.data = res
+                resolve(res)
+            }).catch((err) => {
+                reject(err)
+            })
+          })
+        },
+        timeout(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms))
+        },
         async submitForm() {
             this.errorMessage = []
             var cardnumber = this.cardToUse
@@ -1112,28 +1123,28 @@ import axios from 'axios'
             const contractsRep = contracts.map((v) => {
               return v.JobId
             })
-            await this.$refs.form.validate().then(success => {
-              if (!success) {
-                this.submitting = false
-                this.submitted = false
-                return goTo(0)
-              }
-              if (!contractsRep.includes(this.selectedJobId)) {
+            if (!contractsRep.includes(this.selectedJobId)) {
                 if ((this.currentStep === 1 && this.paymentOption === 'Card' && this.existingCreditCard === "Yes") || this.currentStep === 2) {
-                  Promise.all([this.onSubmit(), this.getCardImages(cardnumber)]).then((result) => {
-                    this.submitted = true
-                    this.message = result[0]
-                    //I will add this back when we are able to use gmail email service
-                    this.$refs.downloadBtn.click()
-                    
-                  }).catch(error => console.log(`Error in promises ${error}`))
+                  await this.onSubmit().then((result) => {
+                    this.message = result
+                    this.timeout(1000).then(() => {
+                      this.getCardImages(cardnumber).then(() => {
+                        this.getContract().then((data) => {
+                          this.submitted = true
+                          this.submitting = false
+                          this.$refs.downloadBtn.click()
+                        })
+                      })
+                    })
+                  })
                   return;
                 } else if ((this.currentStep === 1 && this.paymentOption !== 'Card') || this.currentStep === 2) {
-                  Promise.all([this.onSubmit()]).then((result) => {
+                  await Promise.all([this.onSubmit()]).then((result) => {
                     this.submitted = true
+                    this.submitting = false
                     this.message = result[0]
                     this.$refs.downloadBtn.click()
-                  })
+                  }).catch(error => console.log(`Error in promises ${error}`))
                 }
                 this.currentStep++;
               } else {
@@ -1141,7 +1152,6 @@ import axios from 'axios'
                 this.submitting = false
                 return goTo(0)
               }
-            })
         },
         onSubmit() {
           this.message = ''
@@ -1151,6 +1161,7 @@ import axios from 'axios'
             ReportType: 'wesi-aob',
             formType: 'aob',
             contractingCompany: 'Water Emergency Services',
+            abbreviation: 'WESI',
             subjectProperty: this.subjectProperty,
             cusSign1: this.cusSign.data,
             cusSignDate1: this.cusSignDateFormatted,
@@ -1191,31 +1202,40 @@ import axios from 'axios'
           };
           this.submitting = true
           this.data = post
-          this.$api.$post("/api/reports/wesi-aob/new", post, {
-              params: {
-                  jobid: this.selectedJobId
-              }
-          }).then((res) => {
-              if (res.error) {
-                  this.errorMessage = res.message
-                  return
-              }
-              this.fetchReports()
-          }).catch((err) => {
-              this.errorMessage.push(err)
-          })
-         
-         return Promise.resolve("AOB & Mitigation Contract submitted!")
-        },
-        fetchCards(cardnumber) {
-          if (cardnumber === "") return
           return new Promise((resolve, reject) => {
-            this.$api.$get(`/api/credit-card/${cardnumber}`).then((res) => {
-              this.cards = res
-              resolve(res)
+            this.$api.$post("/api/reports/wesi-aob/new", post, {
+                params: {
+                    jobid: this.selectedJobId
+                }
+            }).then((res) => {
+                if (res.error) {
+                    this.errorMessage = res.message
+                    return
+                }
+                this.fetchReports()
+                resolve(res)
+                
             }).catch((err) => {
-              reject(err)
+                this.errorMessage.push(err)
+                reject(err)
             })
+          })
+        },
+        uploadPdf(file, filename, jobId) {
+          const finalPdf = new File([file], `${filename}.pdf`, {
+              type: file.type
+          })
+          const formData = new FormData();
+          formData.append('path', `${jobId}/pdfs/`)
+          formData.append('multiFiles', finalPdf)
+          this.$gcs.$post("/upload", formData, {
+              params: {
+                  folder: 'pdfs',
+                  subfolder: '',
+                  delimiter: '/'
+              }
+          }).then(() => {
+              console.log("pdf uploaded")
           })
         },
         async getCardImages(card) {
@@ -1253,7 +1273,18 @@ import axios from 'axios'
           return new File([u8arr], filename, {type:mime});
         },
         async beforeDownload({ html2pdf, options, pdfContent }) {
-          const pdfDownload = async () => {
+          await html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
+              const totalPages = pdf.internal.getNumberOfPages()
+              for (let i = 1; i <= totalPages; i++) {
+                  pdf.setPage(i)
+                  pdf.setFontSize(14)
+                  pdf.text('Page ' + i + ' of ' + totalPages, (pdf.internal.pageSize.getWidth() * 0.88), (pdf.internal.pageSize.getHeight() - 10))
+              }             
+            }).outputPdf().then((result) => {
+              var file = this.dataURLtoFile(`data:application/pdf;base64,${btoa(result)}`, `aob-${this.selectedJobId}`);
+              return Promise.resolve(file)
+            })
+          /* const pdfDownload = async () => {
             return html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
               const totalPages = pdf.internal.getNumberOfPages()
               for (let i = 1; i <= totalPages; i++) {
@@ -1265,13 +1296,13 @@ import axios from 'axios'
               var file = this.dataURLtoFile(`data:application/pdf;base64,${btoa(result)}`, `aob-${this.selectedJobId}`);
               return Promise.resolve(file)
             })
-          }
-          pdfDownload().then((result) => {
-            /* this.sendMail(result).then((message) => {
+          } */
+          /* pdfDownload().then((result) => {
+            this.sendMail(result).then((message) => {
               this.emailSuccess = message
               this.submitting = false
-            }) */
-          })
+            })
+          }) */
         },
         sendMail(attachment) {
           var formData = new FormData()

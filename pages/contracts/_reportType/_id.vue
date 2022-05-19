@@ -10,7 +10,8 @@
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="true"
                     :show-layout="false" :enable-download="false" :preview-modal="true" :paginate-elements-by-height="10500" :ref="`html2Pdf0`">
-                    <LazyPdfAobContract slot="pdf-content" :jobid="jobid" :reportType="reportType" />
+                    <PdfAobContract slot="pdf-content" :jobid="jobid" :reportType="reportType" :contracts="report" 
+                        :company="report.contractingCompany" :abbreviation="report.companyAbbreviation" :images="cardsImages" />
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>
@@ -30,7 +31,8 @@
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="false"
                     :show-layout="false" :enable-download="false" :preview-modal="true" :paginate-elements-by-height="900" :ref="`html2Pdf0`">
-                    <LazyPdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content" />
+                    <LazyPdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content" :company="report.contractingCompany" 
+                        :abbreviation="report.companyAbbreviation" />
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>
@@ -61,7 +63,7 @@
 </template>
 <script>
 import LazyHydrate from 'vue-lazy-hydration'
-import { defineComponent, ref, computed, onMounted } from '@nuxtjs/composition-api'
+import { defineComponent, ref, computed, onMounted, useContext, watch } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports';
 
 export default defineComponent({
@@ -69,10 +71,12 @@ export default defineComponent({
         LazyHydrate
     },
     setup(props, { root, refs }) {
-        const { signature, beforeDownload } = useReports()
+        const { signature, beforeDownload, getReport, report } = useReports()
+        const { $gcs } = useContext()
         const reportType = root.$route.params.reportType
         const jobid = root.$route.params.id
         const clickedOn = ref(null)
+        const cardsImages = ref([])
 
         const htmlToPdfOptions = computed(() => {
             return {
@@ -103,7 +107,17 @@ export default defineComponent({
         function hasDownloaded() {
             clickedOn.value = null
         }
-        //getReport(`${reportType}/${jobid}`).fetchReport()
+        
+        watch(report, (val) => {
+            $gcs.$get(`/list/creditCard`, {
+                params: { folder: "creditCard", subfolder: val.cardNumber, delimiter: "", bucket: "default" }
+            }).then((res) => {
+                cardsImages.value = res.images
+            })
+        })
+
+        getReport(`${reportType}/${jobid}`).fetchReport()
+        
         return {
             reportType,
             jobid,
@@ -112,7 +126,9 @@ export default defineComponent({
             htmlToPdfOptions,
             generateReport,
             beforeDownload,
-            signature
+            signature,
+            report,
+            cardsImages
         }
     }
 })

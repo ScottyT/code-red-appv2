@@ -497,6 +497,7 @@ export default {
               ReportType: "wesi-coc",
               formType: "coc",
               contractingCompany: "Water Emergency Services",
+              companyAbbreviation: "WESI",
               subjectProperty: this.subjectProperty,
               deductible: this.deductible,
               insuredMinEndDate: this.insuredEndDateFormatted,
