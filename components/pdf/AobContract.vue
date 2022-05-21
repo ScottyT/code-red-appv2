@@ -773,7 +773,7 @@
                                 </div> 
                             </div>
                             <div class="data-section__card-images">
-                                <div class="card-image" v-for="(image, i) in images" :key="`card-${i}`">
+                                <div class="card-image" v-for="(image, i) in images" :key="`cardimage-${i}`">
                                     <img :src="image.imageUrl" />
                                 </div>
                             </div>

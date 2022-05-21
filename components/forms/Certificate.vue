@@ -63,7 +63,7 @@
                                 <div class="form__input-group--section">
                                     <label for="InsuredDeductible" class="form__label">Insured Deductible</label>
                                     <span class="currency-input">$</span><input type="text" id="InsuredDeductible" class="form__input form__input--short"
-                                        v-model="deductible" />
+                                        v-model="deductible" @keypress="currencyFormat" />
                                 </div>
                             </span>
                             <span class="form__input-group--inline">
@@ -88,7 +88,7 @@
                                 <div>
                                     <label for="insuredPayment2" class="form__label">Insured Payment 2)</label>
                                     <span class="form__input--currency">
-                                        <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPayment.secondStep" readonly />
+                                        <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPayment.secondStep" />
                                     </span>
                                 </div>
                                 <div class="form__input-group--inline form__input-group--date-group">
@@ -218,328 +218,337 @@
                     </button>
                 </form>
             </ValidationObserver>
+            <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('wesi-coc', selectedJobId)"
+                          :paginate-elements-by-height="900" :manual-pagination="false" :show-layout="false"
+                          :enable-download="false" @beforeDownload="beforeDownloadNoSave($event, `wesi-coc-${selectedJobId}`, selectedJobId)"
+                          @hasDownloaded="uploadPdf($event, `wesi-coc-${selectedJobId}`, selectedJobId)" :preview-modal="true" :ref="`html2Pdf0`">
+                <LazyPdfCertificateContent :jobid="selectedJobId" :cardsImages="cardImages" :certificate="postedData" :reportType="'wesi-coc'" slot="pdf-content"
+                    abbreviation="WESI" company="Water Emergency Services Incorporated" />
+            </vue-html2pdf>
         </div>
 </template>
 <script>
-import goTo from 'vuetify/es5/services/goto'
-import {mapGetters, mapActions} from 'vuex'
-export default {
-    props: ['company', 'abbreviation'],
-    data: (vm) => ({
-        currentStep:1,
-        message: '',
-        errorMessage: [],
-        submitted: false,
-        submitting: false,
-        subjectProperty: '',
-        deductible: null,
-        insuredEndDateModal: false,
-        insuredEndDate: new Date().toISOString().substr(0, 10),
-        insuredEndDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        insuredPayment: {
+import useReports from "@/composable/reports"
+import genericFuncs from "@/composable/utilityFunctions"
+import { defineComponent, ref, computed, watch, useStore, useContext } from "@nuxtjs/composition-api"
+
+export default defineComponent({
+    props: {
+        company: String,
+        abbreviation: String
+    },
+    setup(props) {
+        const store = useStore()
+        const { formatDate, formatTime } = genericFuncs()
+        const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
+        const { $gcs, $api } = useContext()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
+        const currentStep = ref(1)
+        const message = ref('')
+        const errorMessage = ref([])
+        const submitted = ref(false)
+        const submitting = ref(false)
+        const subjectProperty = ref('')
+        const deductible = ref(null)
+        const insuredEndDateModal = ref(false)
+        const insuredEndDateFormatted = ref("")
+        const insuredPayment = ref({
             day1Modal: false,
             day5Modal: false,
             firstStep: null,
             secondStep:null,
-            day1Date: new Date().toISOString().substr(0, 10),
-            day1DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-            day5Date: new Date().toISOString().substr(0, 10),
-            day5DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10))
-        },
-        nonInsuredPayment: {
+            day1DateFormatted: formatDate(new Date().toISOString().substring(0, 10)),
+            day5Date: new Date().toISOString().substring(0, 10),
+            day5DateFormatted: formatDate(new Date().toISOString().substring(0, 10))
+        })
+        const nonInsuredPayment = ref({
             endDateModal: false,
             day1Modal: false,
             day5Modal: false,
-            endDate: new Date().toISOString().substr(0, 10),
-            endDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-            day1Date: new Date().toISOString().substr(0, 10),
-            day1DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-            day5Date: new Date().toISOString().substr(0, 10),
-            day5DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        },
-        ratings: [
+            endDate: new Date().toISOString().substring(0, 10),
+            endDateFormatted: formatDate(new Date().toISOString().substring(0, 10)),
+            day1DateFormatted: formatDate(new Date().toISOString().substring(0, 10)),
+            day5Date: new Date().toISOString().substring(0, 10),
+            day5DateFormatted: formatDate(new Date().toISOString().substring(0, 10)),
+        })
+        const ratings = [
             "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-"
-        ],
-        selectedRating: "",
-        repPrint: "",
-        repSign: {
+        ]
+        const selectedRating = ref("")
+        const repPrint = ref("")
+        const repSign = ref({
             data: '',
             isEmpty: true
-        },
-        repTimeModal: false,
-        repPrintTime: null,
-        repPrintTimeFormatted: vm.formatTime(new Date().toTimeString().substr(0, 5)),
-        repSignModal: false,
-        repSignDate: new Date().toISOString().substr(0, 10),
-        repSignDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        teamMemberSig: {
+        })
+        const repTimeModal = ref(false)
+        const repPrintTime = ref(null)
+        const repPrintTimeFormatted = ref(formatTime(new Date().toTimeString().substring(0, 5)))
+        const repSignModal = ref(false)
+        const repSignDateFormatted = ref("")
+        const teamMemberSig = ref({
             data: '',
             isEmpty: true
-        },
-        empSig: "",
-        teamSignModal: false,
-        teamSignDate: new Date().toISOString().substr(0, 10),
-        teamSignDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        testimonial:"",
-        usingCreditCard: false,
-        cusSig: {
+        })
+        const empSig = ref("")
+        const teamSignModal = ref(false)
+        const teamSignDateFormatted = ref("")
+        const testimonial = ref("")
+        const usingCreditCard = ref(false)
+        const cusSig = ref({
             data: '',
             isEmpty: true
-        },
-        cusSigModal: false,
-        cusSigDate: new Date().toISOString().substr(0, 10),
-        cusSigDateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
-        selectedJobId: "",
-        paymentOptions: ["Cash", "Card"],
-        paymentOption: "",
-        errorDialog: false,
-        existingCreditCard: "",
-        cardToUse: "",
-        cardObj: {},
-        cardSubmitted: false
-    }),
-    computed: {
-        ...mapGetters({getUser: "users/getUser", getReports: "reports/getReports", getCards:'reports/getCards'}),
-        insuredDay1() {
-            return this.insuredPayment.day1Date;
-        },
-        insuredDay5() {
-            return this.insuredPayment.day5Date
-        },
-        nonInsuredEndDate() {
-            return this.nonInsuredPayment.endDate;
-        },
-        nonInsuredDay1() {
-            return this.nonInsuredPayment.day1Date;
-        },
-        nonInsuredDay5() {
-            return this.nonInsuredPayment.day5Date;
-        },
-        insuredPay1: {
+        })
+        const cusSigModal = ref(false)
+        const cusSigDateFormatted = ref("")
+        const selectedJobId = ref("")
+        const paymentOptions = ["Cash", "Card"]
+        const paymentOption = ref("")
+        const errorDialog = ref(false)
+        const existingCreditCard = ref("")
+        const cardToUse = ref("")
+        const cardObj = ref({})
+        const cardSubmitted = ref(false)
+        const html2Pdf0 = ref(null)
+
+        const user = computed(() => store.getters["users/getUser"])
+        const reports = computed(() => store.getters["reports/getReports"])
+        const creditCards = computed(() => store.getters["reports/getCards"])
+        const insuredPay1 = computed({
             get() {
-                var pay = this.deductible * .50
-                if (pay) { this.insuredPayment.firstStep = pay }
-                else { this.insuredPayment.firstStep = "N/A" }
+                var pay = deductible.value * .50
+                if (pay) {
+                    insuredPayment.value.firstStep = pay
+                } else {
+                    insuredPayment.value.firstStep = "N/A"
+                }
             },
-            set(val) {
-                this.insuredPayment.firstStep = val
+            set(value) {
+                insuredPayment.value.firstStep = parseInt(value)
             }
-        },
-        insuredPay2: {
+        })
+        const insuredPay2 = computed({
             get() {
-                var pay = this.deductible * .50
-                if (pay) { this.insuredPayment.secondStep = pay }
-                else { this.insuredPayment.secondStep = "N/A" }
+                var pay = deductible.value * .50
+                if (pay) {
+                    insuredPayment.value.secondStep = pay
+                } else {
+                    insuredPayment.value.secondStep = "N/A"
+                }
             },
-            set(val) {
-                this.insuredPayment.secondStep = val
+            set(value) {
+                insuredPayment.value.secondStep = parseInt(value)
             }
-        },
-        certificates() {
-            return this.getReports.filter((v) => {
+        })
+        const certificates = computed(() => {
+            return reports.value.filter((v) => {
                 return v.formType === "coc"
             })
-        },
-        cardNumbers() {
-            return this.getCards.map((v) => {
+        })
+        const cardNumbers = computed(() => {
+            return creditCards.value.map((v) => {
                 return v.cardNumber
             })
-        }
-    },
-    watch: {
-        insuredEndDate(val) {
-            this.insuredEndDateFormatted = this.formatDate(val)
-        },
-        insuredDay1(val) {
-            this.insuredPayment.day1DateFormatted = this.formatDate(val)
-        },
-        insuredDay5(val) {
-            this.insuredPayment.day5DateFormatted = this.formatDate(val)
-        },
-        nonInsuredEndDate(val) {
-            this.nonInsuredPayment.endDateFormatted = this.formatDate(val)
-        },
-        nonInsuredDay1(val) {
-            this.nonInsuredPayment.day1DateFormatted = this.formatDate(val)
-        },
-        nonInsuredDay5(val) {
-            this.nonInsuredPayment.day5DateFormatted = this.formatDate(val)
-        },
-        repPrintTime(val) {
-            this.repPrintTimeFormatted = this.formatTime(val)
-        },
-        repSignDate(val) {
-            this.repSignDateFormatted = this.formatDate(val)
-        },
-        teamSignDate(val) {
-            this.teamSignDateFormatted = this.formatDate(val)
-        },
-        cusSigDate(val) {
-            this.cusSigDateFormatted = this.formatDate(val)
-        },
-        selectedJobId(val) {
-            this.$api.$get(`/api/reports/details/dispatch/${val}`).then((res) => {
-                this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
-            }).catch(err => {
-                this.errorMessage = err
-            })
-        }
-    },
-    methods: {
-        selectedJob(option) {
-            this.selectedJobId = option;
-        },
-        formatDate(dateReturned) {
-            if (!dateReturned) return null
-            const [year, month, day] = dateReturned.split('-')
-            return `${month}/${day}/${year}`
-        },
-        cardSubmittedValue(...params) {
+        })
+        const cardImages = ref([])
+        const form = ref(null)
+        const postedData = ref({})
+
+        function cardSubmittedValue(...params) {
             const {isSubmit, cardNumber} = params[0]
-            this.cardObj = params
-            this.cardToUse = cardNumber
-            this.cardSubmitted = isSubmit
-        },
-        formatTime(timeReturned) {
-            if (!timeReturned) return null
-            
-            const pieces = timeReturned.split(':')
-            let hours
-            let minutes
-            if (pieces.length === 2) {
-                hours = parseInt(pieces[0], 10)
-                minutes = parseInt(pieces[1], 10)
-            }
-            const newFormat = hours >= 12 ? 'PM' : 'AM'
-            hours = hours % 12
-            // To display "0" as "12"
-            hours = hours || 12
-            minutes = minutes < 10 ? '0' + minutes : minutes
-            return `${hours}:${minutes} ${newFormat}`
-        },
-        parseDate(date) {
-            if (!date) return null
-            const [month, day, year] = date.split('/')
-            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-        },
-        currencyFormat($event) {
+            cardObj.value = params
+            cardToUse.value = cardNumber
+            cardSubmitted.value = isSubmit
+        }
+        function currencyFormat($event) {
             let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
             // only allow number and one dot
-            if ((keyCode < 48 || keyCode > 57) && (keyCode !== 46 || this.deductible.indexOf('.') != -1)) { // 46 is dot
+            if ((keyCode < 48 || keyCode > 57) && (keyCode !== 46 || deductible.value.indexOf('.') != -1)) { // 46 is dot
                 $event.preventDefault();
             }
             // restrict to 2 decimal places
-            if(this.deductible!=null && this.deductible.indexOf(".")>-1 && (this.deductible.split('.')[1].length > 1)){
+            if(deductible.value!=null && deductible.value.indexOf(".")>-1 && (deductible.value.split('.')[1].length > 1)){
                 $event.preventDefault();
             }
-        },
-        acceptNumber() {
-            var x = this.cardholderName.phoneNumber.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
-            this.cardholderName.phoneNumber = !x[2] ?
-            x[1] :
-            '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '')
-        },
-        maskDate() {
-            var x = this.expirationDate.replace(/\D/g, '').match(/(\d{0,2})(\d{0,2})/)
-            console.log(x)
-            this.expirationDate = !x[2] ? x[1] : x[1] + '/' + x[2]
-        },
-        goToStep(step) {
-            if (step < 1) {
-                return;
-            }
-            if (step > 2) {
-                this.submitForm();
-                return;
-            }
-            this.currentStep = step
-        },
-        submitForm() {  
-            this.errorMessage = []
-            const certificates = this.certificates.map((v) => {
+        }
+        function maskDate() {
+            var x = expirationDate.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,2})/)
+            expirationDate.value = !x[2] ? x[1] : x[1] + '/' + x[2]
+        }
+        async function submitForm() {
+            errorMessage.value = []
+            const certificatesArr = certificates.value.map((v) => {
                 return v.JobId
             })
-            this.$refs.form.validate().then(success => {
-                if (!success) {
-                    this.errorDialog = true
-                    this.submitting = false
-                    this.submitted = false
-                    return goTo(0)
-                }
-                if (!certificates.includes(this.selectedJobId)) {
-                    if ((this.currentStep === 1 && this.paymentOption !== 'Card' || this.existingCreditCard !== 'No') ||
-                        this.currentStep === 2) {
-                        this.submitting = true
-                        this.onSubmit()
+            if (!certificatesArr.includes(selectedJobId.value)) {
+                await form.value.validate().then(success => {
+                    if (!success) {
+                        errorDialog.value = true
+                        return
+                    }
+                    if ((currentStep.value === 1 && paymentOption.value !== 'Card' || existingCreditCard.value !== 'No') ||
+                        currentStep.value === 2) {
+                        
+                        onSubmit().then(() => {
+                            getCardImages(cardToUse.value).then(() => {
+                                getReportPromise(`wesi-coc/${selectedJobId.value}`).then((res) => {
+                                    postedData.value = res
+                                    submitted.value = true
+                                    html2Pdf0.value.generatePdf()
+                                })
+                            })
+                        }).catch(err => {
+                            errorMessage.value.push(err.response.data)
+                            submitting.value = false
+                        })
                         return;
                     }
-                    this.currentStep++;
-                } else {
-                    this.errorMessage.push("Duplicate Job ID is not allowed")
-                    return goTo(0)
-                }
-                
-            })            
-        },
-        onSubmit() {
-            this.message = ''
-            this.errorMessage = []
+                    currentStep.value++;
+                })
+            }
+        }
+        function onSubmit() {
+            message.value = ''
+            errorMessage.value = []
             let insuredPayment1Arr = {
-              insuredPay: this.insuredPayment.firstStep,
-              day1Date: this.insuredPayment.day1DateFormatted
+                insuredPay: insuredPayment.value.firstStep,
+                day1Date: insuredPayment.value.day1DateFormatted
             };
             let insuredPayment2Arr = {
-              insuredPay: this.insuredPayment.secondStep,
-              day5Date: this.insuredPayment.day5DateFormatted
+                insuredPay: insuredPayment.value.secondStep,
+                day5Date: insuredPayment.value.day5DateFormatted
             };
             const post = {
-              JobId: this.selectedJobId,
-              ReportType: "wesi-coc",
-              formType: "coc",
-              contractingCompany: "Water Emergency Services",
-              companyAbbreviation: "WESI",
-              subjectProperty: this.subjectProperty,
-              deductible: this.deductible,
-              insuredMinEndDate: this.insuredEndDateFormatted,
-              insuredPayment1: insuredPayment1Arr,
-              insuredPayment2: insuredPayment2Arr,
-              nonInsuredMinEndDate: this.nonInsuredPayment.endDateFormatted,
-              nonInsuredPayment1: this.nonInsuredPayment.day1DateFormatted,
-              nonInsuredPayment2: this.nonInsuredPayment.day5DateFormatted,
-              rating: this.selectedRating,
-              representative: this.repPrint,
-              repSignTime: this.repPrintTimeFormatted,
-              representativeSign: this.repSign.data,
-              repSignDate: this.repSignDateFormatted,
-              teamSign: Object.keys(this.empSig).length !== 0,
-              teamSignDate: this.teamSignDateFormatted,
-              testimonial: this.testimonial,
-              paymentOption: this.paymentOption,
-              teamMember: this.getUser,
-              cardNumber: this.cardToUse
+                JobId: selectedJobId.value,
+                ReportType: "wesi-coc",
+                formType: "coc",
+                contractingCompany: "Water Emergency Services",
+                companyAbbreviation: "WESI",
+                subjectProperty: subjectProperty.value,
+                deductible: deductible.value,
+                insuredMinEndDate: insuredEndDateFormatted.value,
+                insuredPayment1: insuredPayment1Arr,
+                insuredPayment2: insuredPayment2Arr,
+                nonInsuredMinEndDate: nonInsuredPayment.value.endDateFormatted,
+                nonInsuredPayment1: nonInsuredPayment.value.day1DateFormatted,
+                nonInsuredPayment2: nonInsuredPayment.value.day5DateFormatted,
+                rating: selectedRating.value,
+                representative: repPrint.value,
+                repSignTime: repPrintTimeFormatted.value,
+                representativeSign: repSign.value.data,
+                repSignDate: repSignDateFormatted.value,
+                teamSign: Object.keys(empSig.value).length !== 0,
+                teamSignDate: teamSignDateFormatted.value,
+                testimonial: testimonial.value,
+                paymentOption: paymentOption.value,
+                teamMember: user.value,
+                cardNumber: cardToUse.value
             };
-            this.$api.$post("/api/reports/wesi-coc/new", post, {
-                params: {
-                    jobid: selectedJobId.value
-                }
-            }).then((res) => {
-                if (res.error) {
-                    this.errorMessage = res.message
-                    return
-                }
-                this.message = res
-                this.submitted = true
-                setTimeout(() => {
-                    this.message = ""
-                    window.location = "/"
-                }, 3000)
-            }).catch((err) => {
-                this.errorMessage.push(err)
+            postedData.value = post
+            submitting.value = true
+            return new Promise((resolve, reject) => {
+                $api.$post("/api/reports/wesi-coc/new", post, {
+                    params: {
+                        jobid: selectedJobId.value
+                    }
+                }).then((res) => {
+                    message.value = res
+                    fetchReports()
+                    resolve(res)
+                }).catch((err) => {
+                    errorMessage.push(err)
+                    errorDialog.value = true
+                    this.$refs.form.setErrors({
+                        JobId: [err.response.data.message]
+                    })
+                    reject(err)
+                })
             })
-        },
-        settingSubjectProperty(params) {
-            this.subjectProperty = params.address
+        }
+        function getCardImages(card) {
+            return new Promise((resolve, reject) => {
+                $gcs.$get("/list/creditCard", {
+                    params: {
+                        folder: 'creditCard',
+                        subfolder: card,
+                        delimiter: '',
+                    }
+                }).then((res) => {
+                    cardImages.value = res.images
+                    resolve(res.images)
+                }).catch(err => {
+                    reject(err)
+                })
+            })
+        }
+        function settingSubjectProperty(params) {
+            subjectProperty.value = params.address
+        }
+
+        watch(repPrintTime, (val) => {
+            repPrintTimeFormatted.value = formatTime(val)
+        })
+        watch(selectedJobId, (val) => {
+            errorMessage.value = []
+            $api.$get(`/api/reports/details/dispatch/${val}`).then((res) => {
+                subjectProperty.value = res.location.address + ", " + res.location.cityStateZip
+            }).catch(err => {
+                errorMessage.value.push(err.response.data.title)
+            })
+        })
+
+        return {
+            currentStep,
+            message,
+            errorMessage,
+            submitted,
+            submitting,
+            subjectProperty,
+            deductible,
+            insuredEndDateModal,
+            insuredEndDateFormatted,
+            insuredPayment,
+            nonInsuredPayment,
+            ratings,
+            selectedRating,
+            repPrint,
+            repSign,
+            repTimeModal,
+            repPrintTime,
+            repPrintTimeFormatted,
+            repSignModal,
+            repSignDateFormatted,
+            teamMemberSig,
+            empSig,
+            teamSignModal,
+            teamSignDateFormatted,
+            testimonial,
+            usingCreditCard,
+            cusSig,
+            cusSigModal,
+            cusSigDateFormatted,
+            selectedJobId,
+            paymentOptions,
+            paymentOption,
+            errorDialog,
+            existingCreditCard,
+            cardToUse,
+            cardObj,
+            cardSubmitted,
+            cardSubmittedValue,
+            cardNumbers,
+            postedData,
+            submitForm,
+            currencyFormat,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            form,
+            html2Pdf0,
+            settingSubjectProperty,
+            cardImages,
+            insuredPay1,
+            insuredPay2
         }
     }
-}
+})
 </script>

@@ -5,7 +5,7 @@
         
         <span><div v-uppercase>{{reportType}}</div>Job ID: {{jobid}}</span>
         
-        <LazyHydrate never v-if="reportType.includes('aob')">
+        <LazyHydrate v-if="reportType.includes('aob')">
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="true"
@@ -15,18 +15,19 @@
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>
-        <LazyHydrate never v-if="reportType.includes('coc')">
+        <LazyHydrate v-if="reportType.includes('coc')">
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                               :paginate-elements-by-height="900" :manual-pagination="false" :show-layout="false"
                               :enable-download="false" @beforeDownload="beforeDownload($event)"
                               @hasDownloaded="hasDownloaded($event)" :preview-modal="true"
                               :ref="`html2Pdf0`">
-                    <LazyPdfCertificateContent :jobid="jobid" :reportType="reportType" slot="pdf-content" />
+                    <PdfCertificateContent :jobid="jobid" :company="report.contractingCompany" :abbreviation="report.companyAbbreviation" :reportType="reportType" 
+                        slot="pdf-content" :certificate="report" :cardsImages="cardsImages" />
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>
-        <LazyHydrate never v-if="reportType.includes('contracting-agreement')">
+        <LazyHydrate v-if="reportType.includes('contracting-agreement')">
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="false"
@@ -36,7 +37,7 @@
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>
-        <LazyHydrate never v-if="reportType.includes('scope-of-work')">
+        <LazyHydrate v-if="reportType.includes('scope-of-work')">
             <client-only>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="false"
@@ -109,11 +110,17 @@ export default defineComponent({
         }
         
         watch(report, (val) => {
-            $gcs.$get(`/list/creditCard`, {
-                params: { folder: "creditCard", subfolder: val.cardNumber, delimiter: "", bucket: "default" }
-            }).then((res) => {
-                cardsImages.value = res.images
-            })
+            if (val.cardNumber !== "N/A" && val.cardNumber !== "") {
+                $gcs.$get(`/list/creditCard`, {
+                    params: { folder: "creditCard", subfolder: val.cardNumber, delimiter: "", bucket: "default" }
+                }).then((res) => {
+                    cardsImages.value = res.images
+                }).catch(err => {
+                    if (err.response) {
+                        console.log(err.response.data)
+                    }
+                })
+            }
         })
 
         getReport(`${reportType}/${jobid}`).fetchReport()

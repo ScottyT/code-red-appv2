@@ -4,12 +4,12 @@
     <h2 class="text-center">Assignment of Benefits & Mitigation Contract</h2>
     <h3 class="text-center">This is not an agreement to repair/rebuild/restore any property</h3>
     <h3 v-if="message !== ''">{{message}}</h3>
-    <ValidationObserver ref="form" v-slot="{handleSubmit}">
+    <ValidationObserver ref="form">
      <h3 class="alert alert--error" v-for="(error, i) in errorMessage" :key="`server-errors-${i}`">{{error}}</h3>
-      <form ref="form" class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+      <form ref="form" class="form" @submit.prevent="submitForm" v-if="!submitted">
         <fieldset v-if="currentStep === 1">
           <div class="form__form-group">
-            <ValidationProvider rules="required" name="Job ID" v-slot="{errors}" class="form__input-group form__input-group--normal">
+            <ValidationProvider rules="required" name="Job ID" vid="JobId" v-slot="{errors}" class="form__input-group form__input-group--normal">
               <label for="selectJobId" class="form__label">Job ID</label>
               <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
               <select class="form__input" v-model="selectedJobId">
@@ -592,7 +592,7 @@
                 <div class="form__input-group--section">
                   <label for="insuredPayment1" class="form__label">Insured Payment 1)</label>
                   <span class="form__input--currency">
-                    <span>$</span><input type="text" class="form__input form__input--short" v-model="insuredPay1" />
+                    <span>$</span><input type="text" class="form__input form__input--short" v-model="insuredPayment.firstStep" />
                   </span>
                 </div>
                 <div class="form__input-group--section">
@@ -615,7 +615,7 @@
                 <div class="form__input-group--section">
                   <label for="insuredPayment2" class="form__label">Insured Payment 2)</label>
                   <span class="form__input--currency">
-                    <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPay2" />
+                    <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPayment.secondStep" />
                   </span>
                 </div>
                 <div class="form__input-group--section">
@@ -815,27 +815,29 @@ import axios from 'axios'
       insuredPay1: {
         get() {
           let pay = this.deductible * .50
-          if (pay) {
+          /* if (pay) {
             return pay
           } else {
             return 500.00
-          }
+          } */
+          if (pay) { this.insuredPayment.firstStep = pay }
+          else { this.insuredPayment.firstStep = "N/A" }
         },
-        set(value) {
-          this.insuredPayment.firstStep = value
+        set(val) {
+          this.insuredPayment.firstStep = parseInt(val)
         }
       },
       insuredPay2: {
         get() {
-          let pay = this.deductible * .50
+          var pay = this.deductible * .50
           if (pay) {
-            return pay
+              this.insuredPayment.secondStep = pay
           } else {
-            return 500
+              this.insuredPayment.secondStep = "N/A"
           }
         },
         set(value) {
-          this.insuredPayment.insuredPay2 = value
+          this.insuredPayment.secondStep = parseInt(value)
         }
       },
       insuredDay1() {
@@ -853,16 +855,6 @@ import axios from 'axios'
       },
       nonInsuredDay5() {
         return this.nonInsuredPayment.day5Date;
-        /* get() {
-          
-        },
-        set(value) {
-          if (typeof value === "string") {
-            return "N/A"
-          } else {
-            return this.nonInsuredPayment.day5Date;
-          }
-        } */
       },
       aobContracts() {
         return this.getReports.filter((v) => {
@@ -926,7 +918,6 @@ import axios from 'axios'
             day1Modal: false,
             day5Modal: false,
             firstStep: null,
-            insuredPay2: '',
             day1Date: new Date().toISOString().substr(0, 10),
             day1DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
             day5Date: new Date().toISOString().substr(0, 10),
@@ -1029,6 +1020,9 @@ import axios from 'axios'
             this.numberOfFloors = res.intrusion.find(e => e.label === 'Number of Floors').value
             this.numberOfRooms = res.intrusion.find(e => e.label === 'Number of Rooms').value
           }).catch(err => {
+            this.subjectProperty = ""
+            this.numberOfFloors = ""
+            this.numberOfRooms = ""
             this.errorMessage = err.response.data
           })
         },
@@ -1123,9 +1117,14 @@ import axios from 'axios'
             const contractsRep = contracts.map((v) => {
               return v.JobId
             })
-            if (!contractsRep.includes(this.selectedJobId)) {
+            
+              if (!contractsRep.includes(this.selectedJobId)) {
+                await this.$refs.form.validate().then(success => {
+                  if (!success) {
+                    return;
+                  }
                 if ((this.currentStep === 1 && this.paymentOption === 'Card' && this.existingCreditCard === "Yes") || this.currentStep === 2) {
-                  await this.onSubmit().then((result) => {
+                  this.onSubmit().then((result) => {
                     this.message = result
                     this.timeout(1000).then(() => {
                       this.getCardImages(cardnumber).then(() => {
@@ -1139,7 +1138,7 @@ import axios from 'axios'
                   })
                   return;
                 } else if ((this.currentStep === 1 && this.paymentOption !== 'Card') || this.currentStep === 2) {
-                  await Promise.all([this.onSubmit()]).then((result) => {
+                  Promise.all([this.onSubmit()]).then((result) => {
                     this.submitted = true
                     this.submitting = false
                     this.message = result[0]
@@ -1147,11 +1146,13 @@ import axios from 'axios'
                   }).catch(error => console.log(`Error in promises ${error}`))
                 }
                 this.currentStep++;
+                })
               } else {
                 this.errorMessage.push("Duplicate Job ID is not allowed")
                 this.submitting = false
                 return goTo(0)
               }
+            
         },
         onSubmit() {
           this.message = ''
@@ -1174,9 +1175,9 @@ import axios from 'axios'
             initial7: this.cusInitial7,
             initial8: this.cusInitial8,
             insuredTermEndDate: this.insuredEndDateFormatted,
-            insuredPay1: this.insuredPay1,
+            insuredPay1: this.insuredPayment.firstStep,
             insuredPayDay1: this.insuredPayment.day1DateFormatted,
-            insuredPay2: this.insuredPay2,
+            insuredPay2: this.insuredPayment.secondStep,
             insuredPayDay5: this.insuredPayment.day5DateFormatted,
             nonInsuredTermEndDate: this.nonInsuredPayment.endDateFormatted,
             nonInsuredDay1: this.nonInsuredPayment.day1DateFormatted,
@@ -1208,10 +1209,6 @@ import axios from 'axios'
                     jobid: this.selectedJobId
                 }
             }).then((res) => {
-                if (res.error) {
-                    this.errorMessage = res.message
-                    return
-                }
                 this.fetchReports()
                 resolve(res)
                 

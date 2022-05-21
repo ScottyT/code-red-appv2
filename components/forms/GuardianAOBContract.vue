@@ -2,7 +2,7 @@
     <div class="form-wrapper">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Assignment of Benefits & Mitigation Contract</h2>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{errors}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -120,6 +120,13 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <!-- <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
+                      @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)"
+                      :manual-pagination="false" :show-layout="false" :enable-download="false" :preview-modal="true"
+                      :paginate-elements-by-height="900" :ref="`html2Pdf0`">
+            <LazyPdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content"
+                :company="report.contractingCompany" :abbreviation="report.companyAbbreviation" />
+        </vue-html2pdf> -->
     </div>
 </template>
 <script>
@@ -135,6 +142,7 @@ export default defineComponent({
         const store = useStore()
         const { $api } = useContext()
         const { getReportPromise } = useReports()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const errorDialog = ref(false)
         const submitted = ref(false)
         const submitting = ref(false)
@@ -153,20 +161,49 @@ export default defineComponent({
         const cusSignDate2 = ref("")
         const witness = ref("")
         const witnessDate = ref("")
+        const form = ref(null)
+        const postedData = ref({})
+        const html2Pdf0 = ref(null)
 
         const user = computed(() => store.getters["users/getUser"])
+        const reports = computed(() => {
+            return store.getters["reports/getReports"].filter((v) => {
+                return v.ReportType == 'guardian-aob'
+            })
+        })
         const setError = (arr, key) => {
             return arr.filter(obj => obj.param === key).map(v => v.msg)
         }
-        
+
         async function submitForm() {
             message.value = ""
+            var reportIds = reports.value.map((v) => {
+                return v.JobId
+            })
+            await form.value.validate().then(success => {
+                if (!success) {
+                    submitting.value = false
+                    submitted.value = false
+                    errorDialog.value = true
+                    return
+                }
+                
+                onSubmit().then((result) => {
+                    message.value = result
+                    submitted.value = true
+                    submitting.value = false
+                    html2Pdf0.value.generatePdf()
+                })
+            })
+        }
+        async function onSubmit() {
             if (cusSign1.value.isEmpty) {
                 cusSign1.value.data = "N/A"
             }
             if (cusSign1.value.isEmpty) {
                 cusSign1.value.data = "N/A"
             }
+            submitting.value = true
             const post = {
                 JobId: selectedJobId.value,
                 ReportType: "guardian-aob",
@@ -182,35 +219,25 @@ export default defineComponent({
                 witnessDate: witnessDate.value,
                 teamMember: user.value
             };
-            await refs.form.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return
-                }
-                submitting.value = true
+            postedData.value = post
+            return new Promise((resolve, reject) => {
                 $api.$post("/api/reports/guardian-aob/new", post, {
                     params: {
                         jobid: selectedJobId.value
                     }
                 }).then((res) => {
-                    if (res.error) {
-                        errorDialog.value = true
-                        submitting.value = false
-                        refs.form.setErrors({
-                            JobId: [res.message]
-                        })
-                        return;
-                    }
-                    submitted.value = true
+                    fetchReports()
+                    resolve(res)
+                }).catch(err => {
+                    errorDialog.value = true
                     submitting.value = false
-                    message.value = res
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
+                    form.value.setErrors({
+                        JobId: [err.response.data.message]
+                    })
+                    reject(err)
                 })
             })
+            
         }
 
         watch(selectedJobId, (val) => {
@@ -227,7 +254,9 @@ export default defineComponent({
             cusSignDate1, cusSignDate2,
             witness, witnessDate,
             submitForm,
-            dateMask
+            dateMask,
+            form,
+            reports
         }
     },
 })
