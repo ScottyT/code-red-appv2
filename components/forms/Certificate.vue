@@ -313,32 +313,6 @@ export default defineComponent({
         const user = computed(() => store.getters["users/getUser"])
         const reports = computed(() => store.getters["reports/getReports"])
         const creditCards = computed(() => store.getters["reports/getCards"])
-        const insuredPay1 = computed({
-            get() {
-                var pay = deductible.value * .50
-                if (pay) {
-                    insuredPayment.value.firstStep = pay
-                } else {
-                    insuredPayment.value.firstStep = "N/A"
-                }
-            },
-            set(value) {
-                insuredPayment.value.firstStep = parseInt(value)
-            }
-        })
-        const insuredPay2 = computed({
-            get() {
-                var pay = deductible.value * .50
-                if (pay) {
-                    insuredPayment.value.secondStep = pay
-                } else {
-                    insuredPayment.value.secondStep = "N/A"
-                }
-            },
-            set(value) {
-                insuredPayment.value.secondStep = parseInt(value)
-            }
-        })
         const certificates = computed(() => {
             return reports.value.filter((v) => {
                 return v.formType === "coc"
@@ -424,7 +398,7 @@ export default defineComponent({
                 contractingCompany: "Water Emergency Services",
                 companyAbbreviation: "WESI",
                 subjectProperty: subjectProperty.value,
-                deductible: deductible.value,
+                deductible: parseFloat(deductible.value),
                 insuredMinEndDate: insuredEndDateFormatted.value,
                 insuredPayment1: insuredPayment1Arr,
                 insuredPayment2: insuredPayment2Arr,
@@ -487,6 +461,10 @@ export default defineComponent({
         watch(repPrintTime, (val) => {
             repPrintTimeFormatted.value = formatTime(val)
         })
+        watch(deductible, (val) => {
+            insuredPayment.value.firstStep = val * .50
+            insuredPayment.value.secondStep = val * .50
+        })
         watch(selectedJobId, (val) => {
             errorMessage.value = []
             $api.$get(`/api/reports/details/dispatch/${val}`).then((res) => {
@@ -545,9 +523,7 @@ export default defineComponent({
             form,
             html2Pdf0,
             settingSubjectProperty,
-            cardImages,
-            insuredPay1,
-            insuredPay2
+            cardImages
         }
     }
 })

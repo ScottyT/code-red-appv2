@@ -120,13 +120,13 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
-        <!-- <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
-                      @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)"
-                      :manual-pagination="false" :show-layout="false" :enable-download="false" :preview-modal="true"
-                      :paginate-elements-by-height="900" :ref="`html2Pdf0`">
-            <LazyPdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content"
-                :company="report.contractingCompany" :abbreviation="report.companyAbbreviation" />
-        </vue-html2pdf> -->
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('guardian-aob', selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `guardian-aob-${selectedJobId}`, selectedJobId)" 
+                      @hasDownloaded="uploadPdf($event, `guardian-aob-${selectedJobId}`, selectedJobId)" :manual-pagination="false" :show-layout="false" 
+                      :enable-download="false" :preview-modal="true" :paginate-elements-by-height="10500" :ref="`html2Pdf0`">
+            <PdfAobContract :jobid="selectedJobId" reportType="guardian-aob" slot="pdf-content"
+                :company="postedData.contractingCompany" :abbreviation="postedData.companyAbbreviation" :contracts="postedData" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
@@ -141,7 +141,7 @@ export default defineComponent({
     setup(props, { refs }) {
         const store = useStore()
         const { $api } = useContext()
-        const { getReportPromise } = useReports()
+        const { getReportPromise, beforeDownloadNoSave, uploadPdf, htmlToPdfOptions } = useReports()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const errorDialog = ref(false)
         const submitted = ref(false)
@@ -256,7 +256,12 @@ export default defineComponent({
             submitForm,
             dateMask,
             form,
-            reports
+            reports,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            postedData,
+            html2Pdf0
         }
     },
 })

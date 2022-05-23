@@ -302,29 +302,14 @@ import useReports from '~/composable/reports'
 export default defineComponent({
     props: {
         jobid: String,
-        reportType: String
+        reportType: String,
+        company: String,
+        abbreviation: String,
+        report: Object
     },
     setup(props) {
         const { jobid, reportType } = toRefs(props)
-        const report = ref({})
         const { $api } = useContext();
-        const abbreviation = ref("")
-        const company = ref("")
-        
-        const fetchingReport = () => {
-            $api.$get(`/api/reports/details/${reportType.value}/${jobid.value}`).then((res) => {
-                abbreviation.value = res.ReportType === 'guardian-contracting-agreement'?'Guardian':'WESI'
-                report.value = res
-                company.value = res.contractingCompany
-            })
-        }
-        
-        fetchingReport()
-        return {
-            report,
-            abbreviation,
-            company
-        }
     },
 })
 </script>

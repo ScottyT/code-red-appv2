@@ -812,34 +812,6 @@ import axios from 'axios'
     props: ['company', 'abbreviation'],
     computed: {
       ...mapGetters({getReports:'reports/getReports', getUser:'users/getUser', getCards: 'reports/getCards'}),
-      insuredPay1: {
-        get() {
-          let pay = this.deductible * .50
-          /* if (pay) {
-            return pay
-          } else {
-            return 500.00
-          } */
-          if (pay) { this.insuredPayment.firstStep = pay }
-          else { this.insuredPayment.firstStep = "N/A" }
-        },
-        set(val) {
-          this.insuredPayment.firstStep = parseInt(val)
-        }
-      },
-      insuredPay2: {
-        get() {
-          var pay = this.deductible * .50
-          if (pay) {
-              this.insuredPayment.secondStep = pay
-          } else {
-              this.insuredPayment.secondStep = "N/A"
-          }
-        },
-        set(value) {
-          this.insuredPayment.secondStep = parseInt(value)
-        }
-      },
       insuredDay1() {
         return this.insuredPayment.day1Date;
       },
@@ -983,6 +955,11 @@ import axios from 'axios'
         licenseMask: driversLicenseMask
     }),
     watch: {
+        deductible(val) {
+          var pay = val * .50
+          this.insuredPayment.firstStep = pay
+          this.insuredPayment.secondStep = pay
+        },
         insuredEndDate(val) {
           if (val === "N/A") {
             this.insuredEndDateFormatted = "N/A"
@@ -1024,6 +1001,36 @@ import axios from 'axios'
             this.numberOfFloors = ""
             this.numberOfRooms = ""
             this.errorMessage = err.response.data
+          })
+          this.$api.$get(`/api/reports/details/wesi-aob/${val}`).then((res) => {
+            this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
+            this.numberOfFloors = res.numberOfFloors
+            this.numberOfRooms = res.numberOfRooms
+            if (res.deducible == 0 || res.deductible == undefined) {
+              this.insuredPayment.firstStep = res.insuredPay1
+              this.insuredPayment.secondStep = res.insuredPay2
+            }
+            this.deductible = res.deductible
+            this.insuredEndDateFormatted = res.insuredTermEndDate
+            this.insuredPayment.day1DateFormatted = res.insuredPayDay1
+            this.insuredPayment.day5DateFormatted = res.insuredPayDay5
+            this.nonInsuredPayment.day1DateFormatted = res.nonInsuredDay1
+            this.nonInsuredPayment.day5DateFormatted = res.nonInsuredDay5
+            this.nonInsuredPayment.endDateFormatted = res.nonInsuredTermEndDate
+            this.location.cityStateZip = res.location.address + ", " + res.location.cityStateZip
+            this.firstName = res.firstName
+            this.lastName = res.lastName
+            this.email = res.email
+            this.driversLicense = res.driversLicense
+            this.relation = res.relation
+            this.sqft = res.minimumSqft
+            this.repPrint = res.representativePrint
+            this.representativeOf = res.propertyRepOf
+            this.repDateFormatted = res.repDateSign
+            this.witness = res.witness
+            this.witnessDateFormatted = res.witnessDate
+            this.paymentOption = res.paymentOption
+            this.cardToUse = res.cardNumber
           })
         },
         paymentOption(val) {
@@ -1161,6 +1168,7 @@ import axios from 'axios'
             JobId: this.selectedJobId,
             ReportType: 'wesi-aob',
             formType: 'aob',
+            deductible: parseFloat(this.deductible),
             contractingCompany: 'Water Emergency Services',
             abbreviation: 'WESI',
             subjectProperty: this.subjectProperty,

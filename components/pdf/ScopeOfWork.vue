@@ -1,8 +1,8 @@
 <template>
-    <div v-if="Object.keys(rep).length === 0">
+    <!-- <div v-if="Object.keys(rep).length === 0">
         <h1>No report</h1>
-    </div>
-    <section slot="pdf-content" v-else>
+    </div> -->
+    <section slot="pdf-content">
         <div class="text-center pdf-first-section">
             <h1 class="text-center">{{company}}</h1>
             <h2 class="text-center">Contracting Service - Scope of Work</h2>
@@ -98,7 +98,7 @@
         </div>
         <div class="report-details__section">
             <h3>ADDITIONS & SUBSTRACTIONS</h3>
-            <div class="report-details__data" v-for="(item, i) in additionsAndSubtractions" :key="`additions-${i}`">
+            <div class="report-details__data" v-for="(item, i) in report.additionsAndSubtractions" :key="`additions-${i}`">
                 <label><strong>{{item.label}}</strong><span v-if="item.hasOwnProperty('sub')">{{item.sub}}</span></label>
                 <div class="report-details__textarea">{{item.value}}</div>
             </div>
@@ -227,14 +227,15 @@ import { defineComponent,onMounted,ref, toRefs, watch } from '@nuxtjs/compositio
 import useReports from "@/composable/reports"
 export default defineComponent({
     props: {
-        rep: Object,
+        jobid: String,
+        reportType: String,
+        report: Object,
         company: String,
         abbreviation: String
     },
     setup(props) {
-        const { rep } = toRefs(props)
-        const { getReport, report } = useReports()
-        const roofSpecsSection = ref([
+        const { report } = toRefs(props)
+        /* const roofSpecsSection = ref([
             {label: 'Total Squares (including waste)', value: rep.value.totalSquares, sub:'(a roof above 30 squares possibly could take up to two days to complete)'},
             {label: 'Three Tab', value: rep.value.threeTab},
             {label: 'Upgrade to Architectual Shingles', value: rep.value.shingles},
@@ -253,30 +254,28 @@ export default defineComponent({
             {label: 'Wall Flashing', value: rep.value.wallFlashing},
             {label: 'Tear Off', value: rep.value.tearOff},
             {label: '# of Layers', value: rep.value.numOfLayers}
-        ])
+        ]) */
         const additionsAndSubtractions = ref([
             {
                 label: 'IS THERE ANY INTERIOR WORK?  Detail: ', 
                 sub: '(colors of products, grade of product, size of products) PLEASE SUMMARIZE ANY BETTERMENTS, LABEL & ATTACH AGREEMENT)',
-                value: rep.value.anyInteriorWork
+                value: report.value.anyInteriorWork
             },
             {
                 label: 'IS THERE ANY EXTERIOR WORK?  Detail: ', 
                 sub: '(colors of products, grade of product, size of products) PLEASE SUMMARIZE ANY BETTERMENTS, LABEL & ATTACH AGREEMENT)',
-                value: rep.value.anyExteriorWork
+                value: report.value.anyExteriorWork
             },
             {
                 label: 'IS THERE ANY WORK GUARDIAN WILL NOT BE PERFORMING? Detail: ', 
-                value: rep.value.anyGuardianWork
+                value: report.value.anyGuardianWork
             }
         ])
-        getReport(`${rep.value.ReportType}/${rep.value.formType}/${rep.value.JobId}`).fetchReport()
+        //getReport(`${rep.value.ReportType}/${rep.value.formType}/${rep.value.JobId}`).fetchReport()
 
         return {
-            roofSpecsSection,
-            additionsAndSubtractions,
-            report,
-            getReport
+            //roofSpecsSection,
+            additionsAndSubtractions
         }
     },
 })

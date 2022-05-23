@@ -146,7 +146,7 @@ export default defineComponent({
       }
       if (sigType.value == 'customer' && !initial.value) {
         signage.value = val
-        signed.value = true
+        //signed.value = true
       }
     })
     return {
