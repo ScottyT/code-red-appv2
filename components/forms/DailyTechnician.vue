@@ -257,7 +257,7 @@ export default defineComponent({
   setup(props) {
     const store = useStore()
     const { formatTime, formatDate, parseDate } = genericFuncs()
-    const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+    const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
     const { $api } = useContext()
     const fetchReports = () => { store.dispatch("reports/fetchReports") }
     const date = new Date().toISOString().substring(0, 10)
@@ -709,6 +709,12 @@ export default defineComponent({
     })
     watch(() => evalEnd.value, (val) => {
       evalEndFormatted.value = formatTime(val)
+    })
+    watch(selectedJobId, (val) => {
+        getReportPromise(`case-file-technician/${val}`).then((res) => {
+            location.value.address = res.location.address
+            location.value.cityStateZip = res.location.cityStateZip
+        })
     })
 
     return {

@@ -113,7 +113,7 @@ export default defineComponent({
                 clear()
             }
         }
-
+        
         return {
             sketchRef,
             penColor,

@@ -1,3 +1,4 @@
+<!-- THIS IS USED FOR WESI JOBS. PLEASE MAKE ANOTHER FORM COMPONENT FOR OTHER SISTER COMPANIES   -->
 <template>
     <div class="form-wrapper">
             <!-- <h1 class="text-center">{{company}}</h1> -->
@@ -326,6 +327,7 @@ export default defineComponent({
         const cardImages = ref([])
         const form = ref(null)
         const postedData = ref({})
+        const reportFetched = ref(false)
 
         function cardSubmittedValue(...params) {
             const {isSubmit, cardNumber} = params[0]
@@ -420,22 +422,33 @@ export default defineComponent({
             postedData.value = post
             submitting.value = true
             return new Promise((resolve, reject) => {
-                $api.$post("/api/reports/wesi-coc/new", post, {
-                    params: {
-                        jobid: selectedJobId.value
-                    }
-                }).then((res) => {
-                    message.value = res
-                    fetchReports()
-                    resolve(res)
-                }).catch((err) => {
-                    errorMessage.push(err)
-                    errorDialog.value = true
-                    this.$refs.form.setErrors({
-                        JobId: [err.response.data.message]
+                if (!reportFetched.value) {
+                    $api.$post("/api/reports/wesi-coc/new", post, {
+                        params: {
+                            jobid: selectedJobId.value
+                        }
+                    }).then((res) => {
+                        message.value = res
+                        fetchReports()
+                        resolve(res)
+                    }).catch((err) => {
+                        errorMessage.value.push(err)
+                        errorDialog.value = true
+                        this.$refs.form.setErrors({
+                            JobId: [err.response.data.message]
+                        })
+                        reject(err)
                     })
-                    reject(err)
-                })
+                } else {
+                    $api.$put(`/api/reports/wesi-coc/${selectedJobId.value}/update`, post).then((res) => {
+                        fetchReports()
+                        message.value = res.message
+                        resolve(res.message)
+                    }).catch(err => {
+                        errorMessage.value.push(err.message)
+                        reject(err)
+                    })
+                }
             })
         }
         function getCardImages(card) {
@@ -471,6 +484,12 @@ export default defineComponent({
                 subjectProperty.value = res.location.address + ", " + res.location.cityStateZip
             }).catch(err => {
                 errorMessage.value.push(err.response.data.title)
+            })
+            getReportPromise(`wesi-coc/${val}`).then((res) => {
+                subjectProperty.value = res.subjectProperty
+                reportFetched.value = true
+            }).catch(err => {
+                reportFetched.value = false
             })
         })
 

@@ -32,8 +32,8 @@
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" :manual-pagination="false"
                     :show-layout="false" :enable-download="false" :preview-modal="true" :paginate-elements-by-height="900" :ref="`html2Pdf0`">
-                    <LazyPdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content" :company="report.contractingCompany" 
-                        :abbreviation="report.companyAbbreviation" />
+                    <PdfContractService :jobid="jobid" :reportType="reportType" slot="pdf-content" :company="report.contractingCompany" 
+                        :abbreviation="report.companyAbbreviation" :report="report" />
                 </vue-html2pdf>
             </client-only>
         </LazyHydrate>

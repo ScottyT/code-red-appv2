@@ -297,8 +297,8 @@ officer of {{abbreviation}} for this agreement to be effective
                     </ValidationProvider>
                 </div>
                 <div class="form__form-group form__form-group--narrow">
-                    <LazyUiSignaturePadModal width="700px" height="219px" notrequired dialog :initial="false" sigType="customer" inputId="cusSign" :sigData="cusSign" 
-                        sigRef="cusSign" name="Customer signature" />
+                    <LazyUiSignaturePadModal width="700px" height="219px" notrequired :dialog="false" :initial="false" sigType="customer" inputId="cusSign" :sigData="cusSign" 
+                        sigRef="cusSignPad" name="Customer signature" />
                     <ValidationProvider name="Sign Date" rules="required" v-slot="{errors, ariaMsg}">
                         <label for="signDate" class="form__label">Date</label>
                         <imask-input id="signDate" :value="signDate" class="form__input" :mask="dateMask.mask" :pattern="dateMask.pattern" :blocks="dateMask.blocks" :format="dateMask.format" 
@@ -375,6 +375,7 @@ export default defineComponent({
         const postedData = ref({})
         const form = ref(null)
         const html2Pdf0 = ref(null)
+        const reportFetched = ref(false)
 
         function formatDateRange(dateStart, dateEnd) {
             if (!dateStart && !dateEnd) return null
@@ -479,6 +480,12 @@ export default defineComponent({
 
         watch(selectedJobId, (val) => {
             getJob(val)
+            getReportPromise(`guardian-contracting-agreement/${val}`).then((res) => {
+                reportFetched.value = true
+                customer.value = res.customerPrint
+                cusSign.value.data = res.cusSign
+                signDate.value = res.signDate
+            })
         })
         watch(policyDateFormatted, (val) => {
             policyDateFormatted.value = formatDateRange(policyDateStart.value, policyDateEnd.value)

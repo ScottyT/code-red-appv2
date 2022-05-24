@@ -1,3 +1,4 @@
+<!-- THIS IS USED FOR WESI JOBS. PLEASE MAKE ANOTHER FORM COMPONENT FOR OTHER SISTER COMPANIES -->
 <template>
   <div class="form-wrapper">
     <!-- <h1 class="text-center">{{company}}</h1> -->
@@ -952,7 +953,8 @@ import axios from 'axios'
         cards: {},
         cardImages: [],
         emailSuccess: "",
-        licenseMask: driversLicenseMask
+        licenseMask: driversLicenseMask,
+        reportFetched: false
     }),
     watch: {
         deductible(val) {
@@ -1003,6 +1005,7 @@ import axios from 'axios'
             this.errorMessage = err.response.data
           })
           this.$api.$get(`/api/reports/details/wesi-aob/${val}`).then((res) => {
+            this.reportFetched = true
             this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
             this.numberOfFloors = res.numberOfFloors
             this.numberOfRooms = res.numberOfRooms
@@ -1031,6 +1034,8 @@ import axios from 'axios'
             this.witnessDateFormatted = res.witnessDate
             this.paymentOption = res.paymentOption
             this.cardToUse = res.cardNumber
+          }).catch(err => {
+            this.reportFetched = false
           })
         },
         paymentOption(val) {
@@ -1212,18 +1217,27 @@ import axios from 'axios'
           this.submitting = true
           this.data = post
           return new Promise((resolve, reject) => {
-            this.$api.$post("/api/reports/wesi-aob/new", post, {
-                params: {
-                    jobid: this.selectedJobId
-                }
-            }).then((res) => {
+            if (!this.reportFetched) {
+              this.$api.$post("/api/reports/wesi-aob/new", post, {
+                  params: {
+                      jobid: this.selectedJobId
+                  }
+              }).then((res) => {
+                  this.fetchReports()
+                  resolve(res)
+              }).catch((err) => {
+                  this.errorMessage.push(err)
+                  reject(err)
+              })
+            } else {
+              this.$api.$put(`/api/reports/wesi-aob/${this.selectedJobId}/update`, post).then((res) => {
                 this.fetchReports()
-                resolve(res)
-                
-            }).catch((err) => {
-                this.errorMessage.push(err)
+                resolve(res.message)
+              }).catch(err => {
+                this.errorMessage.push(err.message)
                 reject(err)
-            })
+              })
+            }
           })
         },
         uploadPdf(file, filename, jobId) {

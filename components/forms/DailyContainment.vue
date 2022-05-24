@@ -206,7 +206,7 @@
       const store = useStore()
       const { $api } = useContext()
       const { formatTime, formatDate, parseDate } = genericFuncs()
-      const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
+      const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
       const fetchReports = () => { store.dispatch("reports/fetchReports") }
       const date = new Date().toISOString().substr(0, 10)
       const dateFormatted = formatDate(new Date().toISOString().substr(0, 10))
@@ -491,6 +491,12 @@
       })
       watch(() => evalEnd.value, (val) => {
         evalEndFormatted.value = formatTime(val)
+      })
+      watch(selectedJobId, (val) => {
+        getReportPromise(`case-file-containment/${val}`).then((res) => {
+          location.value.address = res.location.address
+          location.value.cityStateZip = res.location.cityStateZip
+        })
       })
 
       return {

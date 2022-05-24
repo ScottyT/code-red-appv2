@@ -164,6 +164,7 @@ export default defineComponent({
         const form = ref(null)
         const postedData = ref({})
         const html2Pdf0 = ref(null)
+        const reportFetched = ref(false)
 
         const user = computed(() => store.getters["users/getUser"])
         const reports = computed(() => {
@@ -221,21 +222,30 @@ export default defineComponent({
             };
             postedData.value = post
             return new Promise((resolve, reject) => {
-                $api.$post("/api/reports/guardian-aob/new", post, {
-                    params: {
-                        jobid: selectedJobId.value
-                    }
-                }).then((res) => {
-                    fetchReports()
-                    resolve(res)
-                }).catch(err => {
-                    errorDialog.value = true
-                    submitting.value = false
-                    form.value.setErrors({
-                        JobId: [err.response.data.message]
+                if (!reportFetched.value) {
+                    $api.$post("/api/reports/guardian-aob/new", post, {
+                        params: {
+                            jobid: selectedJobId.value
+                        }
+                    }).then((res) => {
+                        fetchReports()
+                        resolve(res)
+                    }).catch(err => {
+                        errorDialog.value = true
+                        submitting.value = false
+                        form.value.setErrors({
+                            JobId: [err.response.data.message]
+                        })
+                        reject(err)
                     })
-                    reject(err)
-                })
+                } else {
+                    $api.$put(`/api/reports/guardian-aob/${selectedJobId.value}/update`, post).then((res) => {
+                        fetchReports()
+                        resolve(res.message)
+                    }).catch(err => {
+                        reject(err)
+                    })
+                }
             })
             
         }
@@ -243,6 +253,12 @@ export default defineComponent({
         watch(selectedJobId, (val) => {
             getReportPromise(`dispatch/${val}`).then((result) => {
                 subjectProperty.value = result.location.address + ", " + result.location.cityStateZip
+            })
+            getReportPromise(`guardian-aob/${val}`).then((result) => {
+                reportFetched.value = true
+                subjectProperty.value = result.subjectProperty
+            }).catch(err => {
+                reportFetched.value = false
             })
         })
         
@@ -261,7 +277,8 @@ export default defineComponent({
             uploadPdf,
             htmlToPdfOptions,
             postedData,
-            html2Pdf0
+            html2Pdf0,
+            reportFetched
         }
     },
 })
