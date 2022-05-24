@@ -56,11 +56,11 @@
           <div class="form__form-group--left-side">
             <label class="form__label">Caller Name</label>
             <div class="form__input-group--name-group">
-              <ValidationProvider name="Caller First name"  v-slot="{errors, ariaMsg}" vid="callerFirstName">
+              <ValidationProvider name="Caller First name" rules="required" v-slot="{errors, ariaMsg}" vid="callerFirstName">
                 <input v-model="callerName.first" name="First name" placeholder="First" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
-              <ValidationProvider name="Last name"  v-slot="{errors, ariaMsg}">
+              <ValidationProvider name="Last name" rules="required_if:callerFirstName" v-slot="{errors, ariaMsg}">
                 <input v-model="callerName.last" name="Last name" placeholder="Last" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
@@ -68,11 +68,11 @@
             
             <label class="form__label">Arrival Contact Name</label>
             <div class="form__input-group--name-group">
-              <ValidationProvider name="Arrival First name" v-slot="{errors, ariaMsg}" vid="arrivalFirstName">
+              <ValidationProvider name="Arrival First name" rules="required" v-slot="{errors, ariaMsg}" vid="arrivalFirstName">
                 <input v-model="arrivalContactName.first" placeholder="First" name="Arrival First name" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
-              <ValidationProvider name="Last name" v-slot="{errors, ariaMsg}">
+              <ValidationProvider name="Last name" rules="required_if:arrivalFirstName" v-slot="{errors, ariaMsg}">
                 <input v-model="arrivalContactName.last" placeholder="Last" name="Arrival Last name" type="text" class="form__input capitalize" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
               </ValidationProvider>
@@ -212,7 +212,7 @@
             </div>
             <LazyUiSignaturePadModal v-model="empSig" width="650px" height="219px" inputId="teamMemberSig" :sigData="teamMemberSig" name="Team member signature" dialog :initial="false"
               sigRef="teamSignaturePad" sigType="employee" />
-            <ValidationProvider name="Sign Date"  v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
+            <ValidationProvider name="Sign Date" rules="required" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
                 <label for="signDate" class="form__label">Sign date</label>
                 <input type="hidden" v-model="signDate" />
                 <imask-input id="signDate" @complete="signDate = $event" :lazy="false" :blocks="dateMask.blocks"
@@ -220,7 +220,7 @@
                               :pattern="dateMask.pattern" class="form__input" />
                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
             </ValidationProvider>
-            <ValidationProvider name="Time Sign"  v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
+            <ValidationProvider name="Time Sign" rules="required" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
               <label for="timeSign" class="form__label">Sign Time</label>
               <imask-input v-model="signTime" :lazy="false" :mask="timeMask.mask" :blocks="timeMask.blocks" class="form__input" />
               <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
@@ -233,7 +233,7 @@
     <div>
       <client-only>
          <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('dispatch', jobId)" :paginate-elements-by-height="800" :manual-pagination="false"
-                    :show-layout="false" :preview-modal="true" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event)"
+                    :show-layout="false" :preview-modal="true" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event, `dispatch-${jobId}`, jobId)"
                     @hasDownloaded="uploadPdf($event, `dispatch-${jobId}`, jobId)" ref="html2Pdf0">
           <LazyLayoutReportDetails :notPdf="false" reportName="Dispatch Report" :report="postedReport" slot="pdf-content" />
         </vue-html2pdf>
@@ -408,7 +408,6 @@
       const getUser = computed(() => store.getters["users/getUser"])
       
       const fetchReports = () => { store.dispatch("reports/fetchReports") }
-      
       function formatTimeRange(timeStart, timeEnd) {
         if (!timeStart && !timeEnd) return null
         if (timeStart> timeEnd) return "Invalid time range"
@@ -434,11 +433,6 @@
         endhours = endhours || 12
         endminutes = endminutes < 10 ? '0' + endminutes : endminutes
         return `${starthours}:${startminutes} ${newFormat1}-${endhours}:${endminutes} ${newFormat2}`
-      }
-      function parseDate(date) {
-        if (!date) return null
-        const [month, day, year] = date.split('/')
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
       }
       function acceptNumber() {
         var x = phone.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
@@ -483,10 +477,16 @@
               message.value = result[0]
               refs.html2Pdf0.generatePdf()
             }).catch(error => console.log(`Error in promises ${error}`))
+          } else {
+            submitting.value = false
+            errorDialog.value = true
+            refs.form.setErrors({
+              JobId: ["Duplicate Job ID can't exist"]
+            })
+            return;
           }
         })
       }
-      
       function onSubmit() {
         message.value = ""
         const post = {
@@ -518,25 +518,23 @@
         };
         postedReport.value = post
         submitting.value = true
-        $api.$post("/api/reports/dispatch/new", post, {
+        return new Promise((resolve, reject) => {
+          $api.$post("/api/reports/dispatch/new", post, {
             params: {
                 jobid: post.JobId
             }
-        }).then((res) => {
-            if (res.error) {
-                errorDialog.value = true
-                submitting.value = false
-                refs.form.setErrors({
-                    JobId: [res.message],
-                })
-                return
-            }
-            message.value = res
-            submitted.value = true
-            submitting.value = false
-            fetchReports()
+          }).then((res) => {
+              submitted.value = true
+              submitting.value = false
+              fetchReports()
+              resolve(res)
+          }).catch(err => {
+              errorDialog.value = true
+              refs.form.setErrors({
+                JobId: [err.response.data.message]
+              })
+          })
         })
-        return Promise.resolve("Dispatch form submitted!")
       }
 
       watch(() => appointmentTimeFormatted.value, (val) => {
@@ -564,7 +562,7 @@
         timeModal, appointmentTimeModal, verificationTime, callTime, callTimeFormatted, textEtaTime, textEtaTimeFormatted, location, callerName, arrivalContactName,property,
         email, phone, selectedCheckboxes, appointmentTime, notes, message, errorMessage, submitted, submitting, intrusionLogsDialog, intrusionSection, dateIntrusion, dateIntrusionFormatted,
         timeIntBegan, timeIntBeganFormatted, timeIntEnd, timeIntEndFormatted, teamMemberSig, empSig, signDate, signTime, sigDialog, errorDialog, errorArr, dateMask, timeMask, postedReport,
-        parseDate, acceptNumber, getUser,
+        acceptNumber, getUser,
         setLocation,
         save,
         clear,

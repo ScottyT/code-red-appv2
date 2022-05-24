@@ -40,6 +40,7 @@ export default defineComponent({
             } else {
                 formattedDate.value = formatDate(val)
                 emit("date", formattedDate.value)
+                emit("unformattedDate", date.value)
             }
         })
         watch(d, (val) => {

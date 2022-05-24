@@ -1,9 +1,9 @@
 <template>
-    <div :class="`form-wrapper ${$vuetify.breakpoint.width < 991 ? 'flex-column' : ''}`">
-        <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
-            :width="860" :height="700" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" />
+    <div :class="`form-wrapper`">
+        <LayoutPsychrometricChart class="chart" @addData="newChartData" :existingChart="chartdata[0]" :report="existingReport" :dayOfJob="date" :jobid="selectedJobId" :xaxes="dryBulbTemp" :yaxes="humidityRatio"
+            :width="860" :height="700" :dataLoaded="loaded" @existingChart="chartdata.push($event)" @sendChartType="readingsType = $event" :pdf="false" />
         <h2 v-show="submittedMessage !== ''">{{submittedMessage}}</h2>
-        <ValidationObserver ref="form" v-slot="{ errors }" v-if="!submitted">
+        <ValidationObserver ref="form" v-slot="{ errors, handleSubmit }" v-if="!submitted">
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
                     <div v-for="(error, i) in errors" :key="`error-${i}`">
@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form form__psychrometric-chart" @submit.prevent="onSubmit">
+            <form class="form form__psychrometric-chart" @submit.prevent="handleSubmit(submitForm)">
                 <div class="d-flex">
                     <ValidationProvider vid="JobId" name="Job ID" v-slot="{errors}" rules="required" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -84,6 +84,15 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <!-- THIS IS CAUSING ISSUES! COMMENTING OUT INSTEAD OF DELETEING BECAUSE MIGHT ADD IT IN LATER. -->
+            <!-- <client-only>
+                <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('psychrometric-chart', selectedJobId)" 
+                    :paginate-elements-by-height="1000" :manual-pagination="false" :show-layout="false" :preview-modal="true"  
+                    @hasDownloaded="uploadPdf($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" 
+                    @beforeDownload="beforeDownloadNoSave($event, `psychrometric-chart-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
+                        <PdfChart :height="500" :pdf="false" :report="postedData" :chartLoaded="chartloaded" slot="pdf-content" />
+                </vue-html2pdf>
+            </client-only> -->
     </div>
 </template>
 <script>
@@ -91,11 +100,15 @@ import { defineComponent, computed, ref, useStore, reactive, watch, provide, use
 import useReports from '@/composable/reports';
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
+    props: {
+        company: String,
+        abbreviation: String
+    },
     setup(props, { refs, root }) {
-        var jobId = root.$route.params.id
-        const { getReportPromise, loading } = useReports()
+        const { getReportPromise, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const { $api } = useContext()
-        const { convertToF, round, convertToC, groupByKey } = genericFuncs()
+        const { convertToF, round, convertToC, groupByKey, formatDate } = genericFuncs()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const store = useStore()
         const dryBulbTemp = ref('20')
         const humidityRatio = ref('0')
@@ -348,6 +361,13 @@ export default defineComponent({
         const temp = ref(243.12) // In Celsius
         const readingsType = ref("")
         const atmosFetched = ref(false)
+        const form = ref(null)
+        const html2Pdf0 = ref(null)
+        const postedData = ref({})
+        const chartloaded = ref(false)
+        const existingJobProgress = ref([])
+        const downloadBtn = ref(null)
+        const existingReport = ref({})
 
         const user = computed(() => store.getters['users/getUser'])
         const date = ref("")
@@ -383,6 +403,14 @@ export default defineComponent({
                 atmosFetched.value = false
             })
         }
+        const getPsychrometricChart = async (jobid) => {
+            await getReportPromise(`psychrometric-chart/${jobid}`).then((result) => {
+                existingJobProgress.value = result.jobProgress
+                existingReport.value = result
+            }).catch(err => {
+                existingJobProgress.value = []
+            })
+        }
         const changeAtmosArr = () => {
             var datediff = new Date(endDate.value) - new Date(initDate.value)
             var daysDiff = datediff /  (1000 * 60 * 60 * 24);
@@ -391,7 +419,7 @@ export default defineComponent({
             for (var i = 0; i <= daysDiff; i++) {
                 var date = new Date(initDate.value)
                 var day = date.setDate(startDateDay + i)
-                var formattedDate = formatDate(new Date(day).toISOString().substr(0, 10))
+                var formattedDate = formatDate(new Date(day).toISOString().substring(0, 10))
                 dates.push(formattedDate)
             }
             atmosReadingsLog.value.forEach((item, i) => {
@@ -403,13 +431,8 @@ export default defineComponent({
         function addDays(e, days) {
             const date = new Date(e.target.value)
             date.setDate(date.getDate() + days);
-            var formattedDate = formatDate(date.toISOString().substr(0, 10))
+            var formattedDate = formatDate(date.toISOString().substring(0, 10))
             endDate.value = formattedDate
-        }
-        function formatDate(dateReturned) {
-            if (!dateReturned) return null
-            const [year, month, day] = dateReturned.split('-')
-            return `${month}/${day}/${year}`
         }
         //This gets called when you click create chart
         function newChartData(...params) {
@@ -452,7 +475,6 @@ export default defineComponent({
                     const dateIndex = groupedDataByLabel[property][0].day.findIndex(el => el.date === date.value)
                     for (const key in groupedDataById) {
                         var obj = findByIdentifier(groupedDataByLabel[readingsType.value], key)
-                        console.log(obj)
                         switch (key) {
                             case "dryBulbTemp":
                                 if (obj.length > 0) obj[0].day[dateIndex].value = dryBulbTemp.value
@@ -486,13 +508,29 @@ export default defineComponent({
                         categoryData: catArr.value,
                         teamMember: user.value
                     }
-                    $api.$post(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
-                        resolve("finished updating atmos")
+                    $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
+                        resolve("finished updating atmospheric readings")
+                    }).catch(err => {
+                        reject(err)
                     })
                 })
             })
         }
-
+        function timeout(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms))
+        }
+        async function generateBtn() {
+            await html2Pdf0.value.generatePdf()
+        }
+        async function submitForm() {
+            await Promise.all([submitAtmosReadings(), onSubmit(), timeout(1000)]).then((result) => {
+                submitting.value = false
+                submittedMessage.value = result[0]
+                submitted.value = true
+                chartloaded.value = true
+                html2Pdf0.value.generatePdf()
+            }).catch(error => console.log(`Error in promises ${error}`))
+        }
         function onSubmit() {
             const post = {
                 JobId: selectedJobId.value,
@@ -501,37 +539,34 @@ export default defineComponent({
                 formType: 'chart-report',
                 ReportType: 'psychrometric-chart'
             };
-            refs.form.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return;
-                }
-                submitAtmosReadings(idToken).then((result) => {
-                    submitting.value = true
-                    if (atmosFetched.value) {
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                submitting.value = true
+                    const update = existingJobProgress.value.some(el => {
+                        if (el.readingsType == post.jobProgress.readingsType && el.date == post.jobProgress.date) {
+                            return true
+                        }
+                        return false
+                    })
+                    if (update) {
                         $api.$post(`/api/reports/psychrometric-chart/update-progress`, post).then((res) => {
-                            submittedMessage.value = res
-                            submitting.value = false
-                            submitted.value = true
-                            setTimeout(() => {
-                                window.location = "/"
-                            }, 3000)
+                            fetchReports()
+                            resolve(res)
+                        }).catch(err => {
+                            reject(err)
+                            console.log(err)
                         })
-                        return;
+                        return
                     }
                     $api.$post(`/api/reports/psychrometric-chart/update-chart`, post).then((res) => {
-                        submittedMessage.value = res
-                        submitting.value = false
-                        submitted.value = true
-                        setTimeout(() => {
-                            window.location = "/"
-                        }, 3000)
+                        fetchReports()
+                        resolve(res)
+                    }).catch(err => {
+                        reject(err)
+                        console.log(err)
                     })
-                }).catch(err => {
-                    console.error(err)
-                })
+                    return
+               // resolve(true)
             })
         }
         watch(readingsType, (val) => {
@@ -546,6 +581,7 @@ export default defineComponent({
         watch(selectedJobId, (val) => {
             loaded.value = true
             getAtmosphericReadings(val)
+            getPsychrometricChart(val)
             //getExistingChart(val)
         })
         watch(vaporPressure, (val) => {
@@ -580,18 +616,30 @@ export default defineComponent({
             endDate,
             groupedDataByLabel,
             groupedDataById,
-            loading: computed(() => loading.value),
+            //loading: computed(() => loading.value),
             loaded,
             jobProgress,
             EW, RH,
             changeInputVal,
             newChartData,
+            submitForm,
             onSubmit,
             changeAtmosArr,
             addDays,
-            atmosFetched
+            atmosFetched,
+            form,
+            html2Pdf0,
+            beforeDownloadNoSave,
+            uploadPdf,
+            postedData,
+            htmlToPdfOptions,
+            chartloaded,
+            existingJobProgress,
+            downloadBtn,
+            generateBtn,
+            existingReport
         }
-    },
+    }
 })
 </script>
 <style lang="scss">

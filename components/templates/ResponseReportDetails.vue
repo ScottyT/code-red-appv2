@@ -1,5 +1,5 @@
 <template>
-<section :class="notPdf ? '' : 'pdf-content'">
+<section class="pdf-content">
   <div class="report-details report-details__response-report">
     <h1 v-if="message">{{message}}</h1>
     <h1 class="text-center">{{company}}</h1>
@@ -21,6 +21,10 @@
         <span>{{report.DateOfLoss}}</span>
       </div>
       <div class="report-details__data">
+        <h3>Time of Dispatch:</h3>
+        <span>{{report.timeOfDispatch}}</span>
+      </div>
+      <div class="report-details__data">
         <h3>Date Of Evaluation:</h3>
         <span>{{report.DateOfEvaluation}}</span>
       </div>
@@ -29,7 +33,7 @@
       <div class="report-details__section--name-group">
           <div class="report-details__data-label">Contact Name:</div>
           <span v-if="!isEditing" class="report-details__data-field" v-uppercase>
-            {{repData && repData.ContactName ? repData.ContactName.first + ' ' + repData.ContactName.last : null}}
+            {{report && report.ContactName ? report.ContactName.first + ' ' + report.ContactName.last : null}}
           </span>
           <div v-if="isEditing" class="form__input-group--name-group">
             <input type="text" class="form__input capitalize" v-model="updatedReport.ContactName.first" placeholder="First" />
@@ -38,7 +42,7 @@
 
           <div class="report-details__data-label">Property Owner:</div>
           <span v-if="!isEditing" class="report-details__data-field" v-uppercase>
-            {{repData && repData.PropertyOwner ? repData.PropertyOwner.first + ' ' + repData.PropertyOwner.last : null}}
+            {{report && report.PropertyOwner ? report.PropertyOwner.first + ' ' + report.PropertyOwner.last : null}}
           </span>
           <div v-if="isEditing" class="form__input-group--name-group">
             <input type="text" class="form__input capitalize" v-model="updatedReport.PropertyOwner.first" placeholder="First" />
@@ -79,7 +83,7 @@
     </div>
   </div>
   <div class="report-details report-details__response-report">
-    <div class="report-details__section">
+    <div class="report-details__section" v-if="report.sourceWaterIntrusion !== undefined && report.sourceWaterIntrusion.length > 0">
       <div class="report-details__checklist">
         <h3>Source of Water Intrusion</h3>
         <ul>
@@ -97,9 +101,9 @@
     </div>
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial1" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial1 : ''" />
     </div>
-    <div class="report-details__section">
+    <div class="report-details__section" v-if="report.preliminaryDetermination !== undefined && report.preliminaryDetermination.length > 0">
       <div class="report-details__checklist">
         <h3>Preliminary Determination</h3>
         <ul>
@@ -111,9 +115,9 @@
     </div>
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial2" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial2 : ''" />
     </div>
-    <div class="report-details__section">
+    <div class="report-details__section" v-if="report.moistureInspection !== undefined && report.moistureInspection.length > 0">
       <div class="report-details__checklist">
         <h3>Initial Moisture Inspection</h3>
         <ul>
@@ -129,7 +133,7 @@
     
     <div class="report-details__data">
       <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials.initial3" />
+      <img class="report-details__initial" :src="report.initials ? report.initials.initial3 : ''" />
     </div>
     
     <div class="report-details__section">
@@ -158,7 +162,7 @@
     <div class="report-details report-details__response-report">
       <div class="report-details__data">
         <label class="form__label">Initial:</label>
-        <img class="report-details__initial" :src="report.initials.initial4" />
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial4 : ''" />
       </div>
       <div class="report-details__section">
         <div class="report-details__data">
@@ -296,7 +300,7 @@ import {fetchReportImages} from '@/composable/reports'
 import { timeMask } from "@/data/masks"
   export default {
     name: 'ResponseReportDetails',
-    props: ['rep', 'notPdf', 'company', 'reportName'],
+    props: ['report', 'notPdf', 'company', 'reportName'],
     data: (vm) => ({
       message: '',
       stepsArrLength: '',
@@ -358,15 +362,22 @@ import { timeMask } from "@/data/masks"
         }
         return ""
       },
-      ...mapGetters({
+     /*  ...mapGetters({
         report: "reports/getReport"
-      }),
+      }), */
       ...mapState({
         evaltimes: state => state.reports.report.evaluationLogs
       }),
       parseDate() {
         const [month, day, year] = this.rep.DateOfEvaluation.split('-')
         return `${month.padStart(2, '0')}-${day.padStart(2, '0')}-${year}`
+      }
+    },
+    watch: {
+      report(val) {
+        this.getFolders(val.JobId, "rapid-response", "", "/").then((result) => {
+          this.imageFolders = result.folders
+        })
       }
     },
     methods: {
@@ -452,7 +463,7 @@ import { timeMask } from "@/data/masks"
                   folder: folder,
                   subfolder: folder + "/" + subfolder,
                   delimiter: delimiter,
-                  bucket: "employee"
+                  bucket: "default"
               }
           }).then((res) => {
               resolve(res)
@@ -460,17 +471,14 @@ import { timeMask } from "@/data/masks"
         })
       }
     },
-    mounted() {
-      if (!this.notPdf) {
+    // Removing this just to see if this breaks anything
+    /* mounted() {
+      this.$nextTick(() => {
         this.getFolders(this.report.JobId, "rapid-response", "", "/").then((result) => {
           this.imageFolders = result.folders
         })
-      }
-      fetchReportImages(this.report.JobId, "", "", "/").then((result) => {
-        this.arrivalImages = result.images.filter(obj => !obj.name.includes('id-photo'))
       })
-      this.repData = this.rep
-    },
+    }, */
   }
 </script>
 <style lang="scss">

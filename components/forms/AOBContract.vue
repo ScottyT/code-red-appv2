@@ -1,3 +1,4 @@
+<!-- THIS IS USED FOR WESI JOBS. PLEASE MAKE ANOTHER FORM COMPONENT FOR OTHER SISTER COMPANIES -->
 <template>
   <div class="form-wrapper">
     <!-- <h1 class="text-center">{{company}}</h1> -->
@@ -9,7 +10,7 @@
       <form ref="form" class="form" @submit.prevent="submitForm" v-if="!submitted">
         <fieldset v-if="currentStep === 1">
           <div class="form__form-group">
-            <ValidationProvider rules="required" name="Job ID" v-slot="{errors}" class="form__input-group form__input-group--normal">
+            <ValidationProvider rules="required" name="Job ID" vid="JobId" v-slot="{errors}" class="form__input-group form__input-group--normal">
               <label for="selectJobId" class="form__label">Job ID</label>
               <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
               <select class="form__input" v-model="selectedJobId">
@@ -592,7 +593,7 @@
                 <div class="form__input-group--section">
                   <label for="insuredPayment1" class="form__label">Insured Payment 1)</label>
                   <span class="form__input--currency">
-                    <span>$</span><input type="text" class="form__input form__input--short" v-model="insuredPay1" />
+                    <span>$</span><input type="text" class="form__input form__input--short" v-model="insuredPayment.firstStep" />
                   </span>
                 </div>
                 <div class="form__input-group--section">
@@ -615,7 +616,7 @@
                 <div class="form__input-group--section">
                   <label for="insuredPayment2" class="form__label">Insured Payment 2)</label>
                   <span class="form__input--currency">
-                    <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPay2" />
+                    <span>$</span><input id="insuredPayment2" type="text" class="form__input form__input--short" v-model="insuredPayment.secondStep" />
                   </span>
                 </div>
                 <div class="form__input-group--section">
@@ -791,18 +792,14 @@
         </v-btn>
       </form>
     </ValidationObserver>
-    <!-- <h3>{{message}} {{submitting ? "Email being sent out..." : emailSuccess}}</h3>
-    <div>
-    <client-only>
+    <!-- <h3>{{message}} {{submitting ? "Email being sent out..." : emailSuccess}}</h3> -->
       <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     @beforeDownload="beforeDownload($event)" :manual-pagination="true" :show-layout="false"
                     :enable-download="false" :preview-modal="true" :paginate-elements-by-height="10500"
-                    ref="aobhtml2pdf">
-        <PdfAobContract slot="pdf-content" :cardsInfo="cards" :images="cardImages" :contracts="data" company="Water Emergency Services Incorporated" abbreviation="WESI" />
+                    ref="aobhtml2pdf" @hasDownloaded="uploadPdf($event, `wesi-aob-${selectedJobId}`, selectedJobId)">
+        <PdfAobContract slot="pdf-content" onForm :contracts="data" :images="cardImages" company="Water Emergency Services Incorporated" abbreviation="WESI" />
       </vue-html2pdf>
-    </client-only>
     <button class="button--normal" ref="downloadBtn" v-show="false" @click="generatePdf()">Download PDF</button>
-    </div> -->
   </div>
 </template>
 <script>
@@ -810,37 +807,12 @@ import goTo from 'vuetify/es5/services/goto'
 import {mapGetters, mapActions} from 'vuex'
 import { statesArr } from "@/data/states"
 import { driversLicenseMask } from "@/data/masks";
+import useReports from '@/composable/reports'
 import axios from 'axios'
   export default {
     props: ['company', 'abbreviation'],
     computed: {
       ...mapGetters({getReports:'reports/getReports', getUser:'users/getUser', getCards: 'reports/getCards'}),
-      insuredPay1: {
-        get() {
-          let pay = this.deductible * .50
-          if (pay) {
-            return pay
-          } else {
-            return 500.00
-          }
-        },
-        set(value) {
-          this.insuredPayment.firstStep = value
-        }
-      },
-      insuredPay2: {
-        get() {
-          let pay = this.deductible * .50
-          if (pay) {
-            return pay
-          } else {
-            return 500
-          }
-        },
-        set(value) {
-          this.insuredPayment.insuredPay2 = value
-        }
-      },
       insuredDay1() {
         return this.insuredPayment.day1Date;
       },
@@ -856,16 +828,6 @@ import axios from 'axios'
       },
       nonInsuredDay5() {
         return this.nonInsuredPayment.day5Date;
-        /* get() {
-          
-        },
-        set(value) {
-          if (typeof value === "string") {
-            return "N/A"
-          } else {
-            return this.nonInsuredPayment.day5Date;
-          }
-        } */
       },
       aobContracts() {
         return this.getReports.filter((v) => {
@@ -929,7 +891,6 @@ import axios from 'axios'
             day1Modal: false,
             day5Modal: false,
             firstStep: null,
-            insuredPay2: '',
             day1Date: new Date().toISOString().substr(0, 10),
             day1DateFormatted: vm.formatDate(new Date().toISOString().substr(0, 10)),
             day5Date: new Date().toISOString().substr(0, 10),
@@ -989,12 +950,18 @@ import axios from 'axios'
         cardObj: {},
         states: statesArr,
         data: {},
-        cards: [],
+        cards: {},
         cardImages: [],
         emailSuccess: "",
-        licenseMask: driversLicenseMask
+        licenseMask: driversLicenseMask,
+        reportFetched: false
     }),
     watch: {
+        deductible(val) {
+          var pay = val * .50
+          this.insuredPayment.firstStep = pay
+          this.insuredPayment.secondStep = pay
+        },
         insuredEndDate(val) {
           if (val === "N/A") {
             this.insuredEndDateFormatted = "N/A"
@@ -1026,12 +993,49 @@ import axios from 'axios'
             this.cusSignDateFormatted = this.formatDate(val)
         },
         selectedJobId(val) {
+          this.errorMessage = ""
           this.$api.$get(`/api/reports/details/dispatch/${val}`).then((res) => {
             this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
             this.numberOfFloors = res.intrusion.find(e => e.label === 'Number of Floors').value
             this.numberOfRooms = res.intrusion.find(e => e.label === 'Number of Rooms').value
           }).catch(err => {
-            this.errorMessage = err
+            this.subjectProperty = ""
+            this.numberOfFloors = ""
+            this.numberOfRooms = ""
+            this.errorMessage = err.response.data
+          })
+          this.$api.$get(`/api/reports/details/wesi-aob/${val}`).then((res) => {
+            this.reportFetched = true
+            this.subjectProperty = res.location.address + ", " + res.location.cityStateZip
+            this.numberOfFloors = res.numberOfFloors
+            this.numberOfRooms = res.numberOfRooms
+            if (res.deducible == 0 || res.deductible == undefined) {
+              this.insuredPayment.firstStep = res.insuredPay1
+              this.insuredPayment.secondStep = res.insuredPay2
+            }
+            this.deductible = res.deductible
+            this.insuredEndDateFormatted = res.insuredTermEndDate
+            this.insuredPayment.day1DateFormatted = res.insuredPayDay1
+            this.insuredPayment.day5DateFormatted = res.insuredPayDay5
+            this.nonInsuredPayment.day1DateFormatted = res.nonInsuredDay1
+            this.nonInsuredPayment.day5DateFormatted = res.nonInsuredDay5
+            this.nonInsuredPayment.endDateFormatted = res.nonInsuredTermEndDate
+            this.location.cityStateZip = res.location.address + ", " + res.location.cityStateZip
+            this.firstName = res.firstName
+            this.lastName = res.lastName
+            this.email = res.email
+            this.driversLicense = res.driversLicense
+            this.relation = res.relation
+            this.sqft = res.minimumSqft
+            this.repPrint = res.representativePrint
+            this.representativeOf = res.propertyRepOf
+            this.repDateFormatted = res.repDateSign
+            this.witness = res.witness
+            this.witnessDateFormatted = res.witnessDate
+            this.paymentOption = res.paymentOption
+            this.cardToUse = res.cardNumber
+          }).catch(err => {
+            this.reportFetched = false
           })
         },
         paymentOption(val) {
@@ -1103,6 +1107,19 @@ import axios from 'axios'
             const [month, day, year] = date.split('/')
             return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
         },
+        getContract() {
+          return new Promise((resolve, reject) => {
+            this.$api.$get(`/api/reports/details/wesi-aob/${this.selectedJobId}`).then((res) => {
+                this.data = res
+                resolve(res)
+            }).catch((err) => {
+                reject(err)
+            })
+          })
+        },
+        timeout(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms))
+        },
         async submitForm() {
             this.errorMessage = []
             var cardnumber = this.cardToUse
@@ -1112,36 +1129,42 @@ import axios from 'axios'
             const contractsRep = contracts.map((v) => {
               return v.JobId
             })
-            await this.$refs.form.validate().then(success => {
-              if (!success) {
-                this.submitting = false
-                this.submitted = false
-                return goTo(0)
-              }
+            
               if (!contractsRep.includes(this.selectedJobId)) {
+                await this.$refs.form.validate().then(success => {
+                  if (!success) {
+                    return;
+                  }
                 if ((this.currentStep === 1 && this.paymentOption === 'Card' && this.existingCreditCard === "Yes") || this.currentStep === 2) {
-                  Promise.all([this.onSubmit(), this.getCardImages(cardnumber)]).then((result) => {
-                    this.submitted = true
-                    this.message = result[0]
-                    //I will add this back when we are able to use gmail email service
-                    //this.$refs.downloadBtn.click()
-                    
-                  }).catch(error => console.log(`Error in promises ${error}`))
+                  this.onSubmit().then((result) => {
+                    this.message = result
+                    this.timeout(1000).then(() => {
+                      this.getCardImages(cardnumber).then(() => {
+                        this.getContract().then((data) => {
+                          this.submitted = true
+                          this.submitting = false
+                          this.$refs.downloadBtn.click()
+                        })
+                      })
+                    })
+                  })
                   return;
                 } else if ((this.currentStep === 1 && this.paymentOption !== 'Card') || this.currentStep === 2) {
                   Promise.all([this.onSubmit()]).then((result) => {
                     this.submitted = true
+                    this.submitting = false
                     this.message = result[0]
-                    //this.$refs.downloadBtn.click()
-                  })
+                    this.$refs.downloadBtn.click()
+                  }).catch(error => console.log(`Error in promises ${error}`))
                 }
                 this.currentStep++;
+                })
               } else {
                 this.errorMessage.push("Duplicate Job ID is not allowed")
                 this.submitting = false
                 return goTo(0)
               }
-            })
+            
         },
         onSubmit() {
           this.message = ''
@@ -1150,7 +1173,9 @@ import axios from 'axios'
             JobId: this.selectedJobId,
             ReportType: 'wesi-aob',
             formType: 'aob',
+            deductible: parseFloat(this.deductible),
             contractingCompany: 'Water Emergency Services',
+            abbreviation: 'WESI',
             subjectProperty: this.subjectProperty,
             cusSign1: this.cusSign.data,
             cusSignDate1: this.cusSignDateFormatted,
@@ -1163,9 +1188,9 @@ import axios from 'axios'
             initial7: this.cusInitial7,
             initial8: this.cusInitial8,
             insuredTermEndDate: this.insuredEndDateFormatted,
-            insuredPay1: this.insuredPay1,
+            insuredPay1: this.insuredPayment.firstStep,
             insuredPayDay1: this.insuredPayment.day1DateFormatted,
-            insuredPay2: this.insuredPay2,
+            insuredPay2: this.insuredPayment.secondStep,
             insuredPayDay5: this.insuredPayment.day5DateFormatted,
             nonInsuredTermEndDate: this.nonInsuredPayment.endDateFormatted,
             nonInsuredDay1: this.nonInsuredPayment.day1DateFormatted,
@@ -1191,31 +1216,45 @@ import axios from 'axios'
           };
           this.submitting = true
           this.data = post
-          this.$api.$post("/api/reports/wesi-aob/new", post, {
-              params: {
-                  jobid: this.selectedJobId
-              }
-          }).then((res) => {
-              if (res.error) {
-                  this.errorMessage = res.message
-                  return
-              }
-              this.fetchReports()
-          }).catch((err) => {
-              this.errorMessage.push(err)
-          })
-         
-         return Promise.resolve("AOB & Mitigation Contract submitted!")
-        },
-        fetchCards(cardnumber) {
-          if (cardnumber === "") return
           return new Promise((resolve, reject) => {
-            this.$api.$get(`/api/credit-card/${cardnumber}`).then((res) => {
-              this.cards = res
-              resolve(res)
-            }).catch((err) => {
-              reject(err)
-            })
+            if (!this.reportFetched) {
+              this.$api.$post("/api/reports/wesi-aob/new", post, {
+                  params: {
+                      jobid: this.selectedJobId
+                  }
+              }).then((res) => {
+                  this.fetchReports()
+                  resolve(res)
+              }).catch((err) => {
+                  this.errorMessage.push(err)
+                  reject(err)
+              })
+            } else {
+              this.$api.$put(`/api/reports/wesi-aob/${this.selectedJobId}/update`, post).then((res) => {
+                this.fetchReports()
+                resolve(res.message)
+              }).catch(err => {
+                this.errorMessage.push(err.message)
+                reject(err)
+              })
+            }
+          })
+        },
+        uploadPdf(file, filename, jobId) {
+          const finalPdf = new File([file], `${filename}.pdf`, {
+              type: file.type
+          })
+          const formData = new FormData();
+          formData.append('path', `${jobId}/pdfs/`)
+          formData.append('multiFiles', finalPdf)
+          this.$gcs.$post("/upload", formData, {
+              params: {
+                  folder: 'pdfs',
+                  subfolder: '',
+                  delimiter: '/'
+              }
+          }).then(() => {
+              console.log("pdf uploaded")
           })
         },
         async getCardImages(card) {
@@ -1253,7 +1292,18 @@ import axios from 'axios'
           return new File([u8arr], filename, {type:mime});
         },
         async beforeDownload({ html2pdf, options, pdfContent }) {
-          const pdfDownload = async () => {
+          await html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
+              const totalPages = pdf.internal.getNumberOfPages()
+              for (let i = 1; i <= totalPages; i++) {
+                  pdf.setPage(i)
+                  pdf.setFontSize(14)
+                  pdf.text('Page ' + i + ' of ' + totalPages, (pdf.internal.pageSize.getWidth() * 0.88), (pdf.internal.pageSize.getHeight() - 10))
+              }             
+            }).outputPdf().then((result) => {
+              var file = this.dataURLtoFile(`data:application/pdf;base64,${btoa(result)}`, `aob-${this.selectedJobId}`);
+              return Promise.resolve(file)
+            })
+          /* const pdfDownload = async () => {
             return html2pdf().set(options).from(pdfContent).toPdf().get('pdf').then((pdf) => {
               const totalPages = pdf.internal.getNumberOfPages()
               for (let i = 1; i <= totalPages; i++) {
@@ -1265,13 +1315,13 @@ import axios from 'axios'
               var file = this.dataURLtoFile(`data:application/pdf;base64,${btoa(result)}`, `aob-${this.selectedJobId}`);
               return Promise.resolve(file)
             })
-          }
-          pdfDownload().then((result) => {
+          } */
+          /* pdfDownload().then((result) => {
             this.sendMail(result).then((message) => {
               this.emailSuccess = message
               this.submitting = false
             })
-          })
+          }) */
         },
         sendMail(attachment) {
           var formData = new FormData()

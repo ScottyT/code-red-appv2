@@ -2,7 +2,7 @@
     <div class="form-wrapper">
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">Assignment of Benefits & Mitigation Contract</h2>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{errors}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
@@ -11,7 +11,7 @@
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -120,6 +120,13 @@
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('guardian-aob', selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `guardian-aob-${selectedJobId}`, selectedJobId)" 
+                      @hasDownloaded="uploadPdf($event, `guardian-aob-${selectedJobId}`, selectedJobId)" :manual-pagination="false" :show-layout="false" 
+                      :enable-download="false" :preview-modal="true" :paginate-elements-by-height="10500" :ref="`html2Pdf0`">
+            <PdfAobContract :jobid="selectedJobId" reportType="guardian-aob" slot="pdf-content"
+                :company="postedData.contractingCompany" :abbreviation="postedData.companyAbbreviation" :contracts="postedData" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
@@ -134,7 +141,8 @@ export default defineComponent({
     setup(props, { refs }) {
         const store = useStore()
         const { $api } = useContext()
-        const { getReportPromise } = useReports()
+        const { getReportPromise, beforeDownloadNoSave, uploadPdf, htmlToPdfOptions } = useReports()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const errorDialog = ref(false)
         const submitted = ref(false)
         const submitting = ref(false)
@@ -153,25 +161,56 @@ export default defineComponent({
         const cusSignDate2 = ref("")
         const witness = ref("")
         const witnessDate = ref("")
+        const form = ref(null)
+        const postedData = ref({})
+        const html2Pdf0 = ref(null)
+        const reportFetched = ref(false)
 
         const user = computed(() => store.getters["users/getUser"])
+        const reports = computed(() => {
+            return store.getters["reports/getReports"].filter((v) => {
+                return v.ReportType == 'guardian-aob'
+            })
+        })
         const setError = (arr, key) => {
             return arr.filter(obj => obj.param === key).map(v => v.msg)
         }
-        
+
         async function submitForm() {
             message.value = ""
+            var reportIds = reports.value.map((v) => {
+                return v.JobId
+            })
+            await form.value.validate().then(success => {
+                if (!success) {
+                    submitting.value = false
+                    submitted.value = false
+                    errorDialog.value = true
+                    return
+                }
+                
+                onSubmit().then((result) => {
+                    message.value = result
+                    submitted.value = true
+                    submitting.value = false
+                    html2Pdf0.value.generatePdf()
+                })
+            })
+        }
+        async function onSubmit() {
             if (cusSign1.value.isEmpty) {
                 cusSign1.value.data = "N/A"
             }
             if (cusSign1.value.isEmpty) {
                 cusSign1.value.data = "N/A"
             }
+            submitting.value = true
             const post = {
                 JobId: selectedJobId.value,
                 ReportType: "guardian-aob",
                 formType: "aob",
                 contractingCompany: "Guardian Restoration",
+                companyAbbreviation: "GAURD",
                 subjectProperty: subjectProperty.value,
                 cusSign1: cusSign1.value.data,
                 cusSign2: cusSign2.value.data,
@@ -181,40 +220,45 @@ export default defineComponent({
                 witnessDate: witnessDate.value,
                 teamMember: user.value
             };
-            await refs.form.validate().then(success => {
-                if (!success) {
-                    submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return
-                }
-                submitting.value = true
-                $api.$post("/api/reports/guardian-aob/new", post, {
-                    params: {
-                        jobid: selectedJobId.value
-                    }
-                }).then((res) => {
-                    if (res.error) {
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                if (!reportFetched.value) {
+                    $api.$post("/api/reports/guardian-aob/new", post, {
+                        params: {
+                            jobid: selectedJobId.value
+                        }
+                    }).then((res) => {
+                        fetchReports()
+                        resolve(res)
+                    }).catch(err => {
                         errorDialog.value = true
                         submitting.value = false
-                        refs.form.setErrors({
-                            JobId: [res.message]
+                        form.value.setErrors({
+                            JobId: [err.response.data.message]
                         })
-                        return;
-                    }
-                    submitted.value = true
-                    submitting.value = false
-                    message.value = res
-                    setTimeout(() => {
-                        window.location = "/"
-                    }, 3000)
-                })
+                        reject(err)
+                    })
+                } else {
+                    $api.$put(`/api/reports/guardian-aob/${selectedJobId.value}/update`, post).then((res) => {
+                        fetchReports()
+                        resolve(res.message)
+                    }).catch(err => {
+                        reject(err)
+                    })
+                }
             })
+            
         }
 
         watch(selectedJobId, (val) => {
             getReportPromise(`dispatch/${val}`).then((result) => {
                 subjectProperty.value = result.location.address + ", " + result.location.cityStateZip
+            })
+            getReportPromise(`guardian-aob/${val}`).then((result) => {
+                reportFetched.value = true
+                subjectProperty.value = result.subjectProperty
+            }).catch(err => {
+                reportFetched.value = false
             })
         })
         
@@ -226,7 +270,15 @@ export default defineComponent({
             cusSignDate1, cusSignDate2,
             witness, witnessDate,
             submitForm,
-            dateMask
+            dateMask,
+            form,
+            reports,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            postedData,
+            html2Pdf0,
+            reportFetched
         }
     },
 })

@@ -139,7 +139,7 @@ ul {
     position:relative;
      li::before {
       counter-increment: list;
-      content:""counter(list)".";
+     // content:""counter(list)".";
       position:absolute;
       left:5px;
     }
@@ -465,7 +465,6 @@ button {
           -webkit-appearance: none;
           @include rangeThumb;
         // box-shadow: -100vw 200px 10px 100vw rgba(6,138,187, .5);
-          
       }
     }
   }

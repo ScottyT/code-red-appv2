@@ -6,13 +6,11 @@
         <v-overlay absolute :value="loading" v-show="!onPdf">
             <v-progress-circular indeterminate size="64"></v-progress-circular>
         </v-overlay>
-        <client-only>
-            <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
-        </client-only>
+        <bar-chart class="chart__bar" v-if="!loading" :width="width" :height="height" :bardata="chartData" :baroptions="options" />
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, watch, ref, computed } from '@nuxtjs/composition-api'
+import { defineComponent, toRefs, watch, ref, computed, onMounted, useContext } from '@nuxtjs/composition-api'
 import useReports from '@/composable/reports'
 import genericFuncs from '@/composable/utilityFunctions'
 export default defineComponent({
@@ -21,11 +19,14 @@ export default defineComponent({
         height: Number,
         jobid: String,
         existingChart: Array,
-        onPdf: Boolean
+        onPdf: Boolean,
+        chartLoaded: Boolean
     },
     setup(props, { root }) {
-        const { jobid, existingChart, onPdf } = toRefs(props)
+        const { jobid, existingChart, onPdf, chartLoaded } = toRefs(props)
+        const { $axios } = useContext()
         const loaded = ref(true)
+        const chartImage = ref(null)
         const { getReportPromise, loading } = useReports()
         const { groupByKey, namedColor } = genericFuncs()
         const options = ref({
@@ -36,20 +37,22 @@ export default defineComponent({
             },
             scales: {
                 yAxes: [{
+                    type: 'linear',
                     display:true,
                     scaleLabel: {
                         display:true,
                         labelString: "Moisture Readings in %",
                         fontSize: 14
                     },
-                    suggestedMin: 0,
-                    suggestedMax: 100,
+                    
                     ticks: {
-                        min: 0
+                        suggestedMin: 0,
+                        suggestedMax: 100,
                     }
                 }]
             },
-            responsive: true
+            responsive: true,
+            maintainAspectRatio: false
         })
         const chartData = ref({
             labels: [],
@@ -60,7 +63,6 @@ export default defineComponent({
 
         async function getExistingMoistureReport(jobid) {
             getReportPromise(`moisture-map/${jobid}`).then((result) => {
-                console.log(result.data)
                 var baselineData = {
                     label: '',
                     data:[]
@@ -80,13 +82,16 @@ export default defineComponent({
             loading.value = true
             setTimeout(() => {
                 loading.value = false
-            }, 500)
+            }, 10)
             var tempArr = []
             var datasets = []
             var labels = []
             v.forEach((item) => {
-                for (var i=0;i<item.subareas.length;i++) {                
-                    tempArr.push({ data: item.subareas[i].val, index: i })
+                for (var i = 0; i < item.subareas.length; i++) {
+                    tempArr.push({
+                        data: parseInt(item.subareas[i].val),
+                        index: i
+                    })
                 }
                 labels.push(item.date)
             })
@@ -100,8 +105,13 @@ export default defineComponent({
                 /* if (property % 2 == 0) color = "rgba(202, 21, 21, .5)"
                 else if (property % 2 !== 0) color = "rgba(42, 91, 199, .5)" */
                 color = namedColor(property)
-                datasets.push({label: `Area Sub-${groupedByIndex[property][0].index + 1}`, data: data, backgroundColor: color, barPercentage: .95,
-                    maxBarThickness: 150})
+                datasets.push({
+                    label: `Area Sub-${groupedByIndex[property][0].index + 1}`,
+                    data: data,
+                    backgroundColor: color,
+                    barPercentage: .95,
+                    maxBarThickness: 150
+                })
             }
             chartData.value.labels = labels
             chartData.value.datasets = datasets
@@ -113,9 +123,24 @@ export default defineComponent({
         watch(existingChart, (val) => {
             populateChart(val)
         })
-        if (onPdf.value) {
-            populateChart(existingChart.value)
-        }
+        onMounted(() => {
+            if (onPdf.value) {
+                populateChart(existingChart.value)
+                /* const loadingChart = () => {
+                    return new Promise((resolve, reject) => {
+                        loading.value = true
+                        setTimeout(() => {
+                            loading.value = false
+                            resolve(true)
+                        }, 500)
+                    })
+                }
+                loadingChart().then(() => {
+                    populateChart(existingChart.value)
+                }) */
+            }
+        })
+        
         return {
             options,
             chartData,
@@ -123,7 +148,8 @@ export default defineComponent({
             baselineReadings,
             baselineDates,
             loaded,
-            populateChart
+            populateChart,
+            chartImage
         }
     },
 })

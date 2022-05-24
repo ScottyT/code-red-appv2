@@ -107,7 +107,12 @@ export default function genericFuncs() {
         hours = hours || 12
         minutes = minutes < 10 ? '0' + minutes : minutes
         return `${hours}:${minutes} ${newFormat}`
-      }
+    }
+    function parseDate(date) {
+        if (!date) return null
+        const [month, day, year] = date.split('/')
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
     function paginateArr(array, size) {
         return array.reduce((acc, val, i) => {
             var index = Math.floor(i / size)
@@ -140,6 +145,17 @@ export default function genericFuncs() {
                 reject(err)
             })
         })
+    }
+    function dataURLtoFile(dataurl, filename) {
+        var arr = dataurl.split(','),
+          mime = arr[0].match(/:(.*?);/)[1],
+          bstr = atob(arr[1]), 
+          n = bstr.length, 
+          u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }        
+        return new File([u8arr], filename, {type:mime});
     }
     function timeConverter(time, conversion) {
         switch(conversion) {
@@ -183,5 +199,5 @@ export default function genericFuncs() {
         return mainObj
     }
     return { getRandom, getRandomUnique, convertToF, convertToC, round, groupByKey, namedColor, formatDate, paginateArr, updateReport, timeConverter, sum,
-        replaceEmptyFormFields, genRandHex, formatTime }
+        replaceEmptyFormFields, genRandHex, formatTime, dataURLtoFile, parseDate }
 }

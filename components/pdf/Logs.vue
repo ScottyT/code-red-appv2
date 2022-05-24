@@ -28,60 +28,68 @@
                     </div>
                 </div>
             </div>
-            <div class="pdf-item__row" v-if="report.notes !== null">
+            <div class="pdf-item__row" v-if="report.notes !== 'N/A'">
                 <label>Notes: </label>
                 <div class="pdf-item__textbox">{{report.notes}}</div>
             </div>
-            <div class="pdf-item__table inventory-logs" v-if="report.ReportType === 'quantity-inventory-logs'">
-                <div class="pdf-item__table pdf-item__table--rows">
-                    <div class="pdf-item__table--cols">
-                        <div>Description</div>
+                <div class="pdf-item__table inventory-logs"  v-if="report.ReportType === 'quantity-inventory-logs'">
+                    <div class="pdf-item__table pdf-item__table--rows">
+                        <div class="pdf-item__table--cols">
+                            <div>Description</div>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="n in 7" :key="n">
+                            <p class="pdf-item__table--data-heading">Day {{n}}</p>
+                        </div>
                     </div>
-                    <div class="pdf-item__table--cols" v-for="n in 7" :key="n">
-                        <p class="pdf-item__table--data-heading">Day {{n}}</p>
+                    <div class="pdf-item__table pdf-item__table--rows">
+                        <div class="pdf-item__table--cols">
+                            <label>Tech ID #</label>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="n in 7" :key="`techids-col-${n}`">
+                            <input type="number" class="pdf-item__table--data" readonly v-model="report.teamMember.id" />
+                        </div>
+                    </div>
+                    <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.quantityData" :key="`unitquanitity-${i}`">
+                        <div class="pdf-item__table--cols">
+                            <label>{{row.text}}</label>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`unit-col-${j}`">
+                            <input type="number" class="pdf-item__table--data" v-model="report.quantityData[i].day[j].value" />
+                        </div>
+                    </div>
+                <!--  <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.categoryData" :key="`category-${i}`">
+                        <div class="pdf-item__table--cols">
+                            <label>{{row.text}}</label>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`category-col-${j}`">
+                            <input type="text" class="pdf-item__table--data" v-model="report.categoryData[i].day[j].value" />
+                        </div>
+                    </div> -->
+                </div>
+                <div class="pdf-item__table inventory-logs inventory-logs--checkboxes" v-if="report.ReportType === 'quantity-inventory-logs'">
+                    <!-- <div class="pdf-item__table pdf-item__table--rows row-heading">
+                        <div class="pdf-item__table--cols">
+                            <h3>Checkbox data</h3>
+                        </div>
+                    </div> -->
+                    <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.checkData" :key="`checkbox-${i}`">
+                        <div class="pdf-item__table--cols">
+                            <label>{{row.text}}</label>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`checkbox-col-${j}`">
+                            <input type="checkbox" class="pdf-item__table--data" v-model="report.checkData[i].day[j].value" />
+                        </div>
+                    </div>
+                    <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.serviceArr" :key="`service-${i}`">
+                        <div class="pdf-item__table--cols">
+                            <label>{{row.text}}</label>
+                        </div>
+                        <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`service-col-${j}`">
+                            <input type="checkbox" class="pdf-item__table--data" v-model="report.serviceArr[i].day[j].value" />
+                        </div>
                     </div>
                 </div>
-                <div class="pdf-item__table pdf-item__table--rows">
-                    <div class="pdf-item__table--cols">
-                        <label>Tech ID #</label>
-                    </div>
-                    <div class="pdf-item__table--cols" v-for="n in 7" :key="`techids-col-${n}`">
-                        <input type="number" class="pdf-item__table--data" readonly v-model="report.teamMember.id" />
-                    </div>
-                </div>
-                <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.quantityData" :key="`unitquanitity-${i}`">
-                    <div class="pdf-item__table--cols">
-                        <label>{{row.text}}</label>
-                    </div>
-                    <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`unit-col-${j}`">
-                        <input type="number" class="pdf-item__table--data" v-model="report.quantityData[i].day[j].value" />
-                    </div>
-                </div>
-                <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.checkData" :key="`checkbox-${i}`">
-                    <div class="pdf-item__table--cols">
-                        <label>{{row.text}}</label>
-                    </div>
-                    <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`checkbox-col-${j}`">
-                        <input type="checkbox" class="pdf-item__table--data" v-model="report.checkData[i].day[j].value" />
-                    </div>
-                </div>
-                <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.serviceArr" :key="`service-${i}`">
-                    <div class="pdf-item__table--cols">
-                        <label>{{row.text}}</label>
-                    </div>
-                    <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`service-col-${j}`">
-                        <input type="checkbox" class="pdf-item__table--data" v-model="report.serviceArr[i].day[j].value" />
-                    </div>
-                </div>
-               <!--  <div class="pdf-item__table pdf-item__table--rows" v-for="(row, i) in report.categoryData" :key="`category-${i}`">
-                    <div class="pdf-item__table--cols">
-                        <label>{{row.text}}</label>
-                    </div>
-                    <div class="pdf-item__table--cols" v-for="(col, j) in row.day" :key="`category-col-${j}`">
-                        <input type="text" class="pdf-item__table--data" v-model="report.categoryData[i].day[j].value" />
-                    </div>
-                </div> -->
-            </div>
+            
             <div class="pdf-item__table logs-pdf" v-if="report.ReportType === 'atmospheric-readings'">
                 <div class="pdf-item__table pdf-item__table--rows">
                     <div class="pdf-item__table--cols">
@@ -162,21 +170,8 @@ export default {
             return formattedDate
         }
     },
+    
     methods: {
-        updateReport() {
-            // use indexDb for offline support here
-            this.$axios.$post(`/api/logs-report/${this.reportType}/${this.report.JobId}/update`, this.newdata).then((res) => {
-                if (res.errors) {
-                    this.errorMessage = res.errors
-                    return;
-                }
-                this.updateMessage = res.message
-                setTimeout(() => {
-                    this.updateMessage = ""
-                    this.$router.push("/saved-reports")
-                }, 5000)
-            })
-        },
         loadedReport() {
             this.report.baselineReadings.forEach((item) => {
                 this.baseline.push(item)
@@ -189,13 +184,17 @@ export default {
         },
         getReportImages(jobid, folder, subfolder, delimiter) {
             return new Promise((resolve, reject) => {
-                this.$fire.auth.currentUser.getIdToken().then((idToken) => {
-                    this.$axios.$get(`${process.env.gsutil}/list/${jobid}`, {
-                        params: {folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter, bucket: "default" }, headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
-                        resolve(res.images)
-                    }).catch((err) => {
-                        reject(err)
-                    })
+                this.$gcs.$get(`/list/${jobid}`, {
+                    params: {
+                        folder: folder,
+                        subfolder: folder + "/" + subfolder,
+                        delimiter: delimiter,
+                        bucket: "default"
+                    }
+                }).then((res) => {
+                    resolve(res.images)
+                }).catch((err) => {
+                    reject(err)
                 })
             })
         }
@@ -206,9 +205,7 @@ export default {
                 this.$emit("domRendered");
             }, 1000)
         })
-        this.getReportImages(this.report.JobId, "moisture-images",  "", "/").then((result) => {
-            this.images = result
-        })
+        
         if (this.report.hasOwnProperty("baselineReadings")) {
             this.loadedReport()
         }
@@ -220,6 +217,20 @@ export default {
     margin:auto;
     max-width:870px;
     width:100%;
+    .inventory-logs {
+        max-width:800px;
+        grid-template-rows:repeat(24, 1fr);
+        padding:10px;
+        background-color:$color-white;
+        color:$color-black;
+        &--checkboxes {
+            grid-template-rows:40px repeat(12, 1fr);
+        }
+        input[type=checkbox] {
+            height:25px;
+            width:25px;
+        }
+    }
 }
 .pdf-item {
     position:relative;
@@ -233,13 +244,7 @@ export default {
         background-color:$color-white;
         color:$color-black;
     }
-    .inventory-logs {
-        max-width:800px;
-        grid-template-rows:repeat(40, 23px);
-        padding:10px;
-        background-color:$color-white;
-        color:$color-black;
-    }
+    
     &__company-logo {
         width:100px;        
         margin:0 auto;
@@ -262,8 +267,8 @@ export default {
         display:grid;
         padding:0 15px;
         &--rows {
-            grid-template-columns:120px repeat(7, 1fr);
-            grid-template-rows:40px;
+            grid-template-columns:140px repeat(7, 1fr);
+            grid-template-rows:35px;
             width:100%;
             &:not(:first-child) {
                 .pdf-item__table--cols {

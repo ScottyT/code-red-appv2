@@ -10,7 +10,7 @@ Pertaining to services engaged at the following described property below
 This Agreement is one of two Agreements:
 One: Contracting Services Agreement &
 Two: Scope of Work</p>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{errors}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
@@ -19,7 +19,7 @@ Two: Scope of Work</p>
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -297,8 +297,8 @@ officer of {{abbreviation}} for this agreement to be effective
                     </ValidationProvider>
                 </div>
                 <div class="form__form-group form__form-group--narrow">
-                    <LazyUiSignaturePadModal width="700px" height="219px" notrequired dialog :initial="false" sigType="customer" inputId="cusSign" :sigData="cusSign" 
-                        sigRef="cusSign" name="Customer signature" />
+                    <LazyUiSignaturePadModal width="700px" height="219px" notrequired :dialog="false" :initial="false" sigType="customer" inputId="cusSign" :sigData="cusSign" 
+                        sigRef="cusSignPad" name="Customer signature" />
                     <ValidationProvider name="Sign Date" rules="required" v-slot="{errors, ariaMsg}">
                         <label for="signDate" class="form__label">Date</label>
                         <imask-input id="signDate" :value="signDate" class="form__input" :mask="dateMask.mask" :pattern="dateMask.pattern" :blocks="dateMask.blocks" :format="dateMask.format" 
@@ -309,6 +309,13 @@ officer of {{abbreviation}} for this agreement to be effective
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('guardian-contracting-agreement', selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `guardian-contracting-agreement-${selectedJobId}`, selectedJobId)" 
+                      @hasDownloaded="uploadPdf($event, `guardian-contracting-agreement-${selectedJobId}`, selectedJobId)" :manual-pagination="false" 
+                      :show-layout="false" :enable-download="false" :preview-modal="true" :paginate-elements-by-height="900" :ref="`html2Pdf0`">
+            <LazyPdfContractService :jobid="selectedJobId" reportType="guardian-contracting-agreement" slot="pdf-content"
+                :company="postedData.contractingCompany" :abbreviation="postedData.companyAbbreviation" :report="postedData" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
@@ -325,7 +332,8 @@ export default defineComponent({
         const { $api } = useContext()
         const user = computed(() => store.getters["users/getUser"])
         const reports = computed(() => store.getters["reports/getReports"])
-        const { getReportPromise } = useReports()
+        const { getReportPromise, beforeDownloadNoSave, uploadPdf, htmlToPdfOptions } = useReports()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const selectedJobId = ref("")
         const errorDialog = ref(false)
         const submitted = ref(false)
@@ -364,6 +372,10 @@ export default defineComponent({
         const phoneMask = ref({
             mask: '(000) 000-0000'
         })
+        const postedData = ref({})
+        const form = ref(null)
+        const html2Pdf0 = ref(null)
+        const reportFetched = ref(false)
 
         function formatDateRange(dateStart, dateEnd) {
             if (!dateStart && !dateEnd) return null
@@ -386,8 +398,28 @@ export default defineComponent({
                 claimNumber.value = result.ClaimNumber
             })
         }
-
-        async function submitForm () {
+        async function submitForm() {
+            var contractingRep = reports.value.filter((v) => {
+                return v.ReportType === 'guardian-contracting-agreement'
+            })
+            const contractingRepId = contractingRep.map((v) => {
+                return v.JobId
+            })
+            submitting.value = true
+            await form.value.validate().then(success => {
+                if (!success) {
+                    submitting.value = false
+                    submitted.value = false
+                    errorDialog.value = true
+                    return
+                }
+                onSubmit().then((result) => {
+                    message.value = result
+                    html2Pdf0.value.generatePdf()
+                })
+            })
+        }
+        function onSubmit () {
             message.value = ""
             var contractingRep = reports.value.filter((v) => {
                 return v.ReportType === 'guardian-contracting-agreement'
@@ -420,37 +452,21 @@ export default defineComponent({
                 cusSign: cusSign.value.data,
                 signDate: signDate.value
             }
-            await refs.form.validate().then(success => {
-                if (!success) {
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$post("/api/reports/guardian-contracting-agreement/new", post, {
+                    params: {
+                        jobid: selectedJobId.value
+                    }
+                }).then((res) => {
+                    submitted.value = true
                     submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return
-                }
-                if (!contractingRepId.includes(selectedJobId.value)) {
-                    submitting.value = true
-                    $api.$post("/api/reports/guardian-contracting-agreement/new", post, {
-                        params: {
-                            jobid: selectedJobId.value
-                        }
-                    }).then((res) => {
-                        if (res.error) {
-                            errorDialog.value = true
-                            submitting.value = false
-                            refs.form.setErrors({
-                                JobId: [res.message]
-                            })
-                            return;
-                        }
-                        submitted.value = true
-                        submitting.value = false
-                        message.value = res
-                    })
-                } else  {
-                    refs.form.setErrors({
-                        JobId: ['Job ID already exists']
-                    })
-                }
+                    fetchReports()
+                    resolve(res)
+                })
+            }).catch(err => {
+                console.log(err)
+                reject(err)
             })
         }
         function settingLocation(params) {
@@ -464,6 +480,12 @@ export default defineComponent({
 
         watch(selectedJobId, (val) => {
             getJob(val)
+            getReportPromise(`guardian-contracting-agreement/${val}`).then((res) => {
+                reportFetched.value = true
+                customer.value = res.customerPrint
+                cusSign.value.data = res.cusSign
+                signDate.value = res.signDate
+            })
         })
         watch(policyDateFormatted, (val) => {
             policyDateFormatted.value = formatDateRange(policyDateStart.value, policyDateEnd.value)
@@ -482,9 +504,15 @@ export default defineComponent({
             cusSign,
             phoneMask,
             dateMask,
-            submitForm,
             settingLocation, settingBillingLocation,
-            reports
+            reports,
+            submitForm,
+            beforeDownloadNoSave,
+            htmlToPdfOptions,
+            uploadPdf,
+            html2Pdf0,
+            form,
+            postedData
         }
     },
 })

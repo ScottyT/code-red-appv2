@@ -23,5 +23,8 @@
       "wrapAttributes": false,
       "sortAttributes": false
     }
+  },
+  "workbench.colorCustomizations": {
+  "[Default Dark+]": {}
   }
 }

@@ -9,7 +9,7 @@ Guardian Restoration Incorporated (Hereinafter, “Guardian”)
 Pertaining to services engaged at the following described property below. </p>
         <p>The Customer, in consideration of the work to be performed, hereby engages and hires Guardian Restoration Inc. (“Guardian”) to provide Repair Services and Betterments (as defined below), and in consideration of this Agreement, Guardian Restoration agrees to provide the Repair Services and Betterments, subject to the following terms and conditions:<br />
 The scope of work that Guardian estimates is necessary to fully restore and/or replace any damage to the Property is set forth below:</p>
-        <ValidationObserver ref="form" v-slot="{errors, handleSubmit}">
+        <ValidationObserver ref="form" v-slot="{errors}">
             <h2>{{message}}</h2>
             <v-dialog width="400px" v-model="errorDialog">
                 <div class="modal__error">
@@ -18,7 +18,7 @@ The scope of work that Guardian estimates is necessary to fully restore and/or r
                     </div>
                 </div>
             </v-dialog>
-            <form class="form" @submit.prevent="handleSubmit(submitForm)" v-if="!submitted">
+            <form class="form" @submit.prevent="submitForm" v-if="!submitted">
                 <div class="form__form-group">
                     <ValidationProvider vid="JobId" v-slot="{errors, ariaMsg}" name="Job ID" class="form__input-group form__input-group--normal">
                         <input type="hidden" v-model="selectedJobId" />
@@ -239,8 +239,8 @@ The scope of work that Guardian estimates is necessary to fully restore and/or r
                             <label :for="`${betterment.id}-rep-print`" class="form__label">Representitive Print</label>
                             <input type="text" class="form__input" :id="`${betterment.id}-rep-print`" v-model="betterment.repPrint"/>
                         </div>
-                        <LazyUiSignaturePadModal width="650px" height="219px" inputId="repSig" :sigData="initialData" v-model="betterment.repSign" name="Representative signature" 
-                            :dialog="false" :initial="false" sigRef="repSignaturePad" sigType="customer" />
+                        <LazyUiSignaturePadModal width="650px" height="219px" :inputId="`repSig-${i}`" :sigData="initialData" v-model="betterment.repSign" name="Representative signature" 
+                            :dialog="false" :initial="false" :sigRef="`repSignaturePad-${i}`" sigType="customer" />
                         <div class="form__input-group form__input-group--short">
                             <label class="form__label">Date</label>
                             <imask-input :id="`${betterment.id}-signdate`" :value="betterment.date" class="form__input" :mask="dateMask.mask" :pattern="dateMask.pattern" :blocks="dateMask.blocks" 
@@ -343,19 +343,30 @@ The scope of work that Guardian estimates is necessary to fully restore and/or r
                 <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
             </form>
         </ValidationObserver>
+        <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('guardian-scope-of-work', selectedJobId)"
+                      @beforeDownload="beforeDownloadNoSave($event, `guardian-scope-of-work-${selectedJobId}`, selectedJobId)" 
+                      @hasDownloaded="uploadPdf($event, `guardian-scope-of-work-${selectedJobId}`, selectedJobId)"
+                      :manual-pagination="false" :show-layout="false" :enable-download="false" :preview-modal="true"
+                      :paginate-elements-by-height="700" :ref="`html2Pdf0`">
+            <PdfScopeOfWork :jobid="selectedJobId" reportType="guardian-scope-of-work" :report="postedData" 
+                :company="postedData.contractingCompany" :abbreviation="postedData.companyAbbreviation" slot="pdf-content" />
+        </vue-html2pdf>
     </div>
 </template>
 <script>
 import { defineComponent, ref, useContext, useStore, computed } from '@nuxtjs/composition-api'
 import { dateMask, driversLicenseMask } from "@/data/masks"
+import useReports from '@/composable/reports'
 export default defineComponent({
     props: {
         company: String,
         abbreviation: String
     },
     setup(props, context) {
-        const store = context.root.$store
-        const { $fire, $api } = useContext()
+        const store = useStore()
+        const { $api } = useContext()
+        const { getReportPromise, beforeDownloadNoSave, uploadPdf, htmlToPdfOptions } = useReports()
+        const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const reports = computed(() => store.getters["reports/getReports"])
         const user = computed(() => store.getters["users/getUser"])
         const submitting = ref(false);
@@ -444,8 +455,26 @@ export default defineComponent({
         })
         const signDate = ref("")
         const cusLicenseNumber = ref("")
+        const postedData = ref({})
+        const form = ref(null)
+        const html2Pdf0 = ref(null)
 
         async function submitForm() {
+            submitting.value = true
+            await form.value.validate().then(success => {
+                if (!success) {
+                    submitting.value = false
+                    submitted.value = false
+                    errorDialog.value = true
+                    return
+                }
+                onSubmit().then((result) => {
+                    message.value = result
+                    html2Pdf0.value.generatePdf()
+                })
+            })
+        }
+        function onSubmit() {
             message.value = ""
             var scopeRep = reports.value.filter((v) => {
                 return v.ReportType === 'guardian-scope-of-work'
@@ -459,6 +488,7 @@ export default defineComponent({
                 ReportType: "guardian-scope-of-work",
                 formType: "scope-of-work",
                 contractingCompany: "Guardian Restoration",
+                companyAbbreviation: "Guardian",
                 teamMember: user.value,
                 totalSquares: totalSquares.value,
                 threeTab: threeTab.value,
@@ -505,30 +535,24 @@ export default defineComponent({
                 signDate: signDate.value,
                 cusLicenseNumber: cusLicenseNumber.value
             }
-
-            await context.refs.form.validate().then(success => {
-                if (!success) {
+            postedData.value = post
+            return new Promise((resolve, reject) => {
+                $api.$post("/api/reports/guardian-scope-of-work/new", post, {
+                    params: {
+                        jobid: selectedJobId.value
+                    }
+                }).then((res) => {
+                    submitted.value = true
                     submitting.value = false
-                    submitted.value = false
-                    errorDialog.value = true
-                    return
-                }
-                if (!scopeRepId.includes(selectedJobId)) {
-                    $api.$post("/api/guardian-scope-of-work/new", post).then((res) => {
-                        submitted.value = true
+                    fetchReports()
+                    resolve(res)
+                }).catch((err) => {
+                    if (err.response) {
                         submitting.value = false
-                        message.value = res
-                    }).cathc((err) => {
-                        if (err.response) {
-                            submitting.value = false
-                            console.error(err.response.data)
-                        }
-                    })
-                } else {
-                    context.refs.form.setErrors({
-                        JobId: ['Job ID already exists']
-                    })
-                }
+                        console.error(err.response.data)
+                        reject(err)
+                    }
+                })
             })
         }
 
@@ -559,7 +583,14 @@ export default defineComponent({
             finalTotal, finalPayment, finalCurrentBalance, finalCusPrint, finalCusSign,
             signDate, cusLicenseNumber,
             licenseMask: driversLicenseMask,
-            submitForm
+            submitForm,
+            getReportPromise,
+            beforeDownloadNoSave,
+            uploadPdf,
+            htmlToPdfOptions,
+            html2Pdf0,
+            form,
+            postedData
         }
     },
 })

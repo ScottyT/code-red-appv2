@@ -18,7 +18,5 @@ Vue.directive('capital', {
             newVal = inputValue
             el.value = newVal
         })
-        console.log(vnode)
-        console.log(binding)
     },
 })

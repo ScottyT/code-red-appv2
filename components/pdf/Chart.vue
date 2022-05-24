@@ -1,28 +1,30 @@
 <template>
     <div class="pdf-content" slot="pdf-content">
         <h1 class="text-center">Psychrometric Chart for {{report.JobId}}</h1>
-        <section class="pdf-item" v-for="(chart, key) in sameTypes" :key="key">            
+        <!-- <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="sameTypes['Affected']" :height="500" 
+            :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf /> -->
+        <section class="pdf-item" v-for="(chart, key) in groupByKey(newchartdata, 'readingsType')" :key="key">            
             <h3>{{key}}</h3>
-            <LazyLayoutPsychrometricChart :width="700" multipleCharts :dataLoaded="loaded" :existingChart="chart" :height="500" :buttonDisabled="true" 
-                class="chart__psychrometric" />
+            <LazyLayoutPsychrometricChart :width="700" :jobid="report.JobId" multipleCharts :dataLoaded="chartLoaded" :existingChart="chart" :height="500" 
+                :buttonDisabled="true" class="chart__psychrometric" :report="report" pdf  />
             <div class="pdf-item__calculations">
                 <div class="chart-inputs__calculations" v-for="(data, i) in chart" :key="`data-${i}`">
                     <h4 class="pl-2 pt-1">{{data.label}}</h4>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Temperature</div>
-                        <div class="chart-inputs__temp">{{data.info.dryBulbTemp}}&deg;F</div>
+                        <div class="chart-inputs__temp">{{data && data.info ? data.info.dryBulbTemp : null}}&deg;F</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Humidity Ratio</div>
-                        <div class="chart-inputs__temp">{{data.info.humidityRatio}}</div>
+                        <div class="chart-inputs__temp">{{data && data.info ? data.info.humidityRatio : null}}</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Relative humidity</div>
-                        <div class="chart-inputs__calculations-col">{{data.info.relativeHumidity}}</div>
+                        <div class="chart-inputs__calculations-col">{{data && data.info ? data.info.relativeHumidity : null}}</div>
                     </div>
                     <div class="chart-inputs__calculations-row">
                         <div class="chart-inputs__calculations-col">Dew Point</div>
-                        <div class="chart-inputs__calculations-col">{{data.info.dewPoint}}&deg;F</div>
+                        <div class="chart-inputs__calculations-col">{{data && data.info ? data.info.dewPoint : null}}&deg;F</div>
                     </div>
                 </div>
             </div>
@@ -30,22 +32,55 @@
     </div>
 </template>
 <script>
-import { defineComponent, toRefs, ref, computed, provide, onMounted, inject } from '@nuxtjs/composition-api'
+import { defineComponent, toRefs, ref, computed, provide, onMounted, inject, watch } from '@nuxtjs/composition-api'
 import genericFuncs from '@/composable/utilityFunctions'
+import useReports from '@/composable/reports'
 export default defineComponent({
     props: {
-        report: Object
+        report: Object,
+        chartLoaded: Boolean,
+        pdf: Boolean,
+        height: Number
     },
-    setup(props, { }) {
-        const { report } = toRefs(props)
-        const chartdata = computed(() => report.value.jobProgress)
+    setup(props) {
+        const { chartLoaded, report, pdf } = toRefs(props)
         const newchartdata = ref([])
         const loaded = ref(false)
+        const existingdata = ref({})
+        const { getReportPromise } = useReports()
         const { groupByKey } = genericFuncs()
         const sameTypes = ref({})
-        const refactorChartData = () => {
+        const getSubmittedReport = async (data) => {
+            await getReportPromise(`psychrometric-chart/${data.JobId}`).then((result) => {
+                existingdata.value = result
+                refactorChartData(result)
+            })
+        }
+        const refactorChartData = (r) => {
+            sameTypes.value = {}
+            console.log(r)
             var progressArr = []
-            chartdata.value.forEach((item, i) => {
+            for (const key in r) {
+                r[key].forEach((item, i) => {
+                    var data = {
+                        x: item.info.dryBulbTemp,
+                        y: item.info.humidityRatio
+                    }
+                    var dataset = {
+                        readingsType: item.readingsType,
+                        pointRadius: 5,
+                        data: [data],
+                        label: item.date,
+                        backgroundColor: item.color,
+                        info: item.info
+                    }
+                    newchartdata.value.push(dataset)
+                    
+                })
+            }
+            
+            
+            /* r.jobProgress.forEach((item, i) => {
                 var data = {
                     x: item.info.dryBulbTemp,
                     y: item.info.humidityRatio
@@ -58,18 +93,50 @@ export default defineComponent({
                     backgroundColor: item.color,
                     info: item.info
                 }
+                
+                if (!Array.isArray(report.value.jobProgress) && Object.keys(existingdata.value).length > 0) {
+                    data = {
+                        x: report.value.jobProgress.info.dryBulbTemp,
+                        y: report.value.jobProgress.info.humidityRatio
+                    }
+                    dataset = {
+                        readingsType: report.value.jobProgress.readingsType,
+                        pointRadius: 5,
+                        data: [data],
+                        label: report.value.jobProgress.date,
+                        backgroundColor: report.value.jobProgress.color,
+                        info: report.value.jobProgress.info
+                    }
+                }
                 progressArr.push(dataset)
                 newchartdata.value.push(dataset)
-            })
-            sameTypes.value = groupByKey(progressArr, 'readingsType')
+            }) */
+            
+           // sameTypes.value = test
             loaded.value = true
         }
-        onMounted(refactorChartData)
+        watch(() => chartLoaded.value, (val) => {
+            //getSubmittedReport(report.value)
+        })
+        watch(() => report.value, (val) => {
+            
+            
+        })
+        onMounted(() => {
+            var groupedReports = groupByKey(report.value.jobProgress, 'readingsType')
+            refactorChartData(groupedReports)
+            if (pdf.value) {
+                /* var test = groupByKey(report.value.jobProgress, 'readingsType')
+                refactorChartData(test) */
+                //getSubmittedReport(report.value)
+            }
+        })
         return {
             loaded,
-            chartdata,
             newchartdata,
-            sameTypes
+            sameTypes,
+            existingdata,
+            groupByKey
         }
     },
 })

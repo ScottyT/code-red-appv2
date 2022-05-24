@@ -16,23 +16,15 @@
             </div>
             <div class="report-details__data">
                 <label>Address:</label>
-                <span class="report-details__data-field">{{report.location.address}}</span>
+                <span class="report-details__data-field">{{report && report.location ? report.location.address : null}}</span>
             </div>
             <div class="report-details__data">
                 <label>City, State, Zip:</label>
-                <span class="report-details__data-field">{{report.location.cityStateZip}}</span>
+                <span class="report-details__data-field">{{report && report.location ? report.location.cityStateZip : null}}</span>
             </div>
         </div>
         <div class="report-details__section--case-file">
-            <div class="report-details__data" v-if="report && report.contentCleaningInspection !== undefined">
-                <!-- content cleaning section -->
-                <h4>{{report.contentCleaningInspection[0].group}}</h4>
-                <ul>                   
-                    <li v-for="(item, i) in report.contentCleaningInspection" :key="`cleaning-${i}`">
-                        {{item.label}}
-                    </li>
-                </ul>
-            </div>
+            
             <div class="report-details__data" v-if="report && report.selectedTmpRepairs !== undefined">
                 <!-- tmp repairs -->
                 <h4>TMP Repairs</h4>

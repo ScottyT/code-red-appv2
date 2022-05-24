@@ -12,7 +12,7 @@
               and The Owner/Persons of legal authority (hereinafter referred to as “Property Representative”)
               of the property more commonly known as and identified by the following address:
             </p>
-            <h4 class="text-decoration-underline pdf-detail">{{certificate.subjectProperty}}</h4><br />
+            <h4 class="text-decoration-underline pdf-detail">{{certificate ? certificate.subjectProperty : null}}</h4><br />
             <label>(hereinafter referred to as “Subject Property”)</label>
             <p class="text-decoration-underline"><strong>{{company}} has completed the
                 Assignment of Benefit Agreement and Mitigation Contract in full</strong></p>
@@ -45,7 +45,7 @@
             <div class="report-details__data report-details__data--row">
               <div class="report-details__data-field">
                 <label>Insured Deductible: </label>
-                 <span style="padding-right:5px;">$</span><span>{{certificate.deductible}}</span>
+                 <span style="padding-right:5px;">$</span><span>{{certificate ? certificate.deductible : null}}</span>
               </div>
               <div class="report-details__data-field">
                 <label>Insured: Agreed “Term” of Service Minimum End Date: </label>
@@ -152,10 +152,10 @@
             </div>
           </div>
         </div>
-        <h3 v-if="card === null">Customer paid with Cash</h3>
+        <h3 v-if="certificate.paymentOption === 'Cash'">Customer paid with Cash</h3>
         <div class="report-details__data data-section pdf-detail" v-else>
             <div class="data-section__heading">Debit/Credit Cards</div>
-            <div class="data-section__data">
+            <div class="data-section__data" v-for="(card, i) in certificate.creditCard" :key="`card-${i}`">
                 <div class="data-section__data--group">
                     <div class="data-section__subheading">Cardholder</div>
                     <div class="data-section__data--group-item">
@@ -191,11 +191,11 @@
                     <div class="data-section__subheading">Billing Address</div>
                     <div class="data-section__data--group-item">
                         <label>Address 1:</label>
-                        <div>{{!card && card.billingAddress ? null : card.billingAddress.address1}}</div>
+                        <div>{{card.billingAddressFirst.address}}</div>
                     </div>
-                    <div class="data-section__data--group-item" v-show="!card && card.billingAddress ? false : true">
+                    <div class="data-section__data--group-item" v-show="card.billingAddressOther.address !== ''">
                         <label>Address 2:</label>
-                        <div>{{!card && card.billingAddress ? null : card.billingAddress.address2}}</div>
+                        <div>{{card.billingAddressOther.address}}</div>
                     </div>
                     <!-- <div class="data-section__data--group-item">
                   <label>City: </label>
@@ -220,8 +220,8 @@
                 </div>
                 <div class="data-section__card-images">
                     <div class="card-image"
-                         v-for="(image, i) in cardImages"
-                         :key="`card-${i}`">
+                         v-for="(image, i) in cardsImages"
+                         :key="`cardimage-${i}`">
                         <img :src="image.imageUrl" />
                     </div>
                 </div>
@@ -233,63 +233,23 @@
       </div>
 </template>
 <script>
-import {mapGetters, mapActions} from 'vuex';
-export default {
-    name:"CertificateContent",
-    props: ['jobid', 'reportType'],
-    data() {
-        return {
-          cards: [],
-          errorMessage: "",
-          cardImages: [],
-          company: "",
-          abbreviation: "",
-          certificate: null,
-          card: {}
-        }
-    },
-    methods: {
-      ...mapActions({
-        fetchReport: 'reports/fetchReport',
-      }),
-      getReport() {
-        return new Promise((resolve, reject) => {
-            this.$api.$get(`/api/reports/${this.reportType}/${this.jobid}/certificate`).then((res) => {
-              this.abbreviation = res.ReportType === 'wesi-coc'?'WESI':'GUARD'
-              this.certificate = res
-              this.company = res.contractingCompany
-              this.card = res.creditCard
-              resolve(res)
-          }).catch(err => {
-              reject(err)
-          })
-        })
-      }
-    },
-    mounted() {
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$emit("domRendered");
-        }, 1000)
-      })
-    },
-    created() {
-      this.cardImages = []
-      this.getReport().then((result) => {
-        if (result.creditCard !== null) {
-          this.$gcs.$get("/list/creditCard", {
-            params: {
-                folder: 'creditCard',
-                subfolder: result.cardNumber,
-                delimiter: '',
-            }
-          }).then((res) => {
-            this.cardImages = res.images
-          })
-        }
-      })
-    }
-}
+import { defineComponent, toRefs } from '@nuxtjs/composition-api'
+export default defineComponent({
+  name:"CertificateContent",
+  props: {
+    jobid: String,
+    reportType: String,
+    certificate: Object,
+    cardsImages: Array,
+    company: String,
+    abbreviation: String,
+    onForm: Boolean
+  },
+  setup(props) {
+    const { jobid, reportType } = toRefs(props)
+
+  }
+})
 </script>
 <style lang="scss" scoped>
 .data-section {

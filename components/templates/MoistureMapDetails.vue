@@ -38,7 +38,7 @@
                 </div>
             </div>
         </div>
-        <LazyLayoutMoistureCompare :width="700" :height="500" onPdf :jobid="report.JobId" :existingChart="baseline" class="chart__moisture-map" />
+        <LazyLayoutMoistureCompare :width="700" :height="500" :chartLoaded="loaded" onPdf :jobid="report.JobId" :existingChart="baseline" class="chart__moisture-map" />
         <div class="report-details__section--pictures">
             <div class="report-details__image" v-for="(image, i) in images" :key="`image-${i}`">
                 <img :src="image.url" />
@@ -47,26 +47,60 @@
     </div>
 </template>
 <script>
-import { defineComponent, onMounted, toRefs, ref } from '@nuxtjs/composition-api'
-import useReports from '@/composable/reports'
+import { defineComponent, onMounted, toRefs, ref, watch, useContext } from '@nuxtjs/composition-api'
+
 export default defineComponent({
     props: {
         company: String,
         reportName: String,
-        report: Object
+        report: Object,
+        pdf: {
+            type: Boolean
+        },
+        loaded: Boolean
     },
     setup(props, { root }) {
-        const { report } = toRefs(props)
-        const { getReportImages, images } = useReports()
+        const { report, pdf } = toRefs(props)
+        const { $gcs } = useContext()
         const baseline = ref([])
+        const images = ref([])
 
         function loadedReport() {
+            baseline.value = []
             report.value.baselineReadings.forEach((item) => {
                 baseline.value.push(item)
             })
         }
-        onMounted(loadedReport)
-        getReportImages(report.value.JobId, "moisture-images", "", "/").fetchImages()
+        function loadImages(jobid, folder, subfolder, delimiter) {
+            return new Promise((resolve, reject) => {
+                $gcs.$get(`/list/${jobid}`, {
+                    params: {
+                        folder: folder,
+                        subfolder: folder + "/" + subfolder,
+                        delimiter: delimiter,
+                        bucket: "default"
+                    }
+                }).then((res) => {
+                    resolve(res)
+                }).catch(err => {
+                    reject(err)
+                })
+            })
+        }
+        watch(() => report.value, (val) => {
+            loadedReport()
+            loadImages(val.JobId, "moisture-images", "", "/").then((result) => {
+                images.value = result.images
+            }).catch(err => {
+                images.value = []
+            })
+        })
+        onMounted(() => {
+            if (pdf.value) {
+                loadedReport()
+            }
+        })
+        
         return {
             images, baseline
         }
@@ -76,7 +110,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .chart {
     &__moisture-map {
-        max-width:700px;
+        width:700px;
+        height:500px;
     }
 }
 .moisture-data {
