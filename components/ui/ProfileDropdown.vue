@@ -37,6 +37,10 @@
                 <v-icon>mdi-form-select</v-icon>
                 <p>Sketches</p>
             </nuxt-link>
+            <nuxt-link class="profile-menu__dropdown-menu--item" to="/forms/general-history">
+                <v-icon>mdi-form-select</v-icon>
+                <p>General History</p>
+            </nuxt-link>
             <a class="profile-menu__dropdown-menu--item">
                 <v-icon>{{$auth.loggedIn ? 'mdi-logout-variant' : 'mdi-login-variant'}}</v-icon>
                 <p @click="$auth.logout('auth0')">{{$auth.loggedIn ? "Logout" : "Login"}}</p>

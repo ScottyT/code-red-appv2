@@ -51,6 +51,9 @@
     <LazyHydrate v-if="slice === 'content-inventory'">
       <LazyFormsContentInventory company="Water Emergency Services Incorporated" abbreviation="WESI" />
     </LazyHydrate>
+    <LazyHydrate v-if="slice == 'general-history'">
+      <LazyFormsGeneralHistory company="Water Emergency Services Incorporated" abbreviation="WESI" />
+    </LazyHydrate>
   </v-layout>
 </template>
 <script>

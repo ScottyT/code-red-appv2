@@ -10,10 +10,11 @@ export default function useReports() {
     let images = ref([])
     let loading = ref(false)
     let groupedReports = ref({})
+    let message = ref([])
     let filters = ref([])
     const { $axios, $fire, $api, $gcs } = useContext()
     const store = useStore()
-    const { groupByKey, dataURLtoFile } = genericFuncs()
+    const { groupByKey, dataURLtoFile, replaceEmptyFormFields } = genericFuncs()
 
     function htmlToPdfOptions(reportType, jobid) {
         return {
@@ -92,9 +93,6 @@ export default function useReports() {
                     errorMessage.value = e.response.data
                 })
             })
-
-            //const token = await $fire.auth.currentUser.getIdToken()
-            // This is using the Fetch API 
         })
         return { fetchReports, fetchState, reports, groupedReports }
     }
@@ -134,15 +132,19 @@ export default function useReports() {
         return { fetchReport, fetchState }
     }
 
+    // Use this function when trying to get report from somewhere that isn't inside setup() method. Mainly use this inside a watch() property
     const getReportPromise = (path) => {
         loading.value = true
         return new Promise((resolve, reject) => {
             $api.$get(`/api/reports/details/${path}`).then((res) => {
+                replaceEmptyFormFields(res)
                 report.value = res
                 loading.value = false
-                errorMessage.value = res.error
+                message.value.push("Got report!")
                 resolve(res)
             }).catch((err) => {
+                errorMessage.value = err.response.data.title
+                report.value = []
                 reject(err)
                 loading.value = false
             })
@@ -263,7 +265,7 @@ export default function useReports() {
         })
     }
     return {
-        getReports, fetch, reports, report, images, error, errorMessage, getReport, getReportPromise, getReportImages, loading,
+        getReports, fetch, reports, report, images, error, errorMessage, message, getReport, getReportPromise, getReportImages, loading,
         getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf
     }
 }

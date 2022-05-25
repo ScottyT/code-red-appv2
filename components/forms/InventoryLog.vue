@@ -48,7 +48,7 @@
                     </ValidationProvider>
                 </div>
                 <div class="form__table inventory-logs">
-                    <div class="form__table form__table--rows">
+                    <div class="form__table--rows">
                         <div class="form__table--cols">
                             
                         </div>
@@ -56,7 +56,7 @@
                             <div class="font-weight-bold">Day {{n}}</div>
                         </div>
                     </div>
-                    <div class="form__table form__table--rows">
+                    <div class="form__table--rows">
                         <div class="form__table--cols">
                             <div class="form__label">Tech ID #</div>
                         </div>
@@ -64,7 +64,7 @@
                             <input class="form__input" type="text" readonly v-model="getUser.id" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows" v-for="(row, i) in unitQuantityArr" :key="`unit-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in unitQuantityArr" :key="`unit-${i}`">
                         <div class="form__table--cols">
                             <label class="form__label">{{row.text}}</label>
                         </div>
@@ -72,7 +72,7 @@
                             <input type="number" :tabindex="j" class="form__input" v-model="col.value" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows" v-for="(row, i) in checkBoxArr" :key="`checkbox-row-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in checkBoxArr" :key="`checkbox-row-${i}`">
                         <div class="form__table--cols">
                             <label class="form__label">{{row.text}}</label>
                         </div>
@@ -80,7 +80,7 @@
                             <input type="checkbox" :checked="false" v-model="col.value" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows" v-for="(row, i) in serviceArr" :key="`service-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in serviceArr" :key="`service-${i}`">
                         <div class="form__table--cols">
                             <label class="form__label">{{row.text}}</label>
                         </div>
@@ -640,9 +640,6 @@ export default defineComponent({
 </script>
 <style lang="scss">
 .inventory-logs {
-    grid-template-rows:60px repeat(39, 1fr);
-    /* input[type=checkbox] {
-        width:100%;
-    } */
+    grid-template-rows:50px repeat(35, 1fr);
 }
 </style>
