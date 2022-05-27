@@ -30,7 +30,7 @@
               </div>
               <div class="form__input-group form__input-group--short">
                 <label for="date" class="form__label">Date</label>
-                <UiDatePicker dateId="date" dialogId="dateDialog" @date="dateFormatted = $event" @unformattedDate="date = $event" />
+                <UiDatePicker dateId="date" dialogId="dateDialog" :existingDate="date" @date="date = $event" />
               </div>
               <div class="form__input-group form__input-group--long">
                 <label for="location" class="form__label">Location</label>
@@ -246,7 +246,7 @@
 import moment from 'moment';
 import genericFuncs from '@/composable/utilityFunctions'
 import useReports from '@/composable/reports'
-import { defineComponent, useStore, ref, computed, useContext, watch } from '@nuxtjs/composition-api';
+import { defineComponent, useStore, ref, computed, useContext, watch, onMounted } from '@nuxtjs/composition-api';
 
 export default defineComponent({
   props: {
@@ -260,7 +260,7 @@ export default defineComponent({
     const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
     const { $api } = useContext()
     const fetchReports = () => { store.dispatch("reports/fetchReports") }
-    const date = new Date().toISOString().substring(0, 10)
+    const date = ref(new Date().toISOString().substring(0, 10))
     const dateFormatted = formatDate(new Date().toISOString().substring(0, 10))
     const location = ref({
         address: null,
@@ -599,6 +599,7 @@ export default defineComponent({
       gallons: '',
       pounds: ''
     })
+    const parsedDate = ref("")
 
     const getUser = computed(() => store.getters["users/getUser"])
     const getReports = computed(() => store.getters["reports/getReports"])
@@ -607,9 +608,6 @@ export default defineComponent({
         let end = moment(`${date} ${evalEnd.value}`, "YYYY-MM-DD hh:mm")
         let duration = moment.duration(end.diff(start)).asMinutes()
         return duration + ' minutes'
-    })
-    const parsedDate = computed(() => {
-        return moment(dateFormatted, "MM-DD-YYYY").format("MM-DD-YYYY")
     })
 
     function settingLocation(params) {
@@ -623,7 +621,7 @@ export default defineComponent({
       const dates = reports.map((v) => {
           return v.date
       })
-      if (!dates.includes(this.dateFormatted)) {
+      if (!dates.includes(this.date)) {
           Promise.all([onSubmit()]).then((result) => {
             message.value = result[0]
             html2Pdf0.value.generatePdf()
@@ -643,15 +641,15 @@ export default defineComponent({
       submitting.value = true
       const evaluationLogs = [{
               label: 'Dispatch to Property',
-              value: `${parsedDate.value} ${dispatchPropertyFormatted.value}:00`
+              value: `${parsedDate.value} ${dispatchPropertyFormatted.value}`
           },
           {
               label: 'Start Time',
-              value: `${parsedDate.value} ${evalStart.value}:00`
+              value: `${parsedDate.value} ${evalStart.value}`
           },
           {
               label: 'End Time',
-              value: `${parsedDate.value} ${evalEnd.value}:00`
+              value: `${parsedDate.value} ${evalEnd.value}`
           },
           {
               label: 'Total Time',
@@ -660,7 +658,7 @@ export default defineComponent({
       ]
       const post = {
         JobId: selectedJobId.value,
-        date: dateFormatted.value,
+        date: parsedDate.value,
         location: location.value,
         contentCleaningInspection: selectedContentCleaning.value,
         waterRestorationInspection: selectedWaterRestoration.value,
@@ -710,11 +708,21 @@ export default defineComponent({
     watch(() => evalEnd.value, (val) => {
       evalEndFormatted.value = formatTime(val)
     })
+    watch(date, (val) => {
+      parsedDate.value = moment(val, "MM-DD-YYYY").format("MM-DD-YYYY")
+    })
     watch(selectedJobId, (val) => {
         getReportPromise(`case-file-technician/${val}`).then((res) => {
             location.value.address = res.location.address
             location.value.cityStateZip = res.location.cityStateZip
+            date.value = res.date
+            dispatchToProperty.value = res.evaluationLogs.filter(x => x.label == 'Dispatch to Property')[0].value.split(' ')[1]
+            evalStart.value = res.evaluationLogs.filter(x => x.label == 'Start Time')[0].value.split(' ')[1]
+            evalEnd.value = res.evaluationLogs.filter(x => x.label == 'End Time')[0].value.split(' ')[1]
         })
+    })
+    onMounted(() => {
+      parsedDate.value = moment(dateFormatted, "MM-DD-YYYY").format("MM-DD-YYYY")
     })
 
     return {

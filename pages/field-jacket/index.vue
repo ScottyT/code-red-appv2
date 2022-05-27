@@ -6,6 +6,8 @@
             <h3 class="reports-wrapper__heading">{{item[0].heading}}</h3>
             <LazyLayoutReports :reports="item" theme="light" />
         </div>
+        <h3 class="reports-wrapper__heading">General History Logs</h3>
+        <LazyLayoutReports :reports="generalHistory" theme="light" />
     </div>
 </template>
 <script>
@@ -18,6 +20,7 @@ export default defineComponent({
         const { $api } = useContext()
         const fetching = ref(false)
         const certs = ref([])
+        const generalHistory = ref([])
         const isOnline = computed(() => root.$nuxt.isOnline)
         const { getReports, groupedReports, filterConditions, error, reports } = useReports()
         //Here change dispatch and rapid-response formType to initialForms when deleting the old test reports and updating job 21-0002
@@ -26,8 +29,13 @@ export default defineComponent({
         const fetchCerts = async () => {
             certs.value = await $api.$get(`/api/Certifications`);
         }
-        onMounted(fetchCerts)
-        return { groupedReports, fetching, error, reports, certs }
+        const fetchGeneralHistory = async () => {
+            generalHistory.value = await $api.$get("/api/GeneralHistory");
+        }
+        onMounted(() => {
+            fetchGeneralHistory()
+        })
+        return { groupedReports, fetching, error, reports, certs, generalHistory }
     }
 })
 </script>

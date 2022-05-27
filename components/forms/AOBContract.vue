@@ -808,6 +808,7 @@ import {mapGetters, mapActions} from 'vuex'
 import { statesArr } from "@/data/states"
 import { driversLicenseMask } from "@/data/masks";
 import useReports from '@/composable/reports'
+import genericFuncs from '@/composable/utilityFunctions'
 import axios from 'axios'
   export default {
     props: ['company', 'abbreviation'],
@@ -954,7 +955,8 @@ import axios from 'axios'
         cardImages: [],
         emailSuccess: "",
         licenseMask: driversLicenseMask,
-        reportFetched: false
+        reportFetched: false,
+        currencyFormat: genericFuncs().currencyFormat
     }),
     watch: {
         deductible(val) {
@@ -1072,17 +1074,6 @@ import axios from 'axios'
             if (!dateReturned) return null
             const [year, month, day] = dateReturned.split('-')
             return `${month}/${day}/${year}`
-        },
-        currencyFormat($event) {
-            let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
-            // only allow number and one dot
-            if ((keyCode < 48 || keyCode > 57) && (keyCode !== 46 || this.deductible.indexOf('.') != -1)) { // 46 is dot
-                $event.preventDefault();
-            }
-            // restrict to 2 decimal places
-            if(this.deductible!=null && this.deductible.indexOf(".")>-1 && (this.deductible.split('.')[1].length > 1)){
-                $event.preventDefault();
-            }
         },
         formatTime(timeReturned) {
             if (!timeReturned) return null

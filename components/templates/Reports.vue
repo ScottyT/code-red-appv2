@@ -7,7 +7,9 @@
             <nuxt-link class="pa-2" :to="`/${fieldJacket ? 'field-jacket' : 'contracts'}/${slotProps.report.ReportType}/${slotProps.report.JobId}`">
                 <p>{{slotProps.report.JobId}}</p>
                 <p>{{slotProps.report.teamMember !== undefined ? slotProps.report.teamMember.name : ""}}</p>
-                <span v-if="slotProps.report.date !== null"><span class="form__label">Date:</span>{{slotProps.report.date}}</span>
+                <span v-if="slotProps.report.date !== null && slotProps.report.date !== undefined && slotProps.report.date !== ''">
+                    <span class="form__label">Date:</span>{{slotProps.report.date}}
+                </span>
                 <p>{{slotProps.report.ReportType}}</p>
             </nuxt-link>
             <button v-show="slotProps.report.ReportType === 'case-file-technician'" class="button button--normal"
@@ -18,6 +20,7 @@
   </div>
 </template>
 <script>
+import moment from 'moment';
 import { defineComponent, toRefs, ref, watch, onMounted, computed, useStore } from "@nuxtjs/composition-api";
 import axios from 'axios';
 import genericFuncs from "@/composable/utilityFunctions"
@@ -58,7 +61,7 @@ export default defineComponent({
             var dispatchStart = ""
             var empArr = Array.from(new Set(allReports.value.map(elObj => elObj.teamMember.name)))
             var dateArr = Array.from(new Set(techSheets.map((elObj) => {
-                return elObj.date
+                return moment(elObj.date, "MM-DD-YYYY").format("MM-DD-YYYY")
             })))
             //`${process.env.functionsUrl}/download_excel`
             

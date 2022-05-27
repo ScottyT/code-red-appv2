@@ -101,7 +101,7 @@
                     <ValidationProvider vid="evalDate" name="Date of Evaluation" rules="required" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
                         <label for="evalDate" class="form__label">Date of Evaluation</label>
                         <input type="hidden" v-model="evalDate" />
-                        <imask-input id="evalDate" @complete="formatEvalDate" :lazy="false" :blocks="dateMask.blocks" :mask="dateMask.mask" :format="dateMask.format" 
+                        <imask-input id="evalDate" @complete="evalDate = $event" :lazy="false" :blocks="dateMask.blocks" :mask="dateMask.mask" :format="dateMask.format" 
                             :parse="dateMask.parse" :pattern="dateMask.pattern" class="form__input" />
                         <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                     </ValidationProvider>
@@ -122,7 +122,7 @@
                     <ValidationProvider  name="Sign Date" rules="required|length:10" v-slot="{errors, ariaMsg}" class="form__input-group form__input-group--short">
                         <label for="signDate" class="form__label">Sign date</label>
                         <input type="hidden" v-model="signDate" />
-                        <imask-input id="signDate" @complete="formatSignDate" :lazy="false" :blocks="dateMask.blocks" :mask="dateMask.mask" :format="dateMask.format" 
+                        <imask-input id="signDate" @complete="signDate = $event" :lazy="false" :blocks="dateMask.blocks" :mask="dateMask.mask" :format="dateMask.format" 
                             :parse="dateMask.parse" :pattern="dateMask.pattern" class="form__input" />
                         <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                     </ValidationProvider>

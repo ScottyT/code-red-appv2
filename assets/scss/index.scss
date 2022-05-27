@@ -48,9 +48,6 @@ h1, .h1 {
 
 h2 {
   font-size:1.9em; 
-  @include respond(tabletLarge) {
-    font-size: 2.074em;
-  }
 }
 h3 {
   font-size:1.469em;

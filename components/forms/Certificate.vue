@@ -240,7 +240,7 @@ export default defineComponent({
     },
     setup(props) {
         const store = useStore()
-        const { formatDate, formatTime } = genericFuncs()
+        const { formatDate, formatTime, currencyFormat } = genericFuncs()
         const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
         const { $gcs, $api } = useContext()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
@@ -334,21 +334,6 @@ export default defineComponent({
             cardObj.value = params
             cardToUse.value = cardNumber
             cardSubmitted.value = isSubmit
-        }
-        function currencyFormat($event) {
-            let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
-            // only allow number and one dot
-            if ((keyCode < 48 || keyCode > 57) && (keyCode !== 46 || deductible.value.indexOf('.') != -1)) { // 46 is dot
-                $event.preventDefault();
-            }
-            // restrict to 2 decimal places
-            if(deductible.value!=null && deductible.value.indexOf(".")>-1 && (deductible.value.split('.')[1].length > 1)){
-                $event.preventDefault();
-            }
-        }
-        function maskDate() {
-            var x = expirationDate.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,2})/)
-            expirationDate.value = !x[2] ? x[1] : x[1] + '/' + x[2]
         }
         async function submitForm() {
             errorMessage.value = []
@@ -542,7 +527,8 @@ export default defineComponent({
             form,
             html2Pdf0,
             settingSubjectProperty,
-            cardImages
+            cardImages,
+            currencyFormat
         }
     }
 })
