@@ -719,6 +719,10 @@ export default defineComponent({
             dispatchToProperty.value = res.evaluationLogs.filter(x => x.label == 'Dispatch to Property')[0].value.split(' ')[1]
             evalStart.value = res.evaluationLogs.filter(x => x.label == 'Start Time')[0].value.split(' ')[1]
             evalEnd.value = res.evaluationLogs.filter(x => x.label == 'End Time')[0].value.split(' ')[1]
+        }).catch(err => {
+          if (err.response) {
+            console.log(err.response.data)
+          }
         })
     })
     onMounted(() => {

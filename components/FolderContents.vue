@@ -4,10 +4,9 @@
     </v-overlay>
     <div class="folder-contents" v-else>
         <div class="upload-area">
-            <button ref="refreshBtn" class="button--normal" type="button" v-show="false" @click="$fetch">Refresh</button>
             <ValidationProvider ref="provider" rules="ext:doc,pdf,xlsx,docx,jpg,png,gif,jpeg" name="Upload" v-slot="{ validate, errors }">
                 <UiFilesUpload :singleImage="false" :subDir="subPath" :rootPath="jobid" :inlinePreviews="false" @sendPreviews="filePreviews($event)" :files="uploadFilesArr"
-                   @afterUpload="afterUpload" :delimiter="delimiter" :path="path" isStorage />
+                   @afterUpload="afterUpload" :delimiter="delimiter" :path="folder" isStorage />
                 <input type="hidden" v-model="uploadFilesArr" @click="validate" />
                 <br />
                 <span ref="uploadError" name="Upload" class="upload-area--error">{{ errors[0] }}</span>
@@ -24,7 +23,7 @@
                     </v-card-actions>
                 </v-card>
             </v-dialog>
-            <button class="button--normal button" @click="downloadFiles(`${path}${subPath !== '' ? '-' + subPath : subPath}`)">Download current folder</button>
+            <button class="button--normal button" @click="downloadFiles(`${folder}${subPath !== '' ? '-' + subPath : subPath}`)">Download current folder</button>
         </div>
         <div class="folder-contents__actions">
             <v-dialog v-model="createDirDialog" persistent max-width="500px" dark :value="false">
@@ -54,7 +53,7 @@
                 <div class="modal">
                     <div class="modal__content">
                         <label class="form__label">Where do you want to move the folder to?</label>
-                        <div class="form__input-group">
+                        <div class="form__input-group" v-if="report.folders !== undefined">
                             <i class="form__select--icon icon--angle-down mdi" aria-label="icon"></i>
                             <select class="form__select" ref="selectFolder">
                                 <option diabled value="">Please select a folder</option>
@@ -100,18 +99,19 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import useReports from '@/composable/reports'
 import axios from 'axios'
-import { defineComponent, useContext, ref, toRefs, computed, watch, onMounted } from '@nuxtjs/composition-api';
+import { defineComponent, useContext, ref, toRefs, computed, watch, onMounted, useRoute } from '@nuxtjs/composition-api';
 export default defineComponent({
   props: {
     jobid: String,
-    path: String,
+    folder: String,
     subPath: String,
     delimiter: String
   },
   setup(props, {refs}) {
-    const { jobid, path, subPath, delimiter } = toRefs(props)
+    const route = useRoute()
+    const { jobid, folder, subPath, delimiter } = toRefs(props)
     const { $api, $gcs, $auth } = useContext()
-    const { getReportImages, report } = useReports()
+    const { getReportImagesPromise, report } = useReports()
     const subfolders = ref([])
     const uploadFilesArr = ref([])
     const uploading = ref(false)
@@ -129,7 +129,10 @@ export default defineComponent({
     const actionSuccess = ref("")
     const job = ref({})
     const sliderDialog = ref(false)
-    const currentFolder = computed(() => { return `${path.value !== '' ? '/'+path.value : ''}${subPath.value !== '' ? '/'+subPath.value : ''}`.trimEnd() })
+    const currentPath = computed(() => { 
+      const splitPath = subPath.value.substring(subPath.value.indexOf('/', 1)+1, subPath.value.length).split('/').join('/')
+      return splitPath
+    })
   
     function afterUpload(param) {
       if (report.value.images === null) {
@@ -140,19 +143,25 @@ export default defineComponent({
         })
       }
     }
-    const folderCreation = async () => {
+    const folderCreation = () => {
       const post = {
-          folderPath: `${jobid.value}${path.value !== '' ? '/' + path.value : ''}${folderName.value !== '' ? '/'+folderName.value : ''}`,
+          folderPath: currentPath.value + folderName.value,
           storageBucket: process.env.defaultStorage,
           delimiter: "/",
           root: false
       }
       creating.value = true
-      await axios.post(`${process.env.functionsUrl}/create_folder`, post, {headers: {Authorization: `${$auth.strategy.token.get()}`}}).then((res) => {
+      axios.post(`${process.env.functionsUrl}/create_folder`, post, {headers: {Authorization: `${$auth.strategy.token.get()}`}}).then((res) => {
         creating.value = false
         createDirDialog.value = false
-        var newFolder = res.data.data.folders.find(obj => obj.name.substring(obj.name.indexOf('/'), obj.name.length) === folderName.value)
-        report.value.folders.push(newFolder)
+        const newFolder = res.data.folders.find((obj) => {
+          return obj.name.substring(obj.name.indexOf('/') + 1, obj.name.length) === folderName.value
+        })
+        if (report.value.folders == null) {
+          report.value.folders = [newFolder]
+        } else {
+          report.value.folders.push(newFolder)
+        }
       }).catch((err) => {
         errorMessage.value = err
         creating.value = false
@@ -175,7 +184,7 @@ export default defineComponent({
         destFolder: destfolder
       }
       moving.value = true
-      $gcs.$post(`${process.env.gsutil}/move`, post).then((res) => {
+      $gcs.$post(`/move`, post).then((res) => {
           actionSuccess.value = res
           moveDialog.value = false
           moving.value = false
@@ -243,7 +252,7 @@ export default defineComponent({
     watch(() => report.value.images, (val) => {
       uploadFilesArr.value = []
     })
-    getReportImages(jobid.value, path.value, subPath.value, delimiter.value).fetchImages()
+    getReportImagesPromise(jobid.value, folder.value, currentPath.value,  delimiter.value)
     return { 
       subfolders,
       uploadFilesArr,
@@ -260,7 +269,7 @@ export default defineComponent({
       removeFile,
       downloadFiles,
       folderCreation,
-      currentFolder: currentFolder.value,
+      currentPath,
       actionSuccess,
       report,
       uploaded,

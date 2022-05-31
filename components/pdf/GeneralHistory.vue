@@ -1,5 +1,6 @@
 <template>
-    <section class="pdf-content" slot="pdf-content">
+    <p v-if="Object.keys(report).length === 0">Fetching report...</p>
+    <section class="pdf-content" slot="pdf-content" v-else>
         <h1 class="text-center">{{company}}</h1>
         <h2 class="text-center">General History Logs</h2>
         <div class="report-details__section">
@@ -103,16 +104,19 @@
     </section>
 </template>
 <script>
-import { defineComponent } from '@nuxtjs/composition-api'
+import { defineComponent, ref, toRef, toRefs, useContext, watch, onMounted } from '@nuxtjs/composition-api'
 
 export default defineComponent({
     props: {
         company: String,
         abbreviation: String,
         jobid: String,
-        report: Object
+        postedData: Object,
+        onForm: Boolean
     },
-    setup() {
+    setup(props) {
+        const { $api } = useContext()
+        const { postedData, jobid, onForm } = toRefs(props)
         const paymentsArrHeaders = [
             {id: "paymentType", label:"Payment Type"}, 
             {id: "amount", label: "Amount"}, 
@@ -127,9 +131,25 @@ export default defineComponent({
             {id: "summaryNotes", label:"Brief Summary Notes"},
             {id: "communicationRecords", label:"Communication Records"},
         ]
+        const report = ref({})
+
+        async function fetchHistoryLog() {
+            report.value = await $api.$get(`/api/GeneralHistory/${jobid.value}`)
+        }
+
+        watch(postedData, (val) => {
+            report.value = val
+        })
+
+        onMounted(() => {
+            if (!onForm.value) {
+                fetchHistoryLog()
+            }
+        })
         return {
             paymentsArrHeaders,
-            logsHeader
+            logsHeader,
+            report
         }
     },
 })

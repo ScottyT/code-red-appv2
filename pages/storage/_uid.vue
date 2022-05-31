@@ -1,11 +1,12 @@
 <template>
   <div class="folder-contents-wrapper">
+    <h1>{{currentFolder}}</h1>
     <UiBreadcrumbs page="storage" />
     <div class="d-flex">
       <v-btn class="button button--normal" :loading="downloading" @click="handleDownloadZip">Download All</v-btn>
     </div>
     
-    <LazyFolderContents :jobid="this.$route.params.uid" path="" subPath="" delimiter="/" />
+    <LazyFolderContents :jobid="this.$route.params.uid" folder="" :subPath="this.$route.fullPath" delimiter="/" />
     <v-dialog v-model="dialog" width="450">
       <div class="modal__error">
         <h3 class="form__input--error">{{errorMessage}}</h3>
@@ -26,6 +27,14 @@ export default {
     errorMessage: "",
     dialog: false
   }),
+  async asyncData({
+    params, $axios
+  }) {
+    const currentFolder = params.uid
+    return {
+      currentFolder
+    }
+  },
   /* async middleware({
     store,
     redirect,

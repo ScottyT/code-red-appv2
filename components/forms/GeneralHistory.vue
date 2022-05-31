@@ -155,7 +155,7 @@
             :paginate-elements-by-height="800" :manual-pagination="false" :show-layout="false" :enable-download="false" :preview-modal="true"
             @beforeDownload="beforeDownloadNoSave($event, `general-history-${selectedJobId}`, selectedJobId)"
             @hasDownloaded="uploadPdf($event, `general-history-${selectedJobId}`, selectedJobId)" ref="html2Pdf0">
-            <PdfGeneralHistory slot="pdf-content" :jobid="selectedJobId" :report="postedData" company="Water Emergency Services Incorporated" abbreviation="WESI" />
+            <PdfGeneralHistory slot="pdf-content" :jobid="selectedJobId" :postedData="postedData" onForm company="Water Emergency Services Incorporated" abbreviation="WESI" />
         </vue-html2pdf>
     </div>
 </template>

@@ -167,6 +167,25 @@ export default function useReports() {
         return { fetchImages, fetchState, loading }
     }
 
+    const getReportImagesPromise = (jobid, folder, subfolder, delimiter) => {
+        loading.value = true
+        return new Promise((resolve, reject) => {
+            $gcs.$get(`/list/${jobid}`, {
+                params: { folder: folder, subfolder: subfolder, delimiter: delimiter, bucket: "default" }
+            }).then((res) => {
+                report.value = res
+                images.value = res.images
+                loading.value = false
+                resolve(res)
+            }).catch(err => {
+                error.value = true
+                errorMessage.value = err.response.data
+                loading.value = false
+                reject(err)
+            })
+        })
+    }
+
     const getCertReport = (path) => {
         loading.value = true
         const { fetch: fetchCertReport, fetchState } = useFetch(async () => {
@@ -266,7 +285,8 @@ export default function useReports() {
     }
     return {
         getReports, fetch, reports, report, images, error, errorMessage, message, getReport, getReportPromise, getReportImages, loading,
-        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf
+        getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf,
+        getReportImagesPromise
     }
 }
 

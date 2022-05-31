@@ -2,7 +2,7 @@
     <div class="folder-contents-wrapper">
         <h1>{{currentFolder}}</h1>
         <UiBreadcrumbs page="storage" :darkMode="false" />
-        <FolderContents :jobid="repId" :path="subfolder" :subPath="currentFolder" delimiter="" />
+        <FolderContents :jobid="repId" :folder="currentFolder" :subPath="$route.fullPath" delimiter="" />
     </div>
 </template>
 <script>

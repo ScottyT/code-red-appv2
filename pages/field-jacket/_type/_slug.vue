@@ -92,11 +92,10 @@
                 <h1>General History for job {{jobId}}</h1>
                 <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions"
                     :paginate-elements-by-height="800" :manual-pagination="false" :show-layout="false" :enable-download="false" :preview-modal="true"
-                    @beforeDownload="beforeDownload($event)"
-                    @hasDownloaded="hasDownloaded($event)" ref="html2Pdf0">
-                    <PdfGeneralHistory slot="pdf-content" :jobid="jobId" :report="report" company="Water Emergency Services Incorporated" abbreviation="WESI" />
+                    @beforeDownload="beforeDownload($event)" @hasDownloaded="hasDownloaded($event)" ref="html2Pdf0">
+                    <PdfGeneralHistory slot="pdf-content" :jobid="jobId" :postedData="report" company="Water Emergency Services Incorporated" abbreviation="WESI" />
                 </vue-html2pdf>
-                <PdfGeneralHistory :jobid="jobId" :report="report" company="Water Emergency Services Incorporated" abbreviation="WESI" />
+                <PdfGeneralHistory :jobid="jobId" :report="{}" company="Water Emergency Services Incorporated" abbreviation="WESI" />
             </span>
         </div>
     </div>
@@ -160,9 +159,6 @@ export default defineComponent({
             refs["html2Pdf"+key].generatePdf()
         }
         function hasDownloaded(blob) {
-            /* uploadPdf(blob).then(() => {
-                console.log("uploaded pdf")
-            }) */
             clickedOn.value = null
         }
         async function uploadPdf(file) {
@@ -175,13 +171,9 @@ export default defineComponent({
             $gcs.$post(`/upload`, formData)
             clickedOn.value = null
         }
-        async function fetchHistoryLog() {
-            report.value = await $api.$get(`/api/GeneralHistory/${jobId}`)
-        }
+        
         getReport(`${reportType}/${jobId}`).fetchReport()
-        onMounted(() => {
-            fetchHistoryLog()
-        })
+        
         return {
             report,
             reportType,

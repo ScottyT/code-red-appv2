@@ -92,8 +92,7 @@ export default {
       create().then((result) => {
         this.creating = false
         this.createDirDialog = false
-        var newFolder = result.data.folders.find(obj => obj.name === this.jobid)
-        this.reports.push({"JobId":newFolder.name})
+        this.reports.push({"JobId":this.jobid})
       }).catch((err) => {
         console.log(err)
       })
