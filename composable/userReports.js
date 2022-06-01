@@ -14,7 +14,7 @@ const fetchReports = async function(user) {
     if (user === null) return
     state.value.loading = true
     await firebase.auth().currentUser.getIdToken().then((idToken) => {
-        axios.get(`${process.env.serverUrl}/api/employee/${user}/reports`, {headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
+        axios.get(`${process.env.apiUrl}/api/employee/${user}/reports`, {headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
             setReports(res.data)
             state.value.loading = false
         })

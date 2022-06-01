@@ -30,7 +30,7 @@
         </div>
         <div class="pdf-item report-details__section">
             <h3>Check the Box to Verify Quality Services. If a box is not check please note, and address appropriately</h3>
-            <div class="report-details__listing" v-for="(group) in services" :key="group">
+            <div class="report-details__listing" v-for="(group, j) in services" :key="`group-${j}`">
                 <h3>{{group.label}}</h3>
                 <ul>
                     <li v-for="(item, i) in report.completedServices[group.id].checked" :key="`team-${i}`">{{item}}</li>
@@ -54,7 +54,6 @@
             </div>
         </div>
         <div class="pdf-item report-details__section">
-            <h4>Evaluation Logs</h4>
             <div class="report-details__data">
                 <label class="form__label">Time of Evaluation</label>
                 <span>{{report.evalTime}}</span>
@@ -68,14 +67,7 @@
             <div class="report-details__data">
                 <label class="report-details__data-label">Customer</label>
                 <div class="report-details__data--row">
-                    <div>
-                        <label>First:</label>
-                        <span>{{report && report.customer ? report.customer.first : null}}</span>
-                    </div>
-                    <div>
-                        <label>Last:</label>
-                        <span>{{report && report.customer ? report.customer.last : null}}</span>
-                    </div>
+                    {{report && report.customer ? report.customer.first : null}} {{report && report.customer ? report.customer.last : null}}
                 </div>
             </div>
             <div class="report-details__data">

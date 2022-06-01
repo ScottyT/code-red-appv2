@@ -48,9 +48,6 @@ h1, .h1 {
 
 h2 {
   font-size:1.9em; 
-  @include respond(tabletLarge) {
-    font-size: 2.074em;
-  }
 }
 h3 {
   font-size:1.469em;
@@ -382,6 +379,27 @@ button {
 
   &__login-page {
     max-width: 30rem;
+  }
+  &__general-history {
+    .form__table {
+      display:grid;
+      border:1px solid $color-black;
+      width:100%;
+      max-width:1200px;
+      .form__input {
+        padding:2px;
+        box-shadow:none;
+      }
+      &--rows {
+        grid-template-rows:50px;
+        &--logs {
+          @include tableColumns(false, 110px 110px 164px 200px 200px 250px 1fr, 7, 0);
+        }
+      }
+      &--logs {
+        height:auto;
+      }
+    }
   }
 }
 
@@ -728,17 +746,12 @@ button {
   }
   &__table {
     display:grid;
+    border:1px solid $color-black;
     &--rows {
-      grid-template-columns:1.2fr repeat(7, 1fr);
+      @include tableColumns(false, 1.2fr repeat(7, 1fr), 0, 0);
       width:100%;
       &:not(:first-child) {
-        .form__table--cols {
-          border-bottom:1px solid;
-          border-top:1px solid;
-        }
-      }
-      &:last-child .form__table--cols {
-        border-bottom:2px solid;
+        border-top:1px solid $color-black;
       }
     }
     &--cols {
@@ -746,26 +759,12 @@ button {
         padding:4px;
       }
       padding:3px;
-      border-color:black;
-      border-top:2px solid;
-      border-bottom:1px solid;
       input[type=checkbox] {
         width:100%;
         height:100%;
       }
       &:not(:first-child) {
-        border-right:1px solid;
-      }
-      &:not(:last-child) {
-        border-left:1px solid;
-      }
-      &:first-child {
-        border-left:2px solid;
-        border-right:1px solid;
-      }
-      &:last-child {
-        border-left:1px solid;
-        border-right:2px solid;
+        border-left:1px solid $color-black;
       }
     }
     &.row-heading {

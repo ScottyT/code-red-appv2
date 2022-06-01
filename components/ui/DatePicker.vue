@@ -13,11 +13,12 @@
     </v-dialog>
 </template>
 <script>
+import moment from "moment"
 import { defineComponent, toRefs, ref, watch, onMounted, computed } from '@nuxtjs/composition-api'
 import genericFuncs from '~/composable/utilityFunctions'
 export default defineComponent({
     props: {
-        d: String,
+        existingDate: String,
         minDate: String,
         maxDate: String,
         dateId: String,
@@ -28,7 +29,7 @@ export default defineComponent({
         }
     },
     setup(props, {refs, emit}) {
-        const { d } = toRefs(props)
+        const { existingDate } = toRefs(props)
         const { formatDate } = genericFuncs()
         const dialogToggle = ref(false)
         const formattedDate = ref(formatDate(new Date().toISOString().substr(0, 10)))
@@ -43,9 +44,10 @@ export default defineComponent({
                 emit("unformattedDate", date.value)
             }
         })
-        watch(d, (val) => {
+        watch(existingDate, (val) => {
             formattedDate.value = val
             emit("date", val)
+            emit("unformattedDate", val)
         })
         return {
             dialogToggle,

@@ -133,7 +133,7 @@ export default defineComponent({
                     return;
                 }
                 submitting.value = true
-                axios.post(`${process.env.serverUrl}/api/psychrometric-chart/new`, post).then((res) => {
+                axios.post(`${process.env.apiUrl}/api/psychrometric-chart/new`, post).then((res) => {
                     if (res.errors) {
                         errorDialog.value = true
                         submitting.value = false

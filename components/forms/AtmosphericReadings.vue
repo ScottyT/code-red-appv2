@@ -68,7 +68,7 @@
                     </ValidationProvider>
                 </div>
                 <div class="form__table reading-logs">
-                    <div class="form__table form__table--rows">
+                    <div class="form__table--rows">
                         <div class="form__table--cols">
                             <div class="form__label">Description</div>
                         </div>
@@ -76,7 +76,7 @@
                             <div>{{n}}</div>
                         </div>
                     </div>
-                    <div class="form__table form__table--rows">
+                    <div class="form__table--rows">
                         <div class="form__table--cols">
                             <div class="form__label">Tech ID #</div>
                         </div>
@@ -84,7 +84,7 @@
                             <input type="text" class="form__input" readonly v-model="getUser.id" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows" v-for="(row, i) in readingsArr" :key="`row-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in readingsArr" :key="`row-${i}`">
                         <div class="form__table--cols">
                             <div class="form__label">{{row.text}}</div>
                         </div>
@@ -95,12 +95,12 @@
                                 :type="row.identifier == 'dryBulbTemp' || row.identifier == 'humidityRatio' ? 'number' : 'text'" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows row-heading">
+                    <div class="form__table--rows row-heading">
                         <div class="form__table--cols">
                             <h3>Water Loss Classification</h3>
                         </div>
                     </div>
-                    <div class="form__table--rows form__table" v-for="(row, i) in lossArr" :key="`classrow-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in lossArr" :key="`classrow-${i}`">
                         <div class="form__table--cols">
                             <div class="form__label">{{row.text}}</div>
                         </div>
@@ -108,12 +108,12 @@
                             <input type="number" :tabindex="j" v-model="item.value" class="form__input" />
                         </div>
                     </div>
-                    <div class="form__table form__table--rows row-heading">
+                    <div class="form__table--rows row-heading">
                         <div class="form__table--cols">
                             <h3>Water Category</h3>
                         </div>                       
                     </div>
-                    <div class="form__table--rows form__table" v-for="(row, i) in catArr" :key="`catrow-${i}`">
+                    <div class="form__table--rows" v-for="(row, i) in catArr" :key="`catrow-${i}`">
                         <div class="form__table--cols">
                             <div class="form__label">{{row.text}}</div>
                         </div>
@@ -842,6 +842,10 @@ export default defineComponent({
 </script>
 <style lang="scss">
 .reading-logs {
-    grid-template-rows:60px repeat(18, 1fr);
+    grid-template-rows:50px repeat(18, 1fr);
+    .row-heading .form__table--cols {
+        grid-column: 1/4 span;
+        border:0;
+    }
 }
 </style>

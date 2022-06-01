@@ -8,7 +8,7 @@
         <nav class="breadcrumb-wrapper__breadcrumb" aria-label="breadcrumbs" v-if="displayStrip">
             <ul>
                 <li v-for="(item, i) in breadList" :key="`breadcrumb-${i}`" :class="item.classes">
-                    <nuxt-link v-if="item.name !== name" :to="`/${item.path}`" exact>{{item.meta.title}}</nuxt-link>
+                    <nuxt-link v-if="item.name !== name" :to="`/${item.path}/`" exact>{{item.meta.title}}</nuxt-link>
                     <v-icon :dark="!darkMode" :light="darkMode" v-if="item.name !== name" class="breadcrumb-wrapper__breadcrumb--icon">mdi-chevron-right</v-icon>
                 </li>
             </ul>

@@ -20,6 +20,15 @@ $color-red: #b10e0e;
   border-radius:50px;
   cursor:pointer;
 }
+@mixin tableColumns($repeat, $style, $numOfCols, $widthOfCols) {
+  grid-template-rows: 50px;
+  display:grid;
+  @if $repeat {
+    grid-template-columns: repeat($numOfCols, $widthOfCols);
+  } @else {
+    grid-template-columns: $style;
+  }
+}
 @mixin respond($breakpoint) {
   @if $breakpoint==mobileSmall {
     @media only screen and (min-width: 375px) {

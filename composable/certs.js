@@ -29,7 +29,7 @@ const addCert = async function(certinfo, userinfo) {
         state.value.submitting = false
         state.value.submitted = true
     } else {
-        axios.post(`${process.env.serverUrl}/api/certifications/new`, certinfo).then((res) => {
+        axios.post(`${process.env.apiUrl}/api/certifications/new`, certinfo).then((res) => {
             fetchCerts(userinfo)
             state.value.certifications.push(res.data.data)
             state.value.message = res.data.message
@@ -49,7 +49,7 @@ const addCert = async function(certinfo, userinfo) {
     const certToDelete = state.value.certifications.findIndex(obj => obj.idNumber === cert.idNumber)
     
     firebase.auth().currentUser.getIdToken().then((idToken) => {
-        axios.delete(`${process.env.serverUrl}/api/certifications/${cert.idNumber}/${firebase.auth().currentUser.email}/delete`, 
+        axios.delete(`${process.env.apiUrl}/api/certifications/${cert.idNumber}/${firebase.auth().currentUser.email}/delete`, 
             {data: {cert}, headers: {authorization: `Bearer ${idToken}`}}).then((res) => {
             state.value.certifications.splice(certToDelete, 1)
             state.value.message = res.data.message

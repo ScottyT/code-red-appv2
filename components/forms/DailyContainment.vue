@@ -33,7 +33,7 @@
           </div>
           <div class="form__input-group form__input-group--short">
             <label for="date" class="form__label">Date</label>
-            <UiDatePicker dateId="date" dialogId="dateDialog" @date="dateFormatted = $event" @unformattedDate="date = $event" />
+            <UiDatePicker dateId="date" dialogId="dateDialog" :existingDate="date" @date="date = $event" />
           </div>
           <div class="form__input-group form__input-group--long">
             <label for="location" class="form__label">Location</label>
@@ -208,7 +208,7 @@
       const { formatTime, formatDate, parseDate } = genericFuncs()
       const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf, getReportPromise } = useReports()
       const fetchReports = () => { store.dispatch("reports/fetchReports") }
-      const date = new Date().toISOString().substr(0, 10)
+      const date = ref(new Date().toISOString().substr(0, 10))
       const dateFormatted = formatDate(new Date().toISOString().substr(0, 10))
       const location = ref({
         address: null,
@@ -425,15 +425,15 @@
         
         const evaluationLogs = [{
             label: 'Dispatch to Property',
-            value: `${parsedDate.value} ${dispatchPropertyFormatted.value}:00`
+            value: `${parsedDate.value} ${dispatchPropertyFormatted.value}`
           },
           {
             label: 'Start Time',
-            value: `${parsedDate.value} ${evalStart.value}:00`
+            value: `${parsedDate.value} ${evalStart.value}`
           },
           {
             label: 'End Time',
-            value: `${parsedDate.value} ${evalEnd.value}:00`
+            value: `${parsedDate.value} ${evalEnd.value}`
           },
           {
             label: 'Total Time',
@@ -496,6 +496,10 @@
         getReportPromise(`case-file-containment/${val}`).then((res) => {
           location.value.address = res.location.address
           location.value.cityStateZip = res.location.cityStateZip
+          date.value = res.date
+          dispatchToProperty.value = res.evaluationLogs.filter(x => x.label == 'Dispatch to Property')[0].value.split(' ')[1]
+          evalStart.value = res.evaluationLogs.filter(x => x.label == 'Start Time')[0].value.split(' ')[1]
+          evalEnd.value = res.evaluationLogs.filter(x => x.label == 'End Time')[0].value.split(' ')[1]
         })
       })
 
