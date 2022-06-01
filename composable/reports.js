@@ -100,7 +100,7 @@ export default function useReports() {
     const getReportsPromise = () => {
         loading.value = true
         return new Promise((resolve, reject) => {
-            $api.$get(`${process.env.serverUrl}/api/reports`).then((res) => {
+            $api.$get(`${process.env.apiUrl}/api/reports`).then((res) => {
                 reports.value = res.data
                 error.value = false
                 loading.value = false

@@ -1320,7 +1320,7 @@ import axios from 'axios'
           formData.append('customer', 'stuck04@gmail.com') // Change later
           formData.append('subject', `Your Code Red contract #${this.selectedJobId}`)
           
-          return axios.post(`${process.env.serverUrl}/api/sendemail`, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then((res) => {
+          return axios.post(`${process.env.apiUrl}/api/sendemail`, formData, {headers: {'Content-Type': 'multipart/form-data'}}).then((res) => {
             return Promise.resolve(res.data)
           }).catch((err) => {
             console.log(err)

@@ -32,8 +32,8 @@ module.exports = {
     color: '#2a73ae',
   },
   env: {
-    serverUrl: process.env.NODE_ENV !== 'production' ? 'http://localhost:8082' : process.env.API_URL,
     gsutil: process.env.NODE_ENV !== 'production' ? 'http://localhost:8081' : process.env.GSUTIL_URL,
+    apiUrl: process.env.NODE_ENV !== 'production' ? 'http://localhost:8082' : process.env.API_URL,
     functionsUrl: process.env.NODE_ENV !== 'production' ? 'http://192.168.1.117:8080' : process.env.FUNCTIONS_URL,
     mapboxKey: process.env.MAPBOX_API_KEY,
     userStorage: process.env.USER_STORAGE_BUCKET,
@@ -181,6 +181,14 @@ module.exports = {
           handler: 'cacheFirst',
           method: 'GET',
           strategyOptions: { cacheableResponse: { statuses: [0, 200] } }
+        },
+        {
+          urlPattern: "https://code-red-app-313517.web.app/*",
+          handler: 'networkFirst',
+          method: 'GET',
+          strategyOptions: {
+            cacheableResponse: { statuses: [0, 200] }
+          }
         },
         {
           urlPattern:
