@@ -438,7 +438,7 @@
                         :paginate-elements-by-height="1300" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event, `rapid-response-${jobId}`, jobId)"
                         @hasDownloaded="uploadPdf($event, `rapid-response-${jobId}`, jobId)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
               <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" slot="pdf-content" :notPdf="false" 
-                :report="postData" />
+                :report="postData" onForm />
           </vue-html2pdf>
       </client-only>
     </div>
@@ -933,21 +933,25 @@
             teamMemberSignDate: this.teamMemberSignDate
         };
         this.postData = post
-        this.$api.$post("/api/reports/rapid-response/new", post, {
-            params: {
-                jobid: post.JobId
-            }
-        }).then((res) => {
-            this.successMessage = res
-            this.submitting = false
-            this.submitted = true
-            this.fetchReports()
-        }).catch(err => {
-            this.errorDialog = true
-            this.submitting = false
-            this.$refs.form.setErrors({
-              JobId: [err.response.data.message]
-            })
+        return new Promise((resolve, reject) => {
+          this.$api.$post("/api/reports/rapid-response/new", post, {
+              params: {
+                  jobid: post.JobId
+              }
+          }).then((res) => {
+              this.successMessage = res
+              this.submitting = false
+              this.submitted = true
+              this.fetchReports()
+              resolve(res)
+          }).catch(err => {
+              this.errorDialog = true
+              this.submitting = false
+              reject(err)
+              this.$refs.form.setErrors({
+                JobId: [err.response.data.message]
+              })
+          })
         })
       },
       acceptNumber() {

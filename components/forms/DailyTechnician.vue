@@ -224,7 +224,7 @@
                 <ValidationProvider ref="jobimages" name="Job images" rules="mimes:image/*" v-slot="{errors, ariaMsg}" class="upload-group upload-group--lg">
                   <input type="hidden" v-model="uploadedImages" />
                   <label class="form__label">Tech job images</label>
-                  <UiFilesUpload :singleImage="false" subDir="" delimiter="/" path="tech-images" :rootPath="selectedJobId" />
+                  <UiFilesUpload :singleImage="false" subDir="" delimiter="/" path="case-file-technician" :rootPath="selectedJobId" />
                   <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                 </ValidationProvider>
               </div>

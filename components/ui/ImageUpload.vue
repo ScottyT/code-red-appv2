@@ -19,7 +19,6 @@
 <script>
 // USE THIS FOR SINGLE IMAGE UPLOADS
 import { ref, toRefs } from '@nuxtjs/composition-api'
-import {compress, compressAccurately} from 'image-conversion';
 export default {
     props: {
         //value: Array,
@@ -46,10 +45,19 @@ export default {
                 let size = imageFile.size / maxSize.value / maxSize.value
                 if (namechanged.value !== undefined) {
                     var blob = imageFile.slice(0, imageFile.size, imageFile.type)
-                    var filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
+                    let filetype = ""
+                    switch (imageFile.type) {
+                        case "image/jpeg":
+                            filetype = ".jpg"
+                        case "image/png":
+                            filetype = ".png"
+                        default:
+                            filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
+                    }
                     imageFile = new File([blob], `${namechanged.value}${filetype}`, {
                         type: imageFile.type
                     })
+                    console.log(imageFile)
                 }
                 if (!imageFile.type.match('image.*')) {
                     errorDialog.value = true
@@ -73,10 +81,26 @@ export default {
             } else if (multipleFiles.value) {
                 var imagesArr = []
                 var formData = new FormData()
+                
                 for (var i = 0; i < file.length; i++) {
-                    const imageName = file[i].name
+                    let filetype = ""
+                    switch (file[i].type) {
+                        case "image/jpeg":
+                            filetype = ".jpg"
+                            break
+                        case "image/png":
+                            filetype = ".png"
+                            break
+                        default:
+                            filetype = file[i].name.substring(file[i].name.lastIndexOf('.'), file[i].name.length)
+                    }
+                    var imageName = file[i].name.substring(0, file[i].name.indexOf('.')) + filetype
                     var imageUrl = URL.createObjectURL(file[i])
-                    imagesArr.push({imageUrl, imageName, image: file[i]})
+                    var blob = file[i].slice(0, file[i].size, file[i].type)
+                    let newImageFile = new File([blob], imageName, {
+                        type: file[i].type
+                    })
+                    imagesArr.push({imageUrl, imageName, image: newImageFile})
                 }
                 emit('getFiles', [{imagesArr}])
             } else {

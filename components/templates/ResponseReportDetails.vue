@@ -67,18 +67,31 @@
       <div class="report-details__data-label">Email Address:</div>
       <input class="form__input" v-if="isEditing" v-model="updatedReport.emailAddress" />
       <span v-if="!isEditing" class="report-details__data-field">{{report.emailAddress}}</span>
-    </div>    
+    </div>
     
     <div class="report-details__section">
       <div class="report-details__checklist">
         <h3>Inital Response, Inspection, and Preliminary Determination</h3>
-        <ul v-if="arrivalImages.length > 0" class="report-details__section--pictures">
-          <li v-for="item in arrivalImages" :key="item.id" class="report-details__image">
-            <img :src="item.imageUrl" />
-            <p>{{item.name}}</p>
-          </li>
-        </ul>
-        <p v-else>N/A</p>
+        <div class="report-details__section--pictures">
+          <div class="report-details__image">
+            <img :src="arrivalImage" />
+            <p>{{arrivalImageName}}</p>
+          </div>
+          <div class="report-details__image">
+            <img :src="addressImage" />
+            <p>{{addressImageName}}</p>
+          </div>
+          <div class="report-details__image">
+            <img :src="siteSafetyImage" />
+            <p>{{siteSafetyImageName}}</p>
+          </div>
+        </div>
+      </div>
+      <div class="report-details__data">
+        <h3>Drivers License</h3>
+        <div class="report-details__image">
+          <img :src="idPhoto" />
+        </div>
       </div>
     </div>
   </div>
@@ -276,7 +289,9 @@
         <div class="report-details__data">
           <h3>Team Member Signiture:</h3>
           <div v-if="report.teamMemberSig">
-            <div class="report-details__data--cusSig" :style="'background-image:url('+$store.state.users.signature+')'"></div>
+            <div class="report-details__data--cusSig">
+              <img :src="$store.state.users.signature" />
+            </div>
           </div>
           <div v-else>N/A</div>
         </div>
@@ -286,21 +301,21 @@
         </div>
       </div>
     </div>
-    <LazyUiStorageImages class="report-details__section--pictures" :jobid="report.JobId" :subPath="group.name" path="rapid-response" v-for="(group, j) in imageFolders" :key="`group-${j}`">
-      <template v-slot:header>
-        <h3>{{group.name}}</h3>
-      </template>
-    </LazyUiStorageImages>
+    <template v-if="Object.keys(imageFolders).length > 0">
+      <LazyUiStorageImages class="report-details__section--pictures" :jobid="report.JobId" :subPath="j" path="rapid-response" v-for="(group, j) in imageFolders" 
+        :key="`group-${j}`" :imageArr="group">
+      </LazyUiStorageImages>
+    </template>
   </section>
 </template>
 <script>
 import {mapGetters, mapActions, mapState} from 'vuex';
 import genericFuncs from '@/composable/utilityFunctions'
-import {fetchReportImages} from '@/composable/reports'
 import { timeMask } from "@/data/masks"
+let image = null;
   export default {
     name: 'ResponseReportDetails',
-    props: ['report', 'notPdf', 'company', 'reportName'],
+    props: ['report', 'notPdf', 'company', 'reportName', 'onForm'],
     data: (vm) => ({
       message: '',
       stepsArrLength: '',
@@ -338,14 +353,20 @@ import { timeMask } from "@/data/masks"
         cusLastName: ''
       },
       images: [],
-      imageFolders: [],
+      imageFolders: {},
       timeMask: timeMask,
       repData: {},
       phoneMask: {
         mask: '(000) 000-0000',
         lazy:false
       },
-      arrivalImages: []
+      arrivalImage: "",
+      arrivalImageName: "",
+      addressImage: "",
+      addressImageName: "",
+      siteSafetyImage: "",
+      siteSafetyImageName: "",
+      idPhoto: ""
     }),
     computed: {
       loading() {
@@ -362,9 +383,6 @@ import { timeMask } from "@/data/masks"
         }
         return ""
       },
-     /*  ...mapGetters({
-        report: "reports/getReport"
-      }), */
       ...mapState({
         evaltimes: state => state.reports.report.evaluationLogs
       }),
@@ -375,14 +393,30 @@ import { timeMask } from "@/data/masks"
     },
     watch: {
       report(val) {
-        this.getFolders(val.JobId, "rapid-response", "", "/").then((result) => {
-          this.imageFolders = result.folders
+        this.getImages(val.JobId, "rapid-response", `${val.JobId}/rapid-response/`, "/").then((result) => {
+          this.imageFolders = genericFuncs().groupByKey(result.images, "folderName")
         })
-      }
+        this.getImage(val.JobId, `${val.JobId}`, `Arrival Photo of Entrance__${val.JobId}.jpg`).then((res) => {
+            this.arrivalImage = res.imageUrl
+            this.arrivalImageName = res.name
+        })
+        this.getImage(val.JobId, val.JobId, `Address Photo of Property__${val.JobId}.jpg`).then((res) => {
+            this.addressImage = res.imageUrl
+            this.addressImageName = res.name
+        })
+        this.getImage(val.JobId, val.JobId, `Site Specific Safety__${val.JobId}.jpg`).then((res) => {
+            this.siteSafetyImage = res.imageUrl
+            this.siteSafetyImageName = res.name
+        })
+        this.getImage(val.JobId, val.JobId, `id-photo-${val.JobId}.jpg`).then((res) => {
+            this.idPhoto = res.imageUrl
+        })
+      },
     },
     methods: {
       ...mapActions({
-        fetchReport: 'reports/fetchReport'
+        fetchReport: 'reports/fetchReport',
+        getSigOrInitialImage: 'users/getSigOrInitialImage'
       }),
       updateFormField(field, e) {
         this.$store.commit('reports/updateReportField', {field, value: e})
@@ -456,29 +490,59 @@ import { timeMask } from "@/data/masks"
         minutes = minutes < 10 ? '0' + minutes : minutes
         return `${hours}:${minutes} ${newFormat}`
       },
-      getFolders(jobid, folder, subfolder, delimiter) {
+      getImages(jobid, folder, subfolder, delimiter) {
         return new Promise((resolve, reject) => {
           this.$gcs.$get(`/list/${jobid}`, {
               params: {
                   folder: folder,
-                  subfolder: folder + "/" + subfolder,
+                  subfolder: subfolder,
                   delimiter: delimiter,
                   bucket: "default"
               }
           }).then((res) => {
               resolve(res)
+          }).catch(err => {
+            reject(err)
+          })
+        })
+      },
+      getImage(jobid, folder, nameOfImage) {
+        return new Promise((resolve, reject) => {
+          this.$gcs.$get(`/list/file/${nameOfImage}`, {
+            params: { folder: folder, bucket: "default" }
+          }).then((res) => {
+            resolve(res)
+          }).catch(err => {
+            reject(err)
           })
         })
       }
     },
     // Removing this just to see if this breaks anything
-    /* mounted() {
+    mounted() {
       this.$nextTick(() => {
-        this.getFolders(this.report.JobId, "rapid-response", "", "/").then((result) => {
-          this.imageFolders = result.folders
-        })
+        if (!this.onForm) {
+          this.getImages(this.report.JobId, "rapid-response", `${this.report.JobId}/rapid-response/`, "").then((result) => {
+            this.imageFolders = genericFuncs().groupByKey(result.images, "folderName")
+          })
+          this.getImage(this.report.JobId, `${this.report.JobId}`, `Arrival Photo of Entrance__${this.report.JobId}.jpg`).then((res) => {
+            this.arrivalImage = res.imageUrl
+            this.arrivalImageName = res.name
+          })
+          this.getImage(this.report.JobId, this.report.JobId, `Address Photo of Property__${this.report.JobId}.jpg`).then((res) => {
+            this.addressImage = res.imageUrl
+            this.addressImageName = res.name
+          })
+          this.getImage(this.report.JobId, this.report.JobId, `Site Specific Safety__${this.report.JobId}.jpg`).then((res) => {
+            this.siteSafetyImage = res.imageUrl
+            this.siteSafetyImageName = res.name
+          })
+          this.getImage(this.report.JobId, this.report.JobId, `id-photo-${this.report.JobId}.jpg`).then((res) => {
+            this.idPhoto = res.imageUrl
+          })
+        }
       })
-    }, */
+    }
   }
 </script>
 <style lang="scss">

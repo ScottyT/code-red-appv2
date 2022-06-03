@@ -8,6 +8,8 @@ export default function useReports() {
     let error = ref(false)
     let errorMessage = ref("")
     let images = ref([])
+    let folders = ref([])
+    let pdfs = ref([])
     let loading = ref(false)
     let groupedReports = ref({})
     let message = ref([])
@@ -118,6 +120,7 @@ export default function useReports() {
         loading.value = true
         const { fetch: fetchReport, fetchState } = useFetch(async () => {
             await $api.$get(`/api/reports/details/${path}`).then((res) => {
+                replaceEmptyFormFields(res)
                 res.heading = changeFormName(res.ReportType)
                 report.value = res
                 loading.value = false
@@ -153,12 +156,14 @@ export default function useReports() {
 
     const getReportImages = (jobid, folder, subfolder, delimiter) => {
         loading.value = true
+        console.log("fetching images")
         const { fetch: fetchImages, fetchState } = useFetch(async () => {
             $gcs.$get(`/list/${jobid}`, {
-                params: { folder: folder, subfolder: folder + "/" + subfolder, delimiter: delimiter, bucket: "default" }
+                params: { folder: folder, subfolder: subfolder, delimiter: delimiter, bucket: "default" }
             }).then((res) => {
                 report.value = res
                 images.value = res.images
+                folders.value = res.folders
             }).catch(err => {
                 error.value = true
                 errorMessage.value = err.response.data
@@ -174,7 +179,9 @@ export default function useReports() {
                 params: { folder: folder, subfolder: subfolder, delimiter: delimiter, bucket: "default" }
             }).then((res) => {
                 report.value = res
+                pdfs.value = res.pdfs
                 images.value = res.images
+                folders.value = res.folders
                 loading.value = false
                 resolve(res)
             }).catch(err => {
@@ -284,7 +291,7 @@ export default function useReports() {
         })
     }
     return {
-        getReports, fetch, reports, report, images, error, errorMessage, message, getReport, getReportPromise, getReportImages, loading,
+        getReports, fetch, reports, report, folders, images, pdfs, error, errorMessage, message, getReport, getReportPromise, getReportImages, loading,
         getReportsPromise, filterConditions, groupedReports, changeFormName, beforeDownload, signature, getCertReport, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf,
         getReportImagesPromise
     }

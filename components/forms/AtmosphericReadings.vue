@@ -642,7 +642,7 @@ export default defineComponent({
                         return
                     }
                     onSubmit().then((result) => {
-                        submittedMessage.value = result
+                        submittedMessage.value = result.message
                         html2Pdf0.value.generatePdf()
                     })
                 })

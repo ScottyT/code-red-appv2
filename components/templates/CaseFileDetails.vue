@@ -181,13 +181,15 @@
                 <span>{{report.afterHoursWork}}</span>
             </div>
         </div>
-        <UiStorageImages class="report-details__section--pictures" :imageArr="images" :jobid="report.JobId" subPath="" :path="imageFolder" />
+        <UiStorageImages class="report-details__section--pictures" :imageArr="imgObj" :jobid="report.JobId" :subPath="i" :path="report.ReportType"
+            v-for="(imgObj, i) in imageFolders" :key="`images-${i}`" />
         
         </section>
 </template>
 <script>
-import { computed, defineComponent, onMounted, ref, toRefs } from "@nuxtjs/composition-api";
+import { computed, defineComponent, onMounted, ref, toRefs, watch } from "@nuxtjs/composition-api";
 import genericFuncs from '@/composable/utilityFunctions'
+import useReports from "~/composable/reports";
 export default defineComponent({
     props: {
         report: Object,
@@ -196,9 +198,10 @@ export default defineComponent({
     },
     setup(props, {root}) {
         const { report } = toRefs(props)
+        const { getReportImages, images } = useReports()
         const { groupByKey } = genericFuncs()
-        const images = ref([])
-        const imageFolders = ref([])
+        //const images = ref([])
+        const imageFolders = ref({})
         const signature = computed(() => {
             var sig = report.value && report.value.verifySign ? report.value.verifySign : null;
             if (sig !== null) {
@@ -206,18 +209,16 @@ export default defineComponent({
             }
             return ""
         })
-        const imageFolder = computed(() => {
-            switch (report.value.ReportType) {
-                case "case-file-technician":
-                    return "tech-images"
-                case "case-file-containment":
-                    return "containment-images"
-            }
+        
+        watch(images, (val) => {
+            imageFolders.value = groupByKey(val, "folderName")
         })
+
+        getReportImages(report.value.JobId, report.value.ReportType, `${report.value.JobId}/${report.value.ReportType}/`, "").fetchImages()
+
         return {
             images,
             signature,
-            imageFolder,
             imageFolders,
             groupByKey
         }
