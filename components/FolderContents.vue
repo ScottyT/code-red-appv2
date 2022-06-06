@@ -76,7 +76,8 @@
                 <p>{{subfolder.name}}</p>
             </nuxt-link>
             <div class="file-listing folder-contents__file-listing" v-for="(file, key) in uploadFilesArr" :key="`image-${key}`">
-                <img class="file-listing__preview" :src="file.imageUrl" />
+                <img v-if="file.file.type == 'application/pdf'" class="file-listing__preview" src="/pdf-icon.png" />
+                <img v-if="file.file.type.includes('image')" class="file-listing__preview" :src="file.imageUrl" />
                 <v-icon class="file-listing__remove-file" @click="removeFile(key)" tag="i" large>mdi-close-circle</v-icon>
             </div>
             <UiLightbox v-if="images !== null" :selecting="editing" :images="images" :imagesPerPage="1" :dialog="sliderDialog">
@@ -138,8 +139,16 @@ export default defineComponent({
       if (images.value === null) {
         images.value = param
       } else {
+        console.log(param)
         param.forEach(item => {
-          images.value.push(item)
+          let extension = item.name.substring(item.name.lastIndexOf('.'), item.name.length)
+          if (extension == '.pdf') {
+            pdfs.value.push(item)
+            uploadFilesArr.value = []
+          }
+          if (extension == '.png' || extension == '.jpg' || extension == '.gif') {
+            images.value.push(item)
+          }
         })
       }
     }
@@ -225,11 +234,11 @@ export default defineComponent({
         })
       })
     }
-    function filePreviews(param) {
+    function filePreviews(params) {
       uploadFilesArr.value = []
-      param[0].imagesArr.forEach((item) => {
+      params.forEach((item) => {
         uploadFilesArr.value.push(
-          { image: item.image, name: item.image.name, imageUrl: item.imageUrl }
+          { file: item.file, name: item.file.name, imageUrl: item.imageUrl }
         )
       })
     }

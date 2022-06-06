@@ -120,7 +120,6 @@ export default function useReports() {
         loading.value = true
         const { fetch: fetchReport, fetchState } = useFetch(async () => {
             await $api.$get(`/api/reports/details/${path}`).then((res) => {
-                replaceEmptyFormFields(res)
                 res.heading = changeFormName(res.ReportType)
                 report.value = res
                 loading.value = false

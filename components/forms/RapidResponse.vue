@@ -414,8 +414,8 @@
           <div class="form__form-group">
             <ValidationProvider v-slot="{ errors }" name="Customer sign time" rules="required" class="form__input-group form__input-group--normal">
               <label class="form__label">Sign Time</label>
-              <input type="hidden" v-model="cusSignTime" />
-              <imask-input v-model="cusSignTime" :lazy="false" :mask="timeMask.mask" :blocks="timeMask.blocks" class="form__input" />
+              <input type="hidden" v-model="teamSignTime" />
+              <imask-input v-model="teamSignTime" :lazy="false" :mask="timeMask.mask" :blocks="timeMask.blocks" class="form__input" />
               <span class="form__input--error">{{ errors[0] }}</span>
             </ValidationProvider>
             <ValidationProvider v-slot="{ errors }" name="Customer sign date" rules="required" class="form__input-group form__input-group--normal">
@@ -432,22 +432,19 @@
         <div class="form__button-wrapper"><button type="submit" class="button form__button-wrapper--submit">{{ submitting ? 'Submitting' : 'Submit' }}</button></div>
       </form>
     </ValidationObserver>
-    <div>
-      <client-only>
-          <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions('rapid-response', jobId)"
-                        :paginate-elements-by-height="1300" :enable-download="false" @beforeDownload="beforeDownloadNoSave($event, `rapid-response-${jobId}`, jobId)"
-                        @hasDownloaded="uploadPdf($event, `rapid-response-${jobId}`, jobId)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
-              <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" slot="pdf-content" :notPdf="false" 
-                :report="postData" onForm />
-          </vue-html2pdf>
-      </client-only>
-    </div>
+    <vue-html2pdf :pdf-quality="2" pdf-content-width="800px"
+                  :html-to-pdf-options="htmlToPdfOptions('rapid-response', jobId)" :paginate-elements-by-height="1300" :enable-download="false"
+                  @beforeDownload="beforeDownloadNoSave($event, `rapid-response-${jobId}`, jobId)"
+                  @hasDownloaded="uploadPdf($event, `rapid-response-${jobId}`, jobId)" :manual-pagination="false"
+                  :show-layout="false" :preview-modal="true" ref="html2Pdf0">
+        <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" slot="pdf-content" :notPdf="false"
+          :report="postData" :onForm="true" />
+    </vue-html2pdf>
   </div>
 </template>
 <script>
   import {mapGetters, mapState, mapActions} from 'vuex'
   import 'animate.css'
-  import goTo from 'vuetify/es5/services/goto'
   import { timeMask, dateMask } from "@/data/masks";
   import { defineComponent, ref, useStore, computed, nextTick, watch } from '@nuxtjs/composition-api';
   import genericFuncs from '@/composable/utilityFunctions';
@@ -742,7 +739,7 @@
       const currentUploadStep = ref(1)
       const cardZip = ref("")
       const teamMemberSig = ref({ data: '', isEmpty: true })
-      const cusSignTime = ref("")
+      const teamSignTime = ref("")
       const cusSignDate = ref("")
       const phoneMask = ref({
         mask: '(000) 000-0000'
@@ -829,7 +826,7 @@
         intrusionLogsDialog,intrusionSection,dateIntrusion,dateIntrusionFormatted,timeIntrusion,timeIntrusionFormatted,preliminaryDetermination,moistureInspection,
         preRestoreEval,selectedPreliminary,selectedInspection,selectedTypes,steps,selectedSteps,picturesCheck,selectedPictures,insuranceCompany,claimNumber,policyNumber,
         adjusterName,adjusterPhone,adjusterEmail,verificationCheckboxes,uploadedFiles,filesUploading,selectedVerification,cusSignature,customerName,uploadMessage,
-        idImage,frontCardImage,backCardImage,cardImages,currentUploadStep,cardZip,teamMemberSig,cusSignTime,cusSignDate,phoneMask,initialData,cusInitial1,cusInitial2,
+        idImage,frontCardImage,backCardImage,cardImages,currentUploadStep,cardZip,teamMemberSig,teamSignTime,cusSignDate,phoneMask,initialData,cusInitial1,cusInitial2,
         cusInitial3,cusInitial4,empSig,moistureMap,penColor,dryStandardMask,hasJobid,teamMemberSignDate,penColorArr,
         getReports,
         getUser,
@@ -930,7 +927,8 @@
             selectedInspection: this.selectedInspection,
             preRestorationEval: this.preRestoreEval,
             teamMemberSig: Object.keys(this.empSig).length !== 0,
-            teamMemberSignDate: this.teamMemberSignDate
+            teamMemberSignDate: this.teamMemberSignDate,
+            teamSignTime: this.teamSignTime
         };
         this.postData = post
         return new Promise((resolve, reject) => {

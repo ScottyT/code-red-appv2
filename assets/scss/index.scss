@@ -1078,6 +1078,9 @@ input {
     //height:150px;
     display:flex;
     flex-direction: column;
+    &--driversLicense {
+      height:230px;
+    }
     img {
       object-fit:contain;
     }

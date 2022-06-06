@@ -7,7 +7,7 @@
             <UiBreadcrumbs page="field-jacket" :displayStrip="false" />
             <span v-if="reportType === 'rapid-response'">
                 <client-only>
-                    <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1500" :enable-download="false" 
+                    <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1200" :enable-download="false" 
                         @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
                         <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" :notPdf="false" 
                             :report="report" slot="pdf-content" :onForm="false" />

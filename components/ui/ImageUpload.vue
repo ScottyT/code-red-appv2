@@ -45,19 +45,11 @@ export default {
                 let size = imageFile.size / maxSize.value / maxSize.value
                 if (namechanged.value !== undefined) {
                     var blob = imageFile.slice(0, imageFile.size, imageFile.type)
-                    let filetype = ""
-                    switch (imageFile.type) {
-                        case "image/jpeg":
-                            filetype = ".jpg"
-                        case "image/png":
-                            filetype = ".png"
-                        default:
-                            filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
-                    }
-                    imageFile = new File([blob], `${namechanged.value}${filetype}`, {
+                    let filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
+                    
+                    imageFile = new File([blob], `${namechanged.value}.jpg`, {
                         type: imageFile.type
                     })
-                    console.log(imageFile)
                 }
                 if (!imageFile.type.match('image.*')) {
                     errorDialog.value = true
@@ -66,7 +58,7 @@ export default {
                     errorDialog.value = true
                     errorText.value = 'Your file is too big!'
                 } else {
-                    var imagesArr = []
+                    let filesArr = []
                     var formData = new FormData()
                     const imageUrl = URL.createObjectURL(imageFile)
                     const imageName = imageFile.name
@@ -79,7 +71,7 @@ export default {
                     emit('getFiles', [{formData, ...additionalData.value, image: {imageUrl, imageName, image: imageFile}}])
                 }
             } else if (multipleFiles.value) {
-                var imagesArr = []
+                let filesArr = []
                 var formData = new FormData()
                 
                 for (var i = 0; i < file.length; i++) {
@@ -100,9 +92,9 @@ export default {
                     let newImageFile = new File([blob], imageName, {
                         type: file[i].type
                     })
-                    imagesArr.push({imageUrl, imageName, image: newImageFile})
+                    filesArr.push({imageUrl, imageName, file: newImageFile})
                 }
-                emit('getFiles', [{imagesArr}])
+                emit('getFiles', [{filesArr}])
             } else {
                 errorDialog.value = true
                 errorText.value = "No image found"

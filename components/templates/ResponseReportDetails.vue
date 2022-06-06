@@ -1,11 +1,8 @@
 <template>
-<section class="pdf-content">
-  <div class="report-details report-details__response-report">
-    <h1 v-if="message">{{message}}</h1>
+<section class="pdf-content" slot="pdf-content">
+  <h1 v-if="message">{{message}}</h1>
     <h1 class="text-center">{{company}}</h1>
     <h2 class="text-center">{{reportName}}</h2>
-    <v-btn v-if="notPdf" @click="startEditing" dark>{{ isEditing ? "Editing" : "Edit"}}</v-btn>
-    <v-btn v-show="isEditing" @click="updateReport" dark>Update</v-btn>
     <div class="report-details__section">
       
       <div class="report-details__data">
@@ -62,16 +59,16 @@
 
       <div class="report-details__data-label">Phone Number:</div>
       <input class="form__input" v-if="isEditing" :value="updatedReport.phoneNumber" v-imask="phoneMask" @complete="updatedReport.phoneNumber = $event.detail.value" />
-      <span v-if="!isEditing" class="report-details__data-field">{{report.phoneNumber}}</span>
+      <span v-if="!isEditing" class="report-details__data-field">{{report.PhoneNumber}}</span>
 
       <div class="report-details__data-label">Email Address:</div>
       <input class="form__input" v-if="isEditing" v-model="updatedReport.emailAddress" />
-      <span v-if="!isEditing" class="report-details__data-field">{{report.emailAddress}}</span>
+      <span v-if="!isEditing" class="report-details__data-field">{{report.EmailAddress}}</span>
     </div>
     
     <div class="report-details__section">
       <div class="report-details__checklist">
-        <h3>Inital Response, Inspection, and Preliminary Determination</h3>
+        <h3>Photos</h3>
         <div class="report-details__section--pictures">
           <div class="report-details__image">
             <img :src="arrivalImage" />
@@ -89,14 +86,12 @@
       </div>
       <div class="report-details__data">
         <h3>Drivers License</h3>
-        <div class="report-details__image">
+        <div class="report-details__image report-details__image--driversLicense">
           <img :src="idPhoto" />
         </div>
       </div>
     </div>
-  </div>
-  <div class="report-details report-details__response-report">
-    <div class="report-details__section" v-if="report.sourceWaterIntrusion !== undefined && report.sourceWaterIntrusion.length > 0">
+    <div class="report-details__section">
       <div class="report-details__checklist">
         <h3>Source of Water Intrusion</h3>
         <ul>
@@ -105,52 +100,52 @@
           </li>
         </ul>
       </div>
-    </div>
-    <div class="report-details__section">
-      <div class="report-details__data" v-for="(item, i) in report.intrusion" :key="`intrusion-${i}`">
-        <label class="form__label">{{item.label}}</label>
-        <span>{{item.value}}</span>
+      <div class="report-details__data">
+        <label class="form__label">Initial:</label>
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial1 : ''" />
       </div>
     </div>
-    <div class="report-details__data">
-      <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials ? report.initials.initial1 : ''" />
-    </div>
-    <div class="report-details__section" v-if="report.preliminaryDetermination !== undefined && report.preliminaryDetermination.length > 0">
+    <div class="report-details__section">
       <div class="report-details__checklist">
         <h3>Preliminary Determination</h3>
         <ul>
-          <li v-for="(item, i) in report.preliminaryDetermination" :key="`prelim-${i}`">
+          <li v-for="item in report.selectedPreliminary" :key="item.id">
             {{item}}
           </li>
         </ul>
       </div>
+      <div class="report-details__data">
+        <label class="form__label">Initial:</label>
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial2 : ''" />
+      </div>
     </div>
-    <div class="report-details__data">
-      <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials ? report.initials.initial2 : ''" />
-    </div>
-    <div class="report-details__section" v-if="report.moistureInspection !== undefined && report.moistureInspection.length > 0">
+    <div class="report-details__section">
       <div class="report-details__checklist">
         <h3>Initial Moisture Inspection</h3>
         <ul>
-          <li v-for="(item, i) in report.moistureInspection" :key="`moisture-${i}`">
+          <li v-for="item in report.selectedInspection" :key="item.id">
             {{item.label}}
-            <span v-if="item.hasOwnProperty('dryStandard')">{{item.dryStandard}}</span>
           </li>
         </ul>
       </div>
+      <div class="report-details__data">
+        <label class="form__label">Initial:</label>
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial3 : ''" />
+      </div>
     </div>
-  </div>
-  <div class="report-details report-details__response-report">
-    
-    <div class="report-details__data">
-      <label class="form__label">Initial:</label>
-      <img class="report-details__initial" :src="report.initials ? report.initials.initial3 : ''" />
+    <div class="report-details__section">
+      <div class="report-details__data" v-for="(item, i) in report.intrusionInfo" :key="`intrusion-${i}`">
+        <label class="form__label">{{item.label}}</label>
+        <span>{{item.value}}</span>
+      </div>
     </div>
     
     <div class="report-details__section">
-      <label class="form__label">Initial Moisture Map</label>
+      <div class="report-details__data">
+        <label class="form__label">Initial:</label>
+        <img class="report-details__initial" :src="report.initials ? report.initials.initial4 : ''" />
+      </div>
+      <h3>Initial Moisture Map</h3>
       <p>An initial moisture inspection should be conducted to identify the full extent of water intrusion,
         including the
         identification of affected assemblies, building materials, and the edge of water mitigation. Normally,
@@ -171,12 +166,7 @@
         <img id="moisture-map-image" :src="report.moistureMap" />
       </div>
     </div>
-  </div>
-    <div class="report-details report-details__response-report">
-      <div class="report-details__data">
-        <label class="form__label">Initial:</label>
-        <img class="report-details__initial" :src="report.initials ? report.initials.initial4 : ''" />
-      </div>
+    <div class="report-details">
       <div class="report-details__section">
         <div class="report-details__data">
           <label class="form__label">Emergency Response Actions Identified:</label>
@@ -199,7 +189,7 @@
           <span>{{report.preRestorationEval ? report.preRestorationEval.substructure : null}}</span>
         </div>
       </div>
-    
+
       <div class="report-details__section">
         <div class="report-details__data">
           <h3>Insurance Company:</h3>
@@ -223,8 +213,7 @@
         </div>
         <div class="report-details__data">
           <h3>Adjuster Phone:</h3>
-          <input type="text" class="form__input" v-if="isEditing" :value="updatedReport.adjusterPhone" v-imask="phoneMask" 
-            @complete="updatedReport.adjusterPhone = $event.detail.value" />
+          <input type="text" class="form__input" v-if="isEditing" :value="updatedReport.adjusterPhone" v-imask="phoneMask" @complete="updatedReport.adjusterPhone = $event.detail.value" />
           <span v-if="!isEditing">{{report.adjusterPhone}}</span>
         </div>
         <div class="report-details__data">
@@ -241,6 +230,8 @@
           </ul>
         </div>
       </div>
+    </div>
+    <div class="report-details">
       <div class="report-details__section">
         <div class="report-details__checklist">
           <h3>Evaluation Logs</h3>
@@ -253,8 +244,7 @@
           <ul v-else>
             <li v-for="(evalLog, i) in evaltimes" :key="`copy-${i}`">
               <label class="form__label">{{ evalLog && evalLog.label ? evalLog.label : null}}</label>
-              <imask-input v-if="isEditing" :value="evalLog.value" :lazy="false" :mask="timeMask.mask" 
-                :blocks="timeMask.blocks" class="form__input" @complete="updateEvalTime(evaltimes[i].label, $event, i)"  />
+              <imask-input v-if="isEditing" :value="evalLog.value" :lazy="false" :mask="timeMask.mask" :blocks="timeMask.blocks" class="form__input" @complete="updateEvalTime(evaltimes[i].label, $event, i)" />
             </li>
           </ul>
         </div>
@@ -279,7 +269,7 @@
         <div class="report-details__data">
           <h3>Customer Signiture:</h3>
           <div v-if="signiture !== ''">
-          <div class="report-details__data--cusSig" :style="'background-image:url('+signiture+')'"></div>
+            <div class="report-details__data--cusSig" :style="'background-image:url('+signiture+')'"></div>
           </div>
         </div>
         <div class="report-details__data">
@@ -297,7 +287,7 @@
         </div>
         <div class="report-details__data">
           <h3>Sign Time:</h3>
-          <span>{{report.cusSignTime}}</span>
+          <span>{{report.teamSignTime}}</span>
         </div>
       </div>
     </div>
@@ -385,11 +375,7 @@ let image = null;
       },
       ...mapState({
         evaltimes: state => state.reports.report.evaluationLogs
-      }),
-      parseDate() {
-        const [month, day, year] = this.rep.DateOfEvaluation.split('-')
-        return `${month.padStart(2, '0')}-${day.padStart(2, '0')}-${year}`
-      }
+      })
     },
     watch: {
       report(val) {
@@ -451,9 +437,9 @@ let image = null;
         this.updatedReport.cusLastName = this.report.cusLastName
         //this.updatedProject.Location.city = this.report.Location.city
       },
-      updateReport() {
+      /* updateReport() {
         const timeLogs = [
-          {label: 'Team Arrival at Property', value: `${this.parseDate} ${genericFuncs().timeConverter(this.evaltimes[0].value,"24hour")}:00`}, 
+          {label: 'Team Arrival at Property', value: `${genericFuncs().parsedDate()} ${genericFuncs().timeConverter(this.evaltimes[0].value,"24hour")}:00`}, 
           {label: 'Evaluation Report Start Time', value: `${this.parseDate} ${genericFuncs().timeConverter(this.evaltimes[1].value,"24hour")}:00`}, 
           {label: 'Evaluation Report End Time', value: `${this.parseDate} ${genericFuncs().timeConverter(this.evaltimes[2].value,"24hour")}:00`}, 
           {label: 'Time of Contract Signing', value: `${this.parseDate} ${genericFuncs().timeConverter(this.evaltimes[3].value,"24hour")}:00`}
@@ -467,7 +453,7 @@ let image = null;
           this.isEditing = false
           this.fetchReport({authUser: this.$auth.user, path: `${this.report.ReportType}/${this.report.JobId}`})
         })
-      },
+      }, */
       acceptNumber() {
         var x = this.updatedReport.phoneNumber.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/)
         this.updatedReport.phoneNumber = !x[2] ?
