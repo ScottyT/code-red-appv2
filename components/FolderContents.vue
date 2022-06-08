@@ -221,8 +221,8 @@ export default defineComponent({
         })
       }
       report.value.images.forEach((file) => {
-        const promise = getFile(file.url).then(data => {
-          zip.file(file.name + file.extension, data, {binary: true});
+        const promise = getFile(file.imageUrl).then(data => {
+          zip.file(file.name, data, {binary: true});
           cache[file.name] = data;
         });
         promises.push(promise);

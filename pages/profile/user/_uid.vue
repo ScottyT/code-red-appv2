@@ -176,12 +176,17 @@ export default defineComponent({
         const uploadAvatar = async () => {
             await uploadFile().then((image) => {
                 store.commit('users/setAvatar', image.imageUrl)
-                let userid = userObj.value.auth_id.substring(userObj.value.auth_id.indexOf('|')+1, userObj.value.auth_id.length)
-                $api.$put(`/api/employees/update/${userid}`, 
+                //let userid = userObj.value.auth_id.substring(userObj.value.auth_id.indexOf('|')+1, userObj.value.auth_id.length)
+                $api.$put(`/api/employees/update/${userObj.value.auth_id}`, 
                     {
                         picture: image.imageUrl,
-                        auth_id: userObj.value.sub, 
-                        certifications: certifications
+                        auth_id: userObj.value.auth_id, 
+                        certifications: state.value.certifications,
+                        user_metadata: {
+                            role: userObj.value.role,
+                            id: userObj.value.id,
+                            name: userObj.value.name
+                        }
                     }).then((res) => {
                         $auth.fetchUser()
                     })
@@ -222,7 +227,7 @@ export default defineComponent({
                     console.log(result)
                     result[0].formData.append('user', userObj.value.email)
                     result[0].formData.append('name', 'avatar')
-                    $gcs.$post(`/upload/avatar`, result[0].formData).then((res) => {
+                    $gcs.$post(`/upload/user`, result[0].formData).then((res) => {
                         resolve(res)
                     }).catch((err) => {
                         error.value = err

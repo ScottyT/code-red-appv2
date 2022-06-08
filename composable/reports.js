@@ -155,7 +155,6 @@ export default function useReports() {
 
     const getReportImages = (jobid, folder, subfolder, delimiter) => {
         loading.value = true
-        console.log("fetching images")
         const { fetch: fetchImages, fetchState } = useFetch(async () => {
             $gcs.$get(`/list/${jobid}`, {
                 params: { folder: folder, subfolder: subfolder, delimiter: delimiter, bucket: "default" }

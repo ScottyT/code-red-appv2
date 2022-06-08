@@ -91,8 +91,8 @@
                         <div class="form__table--cols" v-for="(item, j) in row.day" :key="`col-${j}`">
                             <input :tabindex="j" v-on="(row.identifier === 'dryBulbTemp' || row.identifier === 'humidityRatio' || row.identifier === 'dewPoint') ? {
                                     input: ($event) => calculationsDp($event, row.identifier, row.label, item.date)
-                                }:{}" v-model="item.value" class="form__input" :min="row.hasOwnProperty('min') ? row.min : ''" 
-                                :type="row.identifier == 'dryBulbTemp' || row.identifier == 'humidityRatio' ? 'number' : 'text'" />
+                                }:{}" v-model="item.value" class="form__input" 
+                                type="text" />
                         </div>
                     </div>
                     <div class="form__table--rows row-heading">
@@ -297,7 +297,7 @@ export default defineComponent({
                 {text: "day6",value: ""},
                 {text: "day7",value: ""}
             ]},
-            {text: "Exterior Pressure", label: "Exterior", identifier: "airPressure", day: [
+            {text: "Exterior Pressure", label: "Exterior", identifier: "vaporPressure", day: [
                 {text: "day1", value: ""},
                 {text: "day2",value: ""},
                 {text: "day3",value: ""},
@@ -453,7 +453,8 @@ export default defineComponent({
                     dryBulbTemp: "",
                     relativeHumidity: "",
                     humidityRatio: "",
-                    dewPoint: ""
+                    dewPoint: "",
+                    vaporPressure: ""
                 },
                 date: "",
                 color: "",
@@ -537,7 +538,7 @@ export default defineComponent({
             var exteriorDp = groupingData.value["Exterior"].find(el => el.identifier === "dewPoint" && el.label === "Exterior")
             var unaffectedDp = groupingData.value["Unaffected"].find(el => el.identifier === "dewPoint" && el.label === "Unaffected")
             var affectedVapor = groupingData.value["Affected"].find(el => el.identifier === "vaporPressure" && el.label === "Affected")
-            var exteriorVapor = ""
+            var exteriorVapor = groupingData.value["Exterior"].find(el => el.identifier === "vaporPressure" && el.label === "Exterior")
             var unaffectedVapor = groupingData.value["Unaffected"].find(el => el.identifier === "vaporPressure" && el.label === "Unaffected")
             var tempInCAffected = convertToC(affectedTemp.day[dateIndex].value)
             var tempInCExterior = convertToC(exteriorTemp.day[dateIndex].value)
@@ -546,28 +547,29 @@ export default defineComponent({
             for (const property in groupingData.value) {
                 groupingData.value[property].forEach((item, i) => {
                     if (param === "dryBulbTemp" && label === "Affected") {
-                        psychrometricData.value["Affected"].info.dryBulbTemp = parseInt(e.target.value)
+                        psychrometricData.value["Affected"].info.dryBulbTemp = parseFloat(e.target.value)
                     }
                     if (param === "dryBulbTemp" && label === "Exterior") {
-                        psychrometricData.value["Exterior"].info.dryBulbTemp = parseInt(e.target.value)
+                        psychrometricData.value["Exterior"].info.dryBulbTemp = parseFloat(e.target.value)
                     }
                     if (param === "dryBulbTemp" && label === "Unaffected") {
-                        psychrometricData.value["Unaffected"].info.dryBulbTemp = parseInt(e.target.value)
+                        psychrometricData.value["Unaffected"].info.dryBulbTemp = parseFloat(e.target.value)
                     }
                     if (param === "humidityRatio" && label === "Affected") {
                         let vapor = e.target.value
                         affectedVapor.day[dateIndex].value = calcVapor(vapor, "Affected")
-                        psychrometricData.value["Affected"].info.humidityRatio = parseInt(e.target.value)
+                        psychrometricData.value["Affected"].info.humidityRatio = parseFloat(e.target.value)
                         psychrometricData.value["Affected"].info.vaporPressure = calcVapor(vapor, "Affected")
                     }
                     if (param === "humidityRatio" && label === "Unaffected") {
                         unaffectedVapor.day[dateIndex].value = calcVapor(e.target.value, "Unaffected")
-                        psychrometricData.value["Unaffected"].info.humidityRatio = calcVapor(e.target.value, "Unaffected")
+                        psychrometricData.value["Unaffected"].info.humidityRatio = parseFloat(e.target.value)
                         psychrometricData.value["Unaffected"].info.vaporPressure = calcVapor(vapor, "Unaffected")
                     }
                     if (param === "humidityRatio" && label === "Exterior") {
-                        exteriorVapor = calcVapor(e.target.value, "Exterior")
-                        psychrometricData.value["Exterior"].info.humidityRatio = parseInt(e.target.value)
+                        exteriorVapor.day[dateIndex].value = calcVapor(e.target.value, "Exterior")
+                        psychrometricData.value["Exterior"].info.humidityRatio = parseFloat(e.target.value)
+                        psychrometricData.value["Exterior"].info.vaporPressure = calcVapor(vapor, "Exterior")
                     }
                     if (item.identifier === "dewPoint" && label === "Affected") {
                         var ln = affectedVapor.day[dateIndex].value / hPa.value
@@ -582,7 +584,7 @@ export default defineComponent({
                         psychrometricData.value["Unaffected"].info.dewPoint = round(dewPointF, 3)
                     }
                     if (item.identifier === "dewPoint" && label === "Exterior") {
-                        var ln = exteriorVapor / hPa.value
+                        var ln = exteriorVapor.day[dateIndex].value / hPa.value
                         var dewPointF = convertToF((temp.value * Math.log(ln)) / (beta.value - Math.log(ln)))
                         exteriorDp.day[dateIndex].value = round(dewPointF, 3)
                         psychrometricData.value["Exterior"].info.dewPoint = round(dewPointF, 3)
@@ -599,7 +601,7 @@ export default defineComponent({
                     }
                     if (item.identifier === "relativeHumidity" && label === "Exterior") {
                         var satVapor = hPa.value * Math.exp((beta.value * tempInCExterior) / (temp.value + tempInCExterior))
-                        exteriorRH.day[dateIndex].value = `${(exteriorVapor / satVapor * 100).toFixed(2)}%`
+                        exteriorRH.day[dateIndex].value = `${(exteriorVapor.day[dateIndex].value / satVapor * 100).toFixed(2)}%`
                         psychrometricData.value["Exterior"].info.relativeHumidity = `${(exteriorVapor / satVapor * 100).toFixed(2)}%`
                     }
                 })
@@ -668,7 +670,7 @@ export default defineComponent({
             };
             postedData.value = post
             return new Promise((resolve, reject) => {
-                $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
+                /* $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
                     submitting.value = false
                     submitted.value = true
                     fetchReports()
@@ -680,44 +682,95 @@ export default defineComponent({
                     if (err.response) {
                         console.error(err.response.data)
                     }
-                })
+                }) */
+                resolve(true)
             })
         }
         async function submitPsychrometic() {
+            let filteredResults = []
             for (const property in groupingData.value) {
-                    groupingData.value[property].forEach((item) => {
-                        var filteredResults = item.day.filter(d => d.date === currentDate.value && d.value !== "")
-                        if (filteredResults.length > 0) {
-                            psychrometricData.value[property].info[item.identifier] = filteredResults[0].value
-                            psychrometricData.value[property].date = filteredResults[0].date
-                            psychrometricData.value[property].color = colors.value[dateIndex.value]
+                if (property)
+                groupingData.value[property].forEach((item) => {
+                    for (let i = 0; i < item.day.length; i++) {
+                        if (filteredResults.filter(el => el.readingsType == property && el.date == item.day[i].date).length == 0 && property !== undefined) {
+                            let hrI = groupingData.value[property].findIndex(el => el.identifier == "humidityRatio")
+                            let tempI = groupingData.value[property].findIndex(el => el.identifier == "dryBulbTemp")
+                            let dpI = groupingData.value[property].findIndex(el => el.identifier == "dewPoint")
+                            let vpI = groupingData.value[property].findIndex(el => el.identifier == "vaporPressure")
+                            let rhI = groupingData.value[property].findIndex(el => el.identifier == "relativeHumidity")
+                            console.log(vpI)
+                            filteredResults.push({
+                                info: {
+                                    "dryBulbTemp": parseFloat(groupingData.value[property][tempI].day[i].value),
+                                    "humidityRatio": parseFloat(groupingData.value[property][hrI].day[i].value),
+                                    "dewPoint": parseFloat(groupingData.value[property][dpI].day[i].value),
+                                    "vaporPressure": groupingData.value[property][vpI].day[i].value.toString(),
+                                    "relativeHumidty": groupingData.value[property][rhI].day[i].value.toString(),
+                                },
+                                readingsType: property,
+                                date: item.day[i].date
+                            })
                         }
+                    }
+                    
+                    
+                    
+                    /* let groupByDate = item.day.filter(d => d.value !== "").map((x) => {
+                        const p = {
+                            info: {
+                                [property]: x.value
+                            },
+                            date: x.date
+                        }
+                        return p
                     })
+                    console.log(groupByDate) */
+                    /* item.day.forEach((d) => {
+                        var obj = {
+                            dryBulbTemp: d.value,
+                            humidityRatio: data.y,
+                            dewPoint: dewPoint.value + '%',
+                            vaporPressure: vaporPressure.value,
+                            relativeHumidity: RH.value
+                        }
+                    }) */
+                    /* var filteredResults = item.day.filter(d => d.date === currentDate.value && d.value !== "")
+                    if (filteredResults.length > 0) {
+                        if (item.identifier == "dryBulbTemp" || item.identifier == "humidityRatio") {
+                            psychrometricData.value[property].info[item.identifier] = parseFloat(filteredResults[0].value)
+                        } else {
+                            psychrometricData.value[property].info[item.identifier] = filteredResults[0].value.toString()
+                        }
+                        psychrometricData.value[property].date = filteredResults[0].date
+                        psychrometricData.value[property].color = colors.value[dateIndex.value]
+                    } */
+                })
+            }
+            console.log("job progress: ", filteredResults)
+            var promises = []
+            for (const property in psychrometricData.value) {
+                if (psychrometricData.value[property].color === "") {
+                    // this is to make sure not to submit empty data
+                    delete psychrometricData.value[property]
                 }
-                var promises = []
-                for (const property in psychrometricData.value) {
-                    if (psychrometricData.value[property].color === "") {
-                        // this is to make sure not to submit empty data
-                        delete psychrometricData.value[property]
-                    }
-                    const psychrometricPost = {
-                        JobId: selectedJobId.value,
-                        teamMember: getUser.value,
-                        jobProgress: psychrometricData.value[property],
-                        formType: 'chart-report',
-                        ReportType: 'psychrometric-chart'
-                    }
-                    promises.push(psychrometricPost)
+                const psychrometricPost = {
+                    JobId: selectedJobId.value,
+                    teamMember: getUser.value,
+                    jobProgress: psychrometricData.value[property],
+                    formType: 'chart-report',
+                    ReportType: 'psychrometric-chart'
                 }
+                promises.push(psychrometricPost)
+            }
             return new Promise((resolve, reject) => {
                 Promise.all(promises).then((item) => {
                     let filteredArr = item.filter(r => r.jobProgress !== undefined)
+                    //console.log(filteredArr)
                     filteredArr.forEach((item) => {
                             let updateReading = (readingsType.value[item.jobProgress.readingsType] !== undefined
                                 && readingsType.value[item.jobProgress.readingsType].find(el => el.date === currentDate.value) !== undefined)
                             //var newDateProgress = this.readingsType[item.jobProgress.readingsType].find(el => el.date === jobProgressDate) === undefined
-                            console.log(item)
-                            if (updateReading) {
+                            /* if (updateReading) {
                                 $api.$post(`/api/reports/psychrometric-chart/update-progress`, item).then((res) => {
                                     submittedMessage.value = res
                                 })
@@ -725,7 +778,7 @@ export default defineComponent({
                                 $api.$post(`/api/reports/psychrometric-chart/update-chart`, item).then((res) => {
                                     submittedMessage.value = res
                                 })
-                            }
+                            } */
                         })
                       resolve("Updated psychrometric chart")
                 }).catch(err => {

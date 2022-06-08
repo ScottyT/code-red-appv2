@@ -79,7 +79,8 @@
             <p>{{addressImageName}}</p>
           </div>
           <div class="report-details__image">
-            <img :src="siteSafetyImage" />
+            <img v-if="siteSafetyImage !== ''" :src="siteSafetyImage" />
+            <p v-else>No image available</p>
             <p>{{siteSafetyImageName}}</p>
           </div>
         </div>

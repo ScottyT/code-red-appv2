@@ -425,7 +425,7 @@
                             :parse="dateMask.parse" :pattern="dateMask.pattern" class="form__input" />
               <span class="form__input--error">{{ errors[0] }}</span>
             </ValidationProvider>
-            <LazyUiSignaturePadModal v-model="empSig" width="700px" height="219px" dialog :initial="false" sigType="employee" inputId="teamMemberSig" :sigData="teamMemberSig" 
+            <LazyUiSignaturePadModal width="700px" height="219px" dialog :initial="false" sigType="employee" inputId="teamMemberSig" :sigData="teamMemberSig" 
               sigRef="teamSignaturePad" name="Team member signature" />
           </div>
         </div>
@@ -433,7 +433,7 @@
       </form>
     </ValidationObserver>
     <vue-html2pdf :pdf-quality="2" pdf-content-width="800px"
-                  :html-to-pdf-options="htmlToPdfOptions('rapid-response', jobId)" :paginate-elements-by-height="1300" :enable-download="false"
+                  :html-to-pdf-options="htmlToPdfOptions('rapid-response', jobId)" :paginate-elements-by-height="1200" :enable-download="false"
                   @beforeDownload="beforeDownloadNoSave($event, `rapid-response-${jobId}`, jobId)"
                   @hasDownloaded="uploadPdf($event, `rapid-response-${jobId}`, jobId)" :manual-pagination="false"
                   :show-layout="false" :preview-modal="true" ref="html2Pdf0">
