@@ -5,7 +5,7 @@
         <button class="button--normal" type="button" @click="$fetch">Refresh</button>
         <div class="info-bar">
             <div class="info-bar__search-wrapper">
-                <UiAutocomplete @sendReportsToParent="sketchesFetched" :items="sketches" theme="light" searchKey="ReportType" />
+                <UiAutocomplete @sendReportsToParent="sketchesFetched($event)" :items="sketches" theme="light" searchKey="Title" />
             </div>
         </div>
         <h2>{{$route.params.jobid}} job</h2>
@@ -13,7 +13,7 @@
         <div class="grid grid--default">
             <div class="sketches-wrapper__sketch" v-for="(item, i) in sketchList" :key="`sketch-${i}`" @click="pdfClicked(item)">
                 <img class="pdf" src="/pdf-icon.png" alt="pdf-icon" />
-                <p v-uppercase>{{item.ReportType}}-{{item.Title}}</p>
+                <p v-uppercase>{{item.Title}}</p>
             </div>
         </div>
         
@@ -63,7 +63,7 @@ export default defineComponent({
         })
 
         function sketchesFetched(item) {
-            sketchList.value = item.value
+            sketchList.value = item
         }
         function getSketchData(item) {
             return new Promise((resolve, reject) => {

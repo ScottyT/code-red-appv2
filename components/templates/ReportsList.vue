@@ -5,7 +5,7 @@
   <div class="reports-list" v-else>
     <div class="info-bar">
       <div class="info-bar__search-wrapper">
-        <UiAutocomplete @sendReportsToParent="reportsfetched" :items="reportslist" theme="light" searchKey="JobId" />
+        <UiAutocomplete @sendReportsToParent="reportsfetched($event)" :items="page == 'sketches' ? sketchlist : reportslist" theme="light" searchKey="JobId" />
       </div>
     </div>
     <v-dialog v-model="createDirDialog" persistent max-width="500px">
@@ -69,7 +69,25 @@ export default {
       fetchReports: 'fetchReports'
     }),
     reportsfetched(reports) {
-      this.reports = reports.value
+      if (this.page == "sketches") {
+        const map = new Map();
+        let tempArr = []
+        for (const item of reports) {
+          if (!map.has(item.JobId)) {
+            map.set(item.JobId, true);
+            tempArr.push({
+              JobId: item.JobId,
+              Title: item.Title,
+              sketch: item.sketch,
+              ReportType: item.ReportType,
+              notes: item.notes
+            })
+          }
+        }
+        this.sketches = tempArr
+      } else {
+         this.reports = reports
+      }
     },
     sortValue(s) {
       if (s.value === this.sortBy) {
@@ -98,6 +116,7 @@ export default {
       })
     }
   },
+  
   mounted() {
     this.reports = this.reportslist
     const map = new Map();

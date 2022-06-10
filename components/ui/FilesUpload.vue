@@ -4,7 +4,7 @@
         <UiImageUpload @getFiles="filePreviews(...$event)" :multipleFiles="!singleImage" :namechanged="nameChanged" :maxSize="5000" 
             :uploadFieldName="fieldName" class="image-upload" >
             <template v-slot:activator>
-                <span class="button--normal button" v-if="fieldName !== 'avatar'">{{buttonName !== undefined ? buttonName : 'Add Image'}}</span>
+                <span class="button--normal button" v-if="fieldName !== 'avatar'">{{buttonName !== undefined ? buttonName : 'Add Files'}}</span>
             </template>
         </UiImageUpload>
         <div class="file-listing-wrapper" v-if="inlinePreviews && (!singleImage && uploadfiles.length > 0)" ref="previewImages">
@@ -136,12 +136,11 @@ export default {
                     }
                 }).then((res) => {
                     uploadMessage.value = res.message
-                    /* setTimeout(() => {
+                    setTimeout(() => {
                         uploadMessage.value = ""
-                    }, 3000) */
+                    }, 3000)
                     //uploadfiles.value = []
                     emit("afterUpload", res.files)
-                    //emit('sendDownloadUrl', {imageUrl: res.data.downloadUrl,imageName: uploadarr[0].imagesArr.imageName})
                 })
             }).catch((err) => {
                 console.log(err)
@@ -150,7 +149,6 @@ export default {
         
         function filePreviews(params) {
             const promises = []
-            console.log(params)
             if (singleImage.value) {
                 emit('sendPreviews', params)
                 uploadfiles.value = [{image: params.image, formData: params.formData}]
@@ -171,7 +169,6 @@ export default {
             files.value.push(param)
         }
         watch(uploadfiles, (val) => {
-            console.log("uploading: ", val)
             if (autoUpload.value && rootPath.value !== '') {
                 compressAndUpload(val)
             } else if (rootPath.value === '') {
@@ -223,13 +220,13 @@ export default {
 }
 .file-listing {
     &__remove-file {
-        position: absolute;
+        position: absolute!important;
         background-color: red;
         cursor: pointer;
-        top: -5px;
+        top: 3px;
         width: 22px;
         height:21px;
-        right: 11px;
+        right: 12px;
         border-radius: 50%;
         &--leg {
             background-color:$color-white;
@@ -238,7 +235,7 @@ export default {
             height:2px;
             position:absolute;
             left:3px;
-            }
+        }
         &--leg1 {     
             transform:rotate(45deg);     
         }

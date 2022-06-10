@@ -50,7 +50,7 @@ export default defineComponent({
         const reportslist = ref([])
         const visiblePages = ref(5)
         const reportsFetched = (data) => {
-            reportslist.value = data.value
+            reportslist.value = data
         }
         async function createTimesheet(jobid) {
             var rapidResponseRep = allReports.value.find(el => el.ReportType === 'rapid-response')

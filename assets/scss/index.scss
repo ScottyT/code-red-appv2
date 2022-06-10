@@ -987,10 +987,10 @@ button {
 
 .file-listing {
   position: relative;
-  max-width: 180px;
-  height:200px;
-  display: inline-flex;
-  padding-bottom: 20px;
+  width: 164px;
+  height:201px;
+  //display: inline-flex;
+  padding-bottom: 0px;
 
   p {
     word-break: break-all;
@@ -1003,6 +1003,7 @@ button {
   img {
     max-width: 90%;
     width:200px;
+    object-fit:contain;
   }
 }
 

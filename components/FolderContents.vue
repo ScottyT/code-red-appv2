@@ -75,10 +75,12 @@
                 <v-icon x-large>mdi-folder</v-icon>
                 <p>{{subfolder.name}}</p>
             </nuxt-link>
+            <!-- This displays the preview of the images about to be uploaded-->
             <div class="file-listing folder-contents__file-listing" v-for="(file, key) in uploadFilesArr" :key="`image-${key}`">
                 <img v-if="file.file.type == 'application/pdf'" class="file-listing__preview" src="/pdf-icon.png" />
                 <img v-if="file.file.type.includes('image')" class="file-listing__preview" :src="file.imageUrl" />
                 <v-icon class="file-listing__remove-file" @click="removeFile(key)" tag="i" large>mdi-close-circle</v-icon>
+                <p>{{file.name}}</p>
             </div>
             <UiLightbox v-if="images !== null" :selecting="editing" :images="images" :imagesPerPage="1" :dialog="sliderDialog">
                 <template v-slot:image="slotProps">
@@ -136,11 +138,7 @@ export default defineComponent({
     })
   
     function afterUpload(param) {
-      if (images.value === null) {
-        images.value = param
-      } else {
-        console.log(param)
-        param.forEach(item => {
+      param.forEach(item => {
           let extension = item.name.substring(item.name.lastIndexOf('.'), item.name.length)
           if (extension == '.pdf') {
             pdfs.value.push(item)
@@ -150,7 +148,7 @@ export default defineComponent({
             images.value.push(item)
           }
         })
-      }
+      
     }
     const folderCreation = () => {
       const post = {
