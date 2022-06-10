@@ -51,7 +51,7 @@
                         <label for="completeDate" class="form__label">Date Completed</label>
                         <input type="hidden" v-model="completionDate" />
                         <imask-input id="completeDate" :lazy="false" :blocks="dateMask.blocks" 
-                                    :mask="dateMask.mask" :format="dateMask.format" :parse="dateMask.parse" :pattern="dateMask.pattern" class="form__input" v-model="completionDate" />
+                            :mask="dateMask.mask" :format="dateMask.format" :parse="dateMask.parse" :pattern="dateMask.pattern" class="form__input" v-model="completionDate" />
                         <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                     </ValidationProvider>
                 </div>
@@ -80,25 +80,13 @@
                                        v-model="inventoryList[i].item_num" />
                             </div>
                             <div class="inventory-list__col">
-                                <input :id="`${i}-description`" type="text" class="form__input"
-                                       v-model="row.cols[1].value" />
+                                <input :id="`${i}-description`" type="text" class="form__input" v-model="row.cols[1].value" />
                             </div>
                             <div class="inventory-list__col">
-                                <UiImageUpload @getFiles="addFilesToInventory($event[0], i)"
-                                               errorText="an error happened" :email="user.email" :maxSize="2048"
-                                               name="item-image" :additionalData="{itemNum: inventoryList[i].item_num}">
-                                    <template v-slot:activator>
-                                        <button v-show="row.cols[2].value === ''" type="button"
-                                                class="button button--normal">Add image</button>
-                                    </template>
-                                    <template v-slot:imagePreview="slotProps" v-if="row.cols[2].value.includes('.jpg') || row.cols[2].value.includes('.png')">
-                                        <img v-show="slotProps.image !== ''" class="file-listing__preview"
-                                             :src="slotProps.image" />
-                                    </template>
-                                </UiImageUpload>
-
-                                <div class="inventory-list__item-image--preview" v-if="!row.cols[2].value.includes('.jpg') && !row.cols[2].value.includes('.png')">
-                                    <img v-show="images[i] !== undefined" :src="row.cols[2].value" />
+                                <UiFilesUpload class="file-upload__content-inventory" singleImage path="personal-content-inventory" subDir="" :rootPath="selectedJobId"
+                                    @afterUpload="addFilesToInventory($event, i)" fieldName="singleImage" autoUpload :inlinePreviews="false" />
+                                <div class="inventory-list__item-image--preview" v-if="images[i] !== undefined">
+                                    <img :src="images[i].imageUrl" />
                                 </div>
                             </div>
 
@@ -141,7 +129,7 @@
                         <input type="text" class="form__input" v-model="total" />
                     </div>
                     <div class="form__input-group">
-                        <LazyUiSignaturePadModal v-if="!hasTechSig" v-model="empSig" width="700px" height="219px" dialog :initial="false" sigType="employee" inputId="techSig" :sigData="techSig" sigRef="techSig" 
+                        <LazyUiSignaturePadModal v-if="$store.state.users.signature == ''" v-model="empSig" width="700px" height="219px" dialog :initial="false" sigType="employee" inputId="techSig" :sigData="techSig" sigRef="techSig" 
                             name="Technician signature" />
                         <img v-else style="object-fit: contain;" :src="$store.state.users.signature" />
                     </div>
@@ -157,7 +145,8 @@
         <vue-html2pdf :pdf-quality="2" pdf-content-width="100%" :html-to-pdf-options="htmlToPdfOptions('personal-content-inventory', selectedJobId)" :paginate-elements-by-height="900" 
             :manual-pagination="false" :show-layout="false" :enable-download="false" @hasDownloaded="uploadPdf($event, `personal-content-inventory-${selectedJobId}`, selectedJobId)"
             @beforeDownload="beforeDownloadNoSave($event, `personal-content-inventory-${selectedJobId}`, selectedJobId)" :preview-modal="true" ref="html2Pdf0">
-            <LayoutContentInventoryDetails slot="pdf-content" :reportName="postedData.ReportType" :onForm="true" :report="postedData" company="Water Emergency Services Incorporated" />
+            <LayoutContentInventoryDetails slot="pdf-content" :reportName="postedData.ReportType" :onForm="true" :report="postedData" company="Water Emergency Services Incorporated"
+                :itemImages="images" />
         </vue-html2pdf>
     </div>
 </template>
@@ -172,7 +161,7 @@ export default defineComponent({
         abbreviation: String
     },
     setup(props, { emit, refs }) {
-        const { $api, $auth } = useContext()
+        const { $api, $auth, $gcs } = useContext()
         const { getReportPromise, loading, htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const store = useStore()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
@@ -259,19 +248,14 @@ export default defineComponent({
         const postedData = ref({})
         const user = computed(() => store.getters["users/getUser"])
         const reports = computed(() => store.getters["reports/getReports"])
+        const fetchSignature = (signType, email) => { store.dispatch("users/getSigOrInitialImage", {signType, email}); }
         let timerID;
         let counter = 0;
         let pressHoldDuration = 50;
         
         const addFilesToInventory = (file, row) => {
-            if (images.value.find(el => el.itemNum === file.itemNum) === undefined) {
-                images.value.push(file)
-            } else {
-                var curI = images.value.findIndex(el => el.itemNum === file.itemNum)
-                images.value[curI] = file
-            }
-            
-            inventoryList.value[row].cols[2].value = file.image.imageName
+            inventoryList.value[row].cols[2].value = file[0].name.substring(file[0].name.lastIndexOf('/') + 1, file[0].name.length)
+            images.value.push({item_num: row + 1, imageUrl: file[0].imageUrl})
         }
         const compressing = async (file) => {
             var formData = new FormData()
@@ -288,31 +272,13 @@ export default defineComponent({
             formData.set("ItemNumber", file.itemNum)
             return formData
         }
-        const uploadFile = async (uploadarr) => {
-            uploadarr = uploadarr.filter((val) => {
-                return deletedImages.value.map(obj => obj.item_num).indexOf(val.itemNum) < 0
-            })
-            for (var i = 0; i < uploadarr.length; i++) {
-                const fileFormData = await compressing(uploadarr[i])
-                await $api.$post(`/api/image/upload/content-inventory-image`, fileFormData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                }).then((res) => {
-                    imageIds.value.push(res.data)
-                })
-            }
-            return "Image(s) uploaded successfully!"
-        }
         function timeout(ms) {
             return new Promise(resolve => setTimeout(resolve, ms))
         }
         async function submitForm() {
             submitting.value = true
             message.value = []
-            var filteredImages = images.value.filter((el) => {
-                return el.formData !== undefined
-            })
+
             if (deletedImages.value.length > 0) {
                 var deletedArr = []
                 await Promise.all(deletedImages.value.map(async (image) => {
@@ -330,9 +296,7 @@ export default defineComponent({
                     message.value.push(`Deleted ${deletedArr.length} images`)
                 })
             }
-            await uploadFile(filteredImages).then((result) => {
-                message.value.push(result)
-                onSubmit().then((res) => {
+            await onSubmit().then((res) => {
                     timeout(1500).then(() => {
                         submitted.value = true
                         submitting.value = false
@@ -340,14 +304,8 @@ export default defineComponent({
                         html2Pdf0.value.generatePdf()
                     })
                 })
-            }).catch(err => {
-                generalErrorMessages.value.push(err.response.data)
-            });
         }
         function onSubmit() {
-            var filteredImageIds = imageIds.value.filter((el) => {
-                return el !== null
-            })
             const post = {
                 JobId: selectedJobId.value,
                 ReportType: "personal-content-inventory",
@@ -360,10 +318,8 @@ export default defineComponent({
                 teamMember: user.value,
                 cusSig: customerSign.value.data,
                 techSig: empSig.value !== '',
-                totalAmount: total.value,
-                //image_ids: filteredImageIds
+                totalAmount: total.value
             }
-            
             return new Promise((resolve, reject) => {
                 $api.$put(`/api/reports/${post.ReportType}/${selectedJobId.value}/update`, post).then((res) => {
                     generalErrorMessages.value = []
@@ -533,7 +489,7 @@ export default defineComponent({
                 }, 0)
             }
         }
-        
+      
         watch(selectedItems, (val) => {
             if (val.length === 0) {
                 editing.value = false
@@ -542,13 +498,14 @@ export default defineComponent({
             }
         })
         watch(selectedJobId, (val) => {
+            fetchSignature("signature.jpg", store.getters["users/getUser"].email)
             loading.value = false
             var existingInv = reports.value.find(obj => {
                 return obj.JobId === val && obj.ReportType === 'personal-content-inventory'
             })
             if (existingInv !== undefined) {
                 getReportPromise(`personal-content-inventory/${val}`).then((result) => {
-                    const { claimNumber, customer, dateCompleted, insurance, inventory, cusSig, techSig, totalAmount, Id, image_ids } = result
+                    const { claimNumber, customer, dateCompleted, insurance, inventory, cusSig, techSig, totalAmount, Id } = result
                     customerName.value = customer
                     claimNum.value = claimNumber
                     insuranceCompany.value = insurance
@@ -560,17 +517,74 @@ export default defineComponent({
                     loading.value = false
                     total.value = totalAmount
                     reportId.value = Id
-                    imageIds.value = image_ids
-                    
-                    result.inventoryImages.forEach((image) => {
-                        images.value.push({
-                            image: image.img,
-                            itemNum: image.ItemNumber
-                        })
-                        var row = inventory.findIndex(i => i.cols[2].value === image.img.filename)
-                        if (row >= 0) {
-                            inventoryList.value[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
-                        }
+
+                    let tempArr = []
+                    Promise.all(inventory.map(async (inv) => {
+                        let imageName = inv.cols[2].value
+                        await $gcs.$get(`/list/file/${imageName}`, {
+                                params: {
+                                    folder: `${selectedJobId.value}/personal-content-inventory`,
+                                    bucket: "default"
+                                }
+                            }).then((res) => {
+                                tempArr.push({
+                                    item_num: parseInt(inv.item_num),
+                                    imageUrl: res.imageUrl
+                                })
+                            })
+                    })).then(() => {
+                        images.value = tempArr.sort((a,b) => parseInt(a.item_num) - parseInt(b.item_num))
+                    }).catch(err => {
+                        inventoryList.value = [{
+                            item_num: 1,
+                            label: "Item #",
+                            cols: [{
+                                    id: "item_num",
+                                    label: "Item #"
+                                },
+                                {
+                                    id: "desc",
+                                    label: "Description",
+                                    value: ""
+                                },
+                                {
+                                    id: "image",
+                                    label: "Image",
+                                    value: ""
+                                },
+                                {
+                                    id: "restored",
+                                    label: "Restored?",
+                                    value: false
+                                },
+                                {
+                                    id: "disposed",
+                                    label: "Disposed?",
+                                    value: false
+                                },
+                                {
+                                    id: "stored",
+                                    label: "Stored?",
+                                    value: false
+                                },
+                                {
+                                    id: "qty",
+                                    label: "QTY",
+                                    value: ""
+                                },
+                                {
+                                    id: "rcv",
+                                    label:"RCV",
+                                    value: ""
+                                },
+                                {
+                                    id: "subtotal",
+                                    label: "Subtotal",
+                                    value: ""
+                                }
+                            ]
+                        }]
+                        images.value = []
                     })
                 })
             } else {
@@ -597,6 +611,57 @@ export default defineComponent({
                     insuranceCompany.value = InsuranceCompany
                     loading.value = false
                     reportFetched.value = false
+                }).catch(err => {
+                    inventoryList.value = [{
+                        item_num: 1,
+                        label: "Item #",
+                        cols: [{
+                                id: "item_num",
+                                label: "Item #"
+                            },
+                            {
+                                id: "desc",
+                                label: "Description",
+                                value: ""
+                            },
+                            {
+                                id: "image",
+                                label: "Image",
+                                value: ""
+                            },
+                            {
+                                id: "restored",
+                                label: "Restored?",
+                                value: false
+                            },
+                            {
+                                id: "disposed",
+                                label: "Disposed?",
+                                value: false
+                            },
+                            {
+                                id: "stored",
+                                label: "Stored?",
+                                value: false
+                            },
+                            {
+                                id: "qty",
+                                label: "QTY",
+                                value: ""
+                            },
+                            {
+                                id: "rcv",
+                                label:"RCV",
+                                value: ""
+                            },
+                            {
+                                id: "subtotal",
+                                label: "Subtotal",
+                                value: ""
+                            }
+                        ]
+                    }]
+                    images.value = []
                 })
             }
         })
@@ -637,7 +702,6 @@ export default defineComponent({
             empSig,
             hasTechSig,
             reportFetched,
-            uploadFile,
             submitForm,
             user,
             images,
@@ -665,15 +729,15 @@ export default defineComponent({
         position: relative;
         left:10px;
         min-width:702px;
-        max-width:750px;
+        max-width:771px;
     }
     &__row {
         position:relative;
         display:grid;
         @include respond(mobileLargeMax) {
-            grid-template-columns: 59px 107px 1fr 81px 86px 68px 53px 1fr 1fr;
+            grid-template-columns: 59px 107px 90px 81px 86px 68px 53px 1fr 1fr;
         }
-        grid-template-columns:60px 130px 1fr 81px 81px 77px 70px 1fr 1fr;
+        grid-template-columns:60px 130px 90px 81px 81px 77px 70px 1fr 1fr;
         border-top:1px solid $color-black;
         &:last-child {
             border-bottom:1px solid $color-black;

@@ -1004,7 +1004,7 @@ import axios from 'axios'
             this.subjectProperty = ""
             this.numberOfFloors = ""
             this.numberOfRooms = ""
-            this.errorMessage = err.response.data
+            console.log(err.response.data)
           })
           this.$api.$get(`/api/reports/details/wesi-aob/${val}`).then((res) => {
             this.reportFetched = true

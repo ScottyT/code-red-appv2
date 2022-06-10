@@ -173,7 +173,7 @@ export default defineComponent({
     setup(props, { emit }) {
         const store = useStore()
         const { $api } = useContext()
-        const { formatTime, formatDate, groupByKey, round, convertToC, convertToF, parseDate } = genericFuncs()
+        const { formatDate, groupByKey, round, convertToC, convertToF, parseDate, getRandomUnique } = genericFuncs()
         const { htmlToPdfOptions, beforeDownloadNoSave, uploadPdf } = useReports()
         const fetchReports = () => { store.dispatch("reports/fetchReports") }
         const form = ref(null)
@@ -543,7 +543,7 @@ export default defineComponent({
             var tempInCAffected = convertToC(affectedTemp.day[dateIndex].value)
             var tempInCExterior = convertToC(exteriorTemp.day[dateIndex].value)
             var tempInCUnaffected = convertToC(unaffectedTemp.day[dateIndex].value)
-            
+
             for (const property in groupingData.value) {
                 groupingData.value[property].forEach((item, i) => {
                     if (param === "dryBulbTemp" && label === "Affected") {
@@ -670,7 +670,7 @@ export default defineComponent({
             };
             postedData.value = post
             return new Promise((resolve, reject) => {
-                /* $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
+                $api.$put(`/api/reports/atmospheric-readings/${selectedJobId.value}/update`, post).then((res) => {
                     submitting.value = false
                     submitted.value = true
                     fetchReports()
@@ -682,23 +682,20 @@ export default defineComponent({
                     if (err.response) {
                         console.error(err.response.data)
                     }
-                }) */
-                resolve(true)
+                })
             })
         }
         async function submitPsychrometic() {
             let filteredResults = []
             for (const property in groupingData.value) {
-                if (property)
                 groupingData.value[property].forEach((item) => {
                     for (let i = 0; i < item.day.length; i++) {
-                        if (filteredResults.filter(el => el.readingsType == property && el.date == item.day[i].date).length == 0 && property !== undefined) {
+                        if (filteredResults.filter(el => el.readingsType == property && el.date == item.day[i].date).length == 0 && item.day[i].value !== "") {
                             let hrI = groupingData.value[property].findIndex(el => el.identifier == "humidityRatio")
                             let tempI = groupingData.value[property].findIndex(el => el.identifier == "dryBulbTemp")
                             let dpI = groupingData.value[property].findIndex(el => el.identifier == "dewPoint")
                             let vpI = groupingData.value[property].findIndex(el => el.identifier == "vaporPressure")
                             let rhI = groupingData.value[property].findIndex(el => el.identifier == "relativeHumidity")
-                            console.log(vpI)
                             filteredResults.push({
                                 info: {
                                     "dryBulbTemp": parseFloat(groupingData.value[property][tempI].day[i].value),
@@ -708,82 +705,36 @@ export default defineComponent({
                                     "relativeHumidty": groupingData.value[property][rhI].day[i].value.toString(),
                                 },
                                 readingsType: property,
-                                date: item.day[i].date
+                                date: item.day[i].date,
+                                color: colors.value[i] 
                             })
                         }
                     }
-                    
-                    
-                    
-                    /* let groupByDate = item.day.filter(d => d.value !== "").map((x) => {
-                        const p = {
-                            info: {
-                                [property]: x.value
-                            },
-                            date: x.date
-                        }
-                        return p
-                    })
-                    console.log(groupByDate) */
-                    /* item.day.forEach((d) => {
-                        var obj = {
-                            dryBulbTemp: d.value,
-                            humidityRatio: data.y,
-                            dewPoint: dewPoint.value + '%',
-                            vaporPressure: vaporPressure.value,
-                            relativeHumidity: RH.value
-                        }
-                    }) */
-                    /* var filteredResults = item.day.filter(d => d.date === currentDate.value && d.value !== "")
-                    if (filteredResults.length > 0) {
-                        if (item.identifier == "dryBulbTemp" || item.identifier == "humidityRatio") {
-                            psychrometricData.value[property].info[item.identifier] = parseFloat(filteredResults[0].value)
-                        } else {
-                            psychrometricData.value[property].info[item.identifier] = filteredResults[0].value.toString()
-                        }
-                        psychrometricData.value[property].date = filteredResults[0].date
-                        psychrometricData.value[property].color = colors.value[dateIndex.value]
-                    } */
                 })
             }
-            console.log("job progress: ", filteredResults)
-            var promises = []
-            for (const property in psychrometricData.value) {
-                if (psychrometricData.value[property].color === "") {
-                    // this is to make sure not to submit empty data
-                    delete psychrometricData.value[property]
-                }
+            
+            return new Promise((resolve, reject) => {
                 const psychrometricPost = {
                     JobId: selectedJobId.value,
                     teamMember: getUser.value,
-                    jobProgress: psychrometricData.value[property],
+                    jobProgress: filteredResults,
                     formType: 'chart-report',
                     ReportType: 'psychrometric-chart'
                 }
-                promises.push(psychrometricPost)
-            }
-            return new Promise((resolve, reject) => {
-                Promise.all(promises).then((item) => {
-                    let filteredArr = item.filter(r => r.jobProgress !== undefined)
-                    //console.log(filteredArr)
-                    filteredArr.forEach((item) => {
-                            let updateReading = (readingsType.value[item.jobProgress.readingsType] !== undefined
-                                && readingsType.value[item.jobProgress.readingsType].find(el => el.date === currentDate.value) !== undefined)
-                            //var newDateProgress = this.readingsType[item.jobProgress.readingsType].find(el => el.date === jobProgressDate) === undefined
-                            /* if (updateReading) {
-                                $api.$post(`/api/reports/psychrometric-chart/update-progress`, item).then((res) => {
-                                    submittedMessage.value = res
-                                })
-                            } else {
-                                $api.$post(`/api/reports/psychrometric-chart/update-chart`, item).then((res) => {
-                                    submittedMessage.value = res
-                                })
-                            } */
-                        })
-                      resolve("Updated psychrometric chart")
-                }).catch(err => {
-                    reject(err)
-                })
+                if (Object.keys(fetchedPsychometric.value).length > 0) {
+                    $api.$put(`/api/reports/psychrometric-chart/update-progress`, psychrometricPost).then((res) => {
+                        resolve("Updated psychrometric chart")
+                    }).catch(err => {
+                        reject(err)
+                    })
+                } else {
+                    $api.$post(`/api/reports/psychrometric-chart/update-chart`, psychrometricPost).then((res) => {
+                        resolve("Updated psychrometric chart")
+                    }).catch(err => {
+                        reject(err)
+                    })
+                }
+                //resolve(true)
             })
         }
 

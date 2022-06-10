@@ -90,8 +90,6 @@ export default defineComponent({
     const sigImage = computed(() => store.getters["users/getSignature"])
     const initialImage = computed(() => store.getters["users/getInitial"])
 
-    
-
     const uploadFile = (filename) => {
       var formData = new FormData()
       var sig = dataURLtoFile(sigData.value.data, "signature.jpg")
@@ -148,7 +146,7 @@ export default defineComponent({
       }
       if (sigType.value == 'customer' && !initial.value) {
         signage.value = val
-        //signed.value = true
+        signed.value = true
       }
     })
     return {

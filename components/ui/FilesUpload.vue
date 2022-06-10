@@ -136,10 +136,11 @@ export default {
                     }
                 }).then((res) => {
                     uploadMessage.value = res.message
-                    uploadfiles.value = []
-                    if (!inlinePreviews.value) {
-                        emit("afterUpload", res.files)
-                    }
+                    /* setTimeout(() => {
+                        uploadMessage.value = ""
+                    }, 3000) */
+                    //uploadfiles.value = []
+                    emit("afterUpload", res.files)
                     //emit('sendDownloadUrl', {imageUrl: res.data.downloadUrl,imageName: uploadarr[0].imagesArr.imageName})
                 })
             }).catch((err) => {
@@ -170,6 +171,7 @@ export default {
             files.value.push(param)
         }
         watch(uploadfiles, (val) => {
+            console.log("uploading: ", val)
             if (autoUpload.value && rootPath.value !== '') {
                 compressAndUpload(val)
             } else if (rootPath.value === '') {
@@ -210,6 +212,13 @@ export default {
     }
     &--lg {
         max-width:600px;
+    }
+}
+.file-upload {
+    &__content-inventory {
+        h3 {
+            font-size:1em;
+        }
     }
 }
 .file-listing {

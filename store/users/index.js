@@ -73,7 +73,7 @@ const actions = {
                 commit('setUser', {
                     email: res.email,
                     name: res.fullName,
-                    avatarurl: this.$auth.user.picture,
+                    //avatarurl: this.$auth.user.picture,
                     role: res.role,
                     id: res.team_id,
                     auth_id: res.auth_id,
