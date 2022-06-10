@@ -1,12 +1,12 @@
 import {provide} from '@nuxtjs/composition-api'
-import userCertifications from '@/composable/certs'
+import useCerts from '@/composable/useCerts'
 import userReports from '@/composable/userReports'
 
 export default ({app}, inject) => {
     app.setup = () => {
-        provide(userCertifications, 'certs')
+        provide(useCerts, 'certs')
         provide(userReports, 'userReports')
     }
-    inject('certs', userCertifications)
+    inject('certs', useCerts)
     inject('userReports', userReports)
 }

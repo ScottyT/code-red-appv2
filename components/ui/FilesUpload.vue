@@ -1,14 +1,14 @@
 <template>
 <!-- This is for firebase uploads only that are done client-side v-for="(item, i) in uploadimages" :key="i" -->
     <div>
-        <UiImageUpload @getFiles="filePreviews($event)" :multipleFiles="!singleImage" :namechanged="nameChanged" :maxSize="5000" 
+        <UiImageUpload @getFiles="filePreviews(...$event)" :multipleFiles="!singleImage" :namechanged="nameChanged" :maxSize="5000" 
             :uploadFieldName="fieldName" class="image-upload" >
             <template v-slot:activator>
-                <span class="button--normal button" v-if="fieldName !== 'avatar'">{{buttonName !== undefined ? buttonName : 'Add Image'}}</span>
+                <span class="button--normal button" v-if="fieldName !== 'avatar'">{{buttonName !== undefined ? buttonName : 'Add Files'}}</span>
             </template>
         </UiImageUpload>
-        <div class="file-listing-wrapper" v-if="inlinePreview && (!singleImage && uploadimages.length > 0)" ref="previewImages">
-            <div v-for="(file, key) in uploadimages[0].imagesArr" class="file-listing" :key="`images-${key}`">
+        <div class="file-listing-wrapper" v-if="inlinePreviews && (!singleImage && uploadfiles.length > 0)" ref="previewImages">
+            <div v-for="(file, key) in uploadfiles" class="file-listing" :key="`images-${key}`">
                 <img class="file-listing__preview" :src="file.imageUrl"  />
                 <span class="file-listing__remove-file" @click="removeFile(key)" tag="i">
                     <span class="file-listing__remove-file--leg1 file-listing__remove-file--leg"></span>
@@ -16,11 +16,11 @@
                 </span>
             </div>
         </div>
-        <div class="file-listing-wrapper" v-else-if="inlinePreview && (singleImage && uploadimages.length > 0)">
-            <img class="file-listing__preview" :src="uploadimages[0].image.imageUrl" />
+        <div class="file-listing-wrapper" v-if="inlinePreviews && (singleImage && uploadfiles.length > 0)">
+            <img class="file-listing__preview" :src="uploadfiles[0].image.imageUrl" />
         </div>
         <v-slide-x-transition v-if="!autoUpload">
-            <v-btn dark @click="compressAndUpload(uploadimages)" :loading="uploading" v-if="(uploadimages.length > 0 || Object.keys(uploadimages).length > 0) && $nuxt.isOnline">
+            <v-btn dark @click="compressAndUpload(uploadfiles)" :loading="uploading" v-if="(uploadfiles.length > 0)">
                 {{ uploading ? 'Uploading' : 'Upload'}}
             </v-btn>
         </v-slide-x-transition>
@@ -56,7 +56,7 @@ export default {
     setup(props, { refs, emit, root }) {
         const { singleImage, rootPath, changeImageName, subDir, errors, inlinePreviews, files, autoUpload, delimiter, path, isStorage } = toRefs(props)
         const { $auth, $gcs } = useContext()
-        const uploadimages = ref([])
+        const uploadfiles = ref([])
         const uploadMessage = ref('')
         const filesUploaded = ref([])
         const uploading = ref(false)
@@ -84,9 +84,11 @@ export default {
             }
         });
         const removeFile = (key) => {
-            const files = Array.from(uploadimages.value)
-            files.splice(key, 1)
-            uploadimages.value = files
+            const items = Array.from(uploadfiles.value)
+            items.splice(key, 1)
+            items.forEach((el) => {
+                uploadfiles.value.push(el)
+            })
         }
         const compressing = async (uploadarr) => {
             var compressedFiles = []
@@ -94,8 +96,12 @@ export default {
             var formData = new FormData()
             if (!singleImage.value) {
                 formData.append('path', uploadPath.value)
-                await Promise.all(uploadarr[0].imagesArr.map(async (file) => {
-                    const res = await compress(file.image, {quality: .7, scale:.8})
+                await Promise.all(uploadarr.map(async (file) => {
+                    if (!file.file.type.includes('image')) {
+                        formData.append("multiFiles", file.file)
+                        return
+                    }
+                    const res = await compress(file.file, {quality: .7, scale:.8})
                     let compressedImg = new File([res], file.imageName, {
                         type: res.type
                     })
@@ -121,6 +127,7 @@ export default {
             // Create another one for single images
            //uploadarr[0].formData.append('path', uploadPath.value)
             compressing(uploadarr).then((result) => {
+                console.log("result from promise: ", result)
                 $gcs.$post(`/upload`, result[0].formData, {
                     params: {
                         folder: path.value,
@@ -129,12 +136,11 @@ export default {
                     }
                 }).then((res) => {
                     uploadMessage.value = res.message
-                    if (!inlinePreviews.value) {
-                        emit("afterUpload", res.files)
-                        return
-                    }
-                    if (!singleImage.value) uploadimages.value = []
-                    //emit('sendDownloadUrl', {imageUrl: res.data.downloadUrl,imageName: uploadarr[0].imagesArr.imageName})
+                    setTimeout(() => {
+                        uploadMessage.value = ""
+                    }, 3000)
+                    //uploadfiles.value = []
+                    emit("afterUpload", res.files)
                 })
             }).catch((err) => {
                 console.log(err)
@@ -145,36 +151,38 @@ export default {
             const promises = []
             if (singleImage.value) {
                 emit('sendPreviews', params)
-                uploadimages.value = []
+                uploadfiles.value = [{image: params.image, formData: params.formData}]
+                return
             }
-            params.forEach((item, i) => {
-                uploadimages.value.push(item)
-                promises.push(item)
-            })
+            params.filesArr.forEach((item, i) => {
+                    uploadfiles.value.push(item)
+                    promises.push(item)
+                })
+            
             if (!inlinePreviews.value) {
                 Promise.all(promises).then(result => {
-                    emit('sendPreviews', uploadimages.value)
+                    emit('sendPreviews', uploadfiles.value)
                 })
-            }
-            if (errorMessage.value === '') {
-                
-            }           
+            }         
         }
         function setDownloadUrls(param) {
-            uploadimages.value.push(param)
+            files.value.push(param)
         }
-        watch(uploadimages, (val) => {
+        watch(uploadfiles, (val) => {
             if (autoUpload.value && rootPath.value !== '') {
                 compressAndUpload(val)
             } else if (rootPath.value === '') {
                 errorMessage.value = "Job ID is required"
             }
         })
+        watch(() => files.value, (val) => {
+            uploadfiles.value = val
+        })
         return {
             errorslist,
             uploading,
             showUpload,
-            uploadimages,
+            uploadfiles,
             uploadMessage,
             inlinePreview: inlinePreviews.value,
             single: singleImage.value,
@@ -203,15 +211,22 @@ export default {
         max-width:600px;
     }
 }
+.file-upload {
+    &__content-inventory {
+        h3 {
+            font-size:1em;
+        }
+    }
+}
 .file-listing {
     &__remove-file {
-        position: absolute;
+        position: absolute!important;
         background-color: red;
         cursor: pointer;
-        top: -5px;
+        top: 3px;
         width: 22px;
         height:21px;
-        right: 11px;
+        right: 12px;
         border-radius: 50%;
         &--leg {
             background-color:$color-white;
@@ -220,7 +235,7 @@ export default {
             height:2px;
             position:absolute;
             left:3px;
-            }
+        }
         &--leg1 {     
             transform:rotate(45deg);     
         }

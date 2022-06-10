@@ -7,13 +7,13 @@
             <UiBreadcrumbs page="field-jacket" :displayStrip="false" />
             <span v-if="reportType === 'rapid-response'">
                 <client-only>
-                    <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1300" :enable-download="false" 
+                    <vue-html2pdf :pdf-quality="2" pdf-content-width="800px" :html-to-pdf-options="htmlToPdfOptions" :paginate-elements-by-height="1200" :enable-download="false" 
                         @hasDownloaded="hasDownloaded($event)" @beforeDownload="beforeDownload($event)" :manual-pagination="false" :show-layout="false" :preview-modal="true" ref="html2Pdf0">
                         <LazyLayoutResponseReportDetails company="Water Emergency Services Incorporated" reportName="Rapid Response Report" :notPdf="false" 
-                            :report="report" slot="pdf-content" />
+                            :report="report" slot="pdf-content" :onForm="false" />
                     </vue-html2pdf>
                 </client-only>
-                <LazyLayoutResponseReportDetails :notPdf="true" reportName="Rapid Response Report" :report="report" />
+                <LazyLayoutResponseReportDetails :notPdf="true" reportName="Rapid Response Report" :report="report" :onForm="false" />
             </span>
             <span v-if="reportType === 'dispatch'">
                 <client-only>
@@ -112,7 +112,7 @@ export default defineComponent({
     setup(props, {root, refs}) {
         const store = useStore()
         const { $auth, $gcs, $api } = useContext()
-        const { beforeDownload, getReport, report, loading } = useReports()
+        const { beforeDownload, getReport, getReportImagesPromise, folders, report, loading, images } = useReports()
         const company = ref("")
         const clickedOn = ref(false)
         const reportType = root.$route.params.type
@@ -173,6 +173,10 @@ export default defineComponent({
         }
         
         getReport(`${reportType}/${jobId}`).fetchReport()
+        onMounted(() => {
+            fetchSignature("signature.jpg", store.getters["users/getUser"].email)
+        })
+        
         
         return {
             report,
@@ -186,7 +190,9 @@ export default defineComponent({
             hasDownloaded,
             uploadPdf,
             chartloaded,
-            loading
+            loading,
+            images,
+            folders,
         }
     },
 })

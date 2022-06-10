@@ -23,7 +23,7 @@ export default {
         },
         searchKey: String
     },
-    setup(props, context) {
+    setup(props, { emit }) {
         const { items, searchKey } = toRefs(props)
         const search = ref('')
         const focused = ref(false)
@@ -33,7 +33,7 @@ export default {
             )
         })
         const sendReportsToParent = () => {
-            context.emit('sendReportsToParent', reportsMatchingSearch)
+            emit('sendReportsToParent', reportsMatchingSearch.value)
         }
         watch(reportsMatchingSearch, sendReportsToParent)
         return {

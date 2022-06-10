@@ -6,7 +6,8 @@ const state = () => ({
     error: "",
     signature: "",
     initial: "",
-    loading: false
+    loading: false,
+    loggedIn: false
 })
 const mutations = {
     setUser: (state, payload) => {
@@ -16,13 +17,16 @@ const mutations = {
         state.employees = payload
     },
     setAvatar: (state, payload) => {
-        state.avatarurl = payload
+        state.user.avatarurl = payload
     },
     setError: (state, error) => {
         state.error = error
     },
     setLoading: (state, payload) => {
         state.loading = payload
+    },
+    setLoggedInStatus: (state, payload) => {
+        state.loggedIn = payload
     },
     setSignature: (state, payload) => {
         if (payload !== '') {
@@ -51,33 +55,41 @@ const actions = {
         var email = this.$auth.user.email
         var options = {
             params: {
+                //id: this.$auth.user.sub.substring(this.$auth.user.sub.indexOf('|')+1, this.$auth.user.sub.length)
                 id: this.$auth.user.sub
             }
         }
         commit('setLoading', true)
-        this.$api.$get(`/api/employees/${email}`, options).then((res) => {
-            dispatch('getSigOrInitialImage', {
-                email: email,
-                signType: 'signature.jpg'
+        return new Promise((resolve, reject) => {
+            this.$api.$get(`/api/employees/${email}`, options).then((res) => {
+                dispatch('getSigOrInitialImage', {
+                    email: email,
+                    signType: 'signature.jpg'
+                })
+                dispatch('getSigOrInitialImage', {
+                    email: email,
+                    signType: 'initial.jpg'
+                })
+                commit('setUser', {
+                    email: res.email,
+                    name: res.fullName,
+                    //avatarurl: this.$auth.user.picture,
+                    role: res.role,
+                    id: res.team_id,
+                    auth_id: res.auth_id,
+                    certifications: res.certifications
+                })
+                commit('setLoading', false)
+                commit('setLoggedInStatus', true)
+                resolve(res)
+            }).catch((err) => {
+                reject(err)
+                commit('setLoading', false)[
+                    console.error(err)
+                ]
             })
-            dispatch('getSigOrInitialImage', {
-                email: email,
-                signType: 'initial.jpg'
-            })
-            commit('setUser', {
-                email: res.email,
-                name: res.fullName,
-                avatarurl: this.$auth.user.picture,
-                role: res.role,
-                id: res.team_id,
-                auth_id: res.auth_id
-            })
-            commit('setLoading', false)
-        }).catch((err) => {
-            commit('setLoading', false)[
-                console.error(err)
-            ]
         })
+        
     },
     async onAuthStateChangedAction({ commit, dispatch }, { authUser, claims }) {
         if (!authUser) {
@@ -171,14 +183,7 @@ const getters = {
         return state.initial
     },
     getUser: (state) => {
-        var user = {
-            email: state.user.email,
-            name: state.user.name,
-            avatarurl: state.user.avatarurl,
-            role: state.user.role,
-            id: state.user.id
-        }
-        return user
+        return state.user
     },
     isLoggedIn: (state) => {
         try {

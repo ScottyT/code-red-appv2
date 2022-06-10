@@ -25,7 +25,7 @@
                     <span v-if="typeof col.value === 'number'">${{col.value}}</span>
                     <span v-if="typeof col.value === 'boolean' && col.value === true">Yes</span>
                     <span v-if="typeof col.value === 'boolean' && col.value === false">No</span>
-                    <img :src="col.value" v-if="col.id === 'image'" />
+                    <img :src="itemImages[i].imageUrl" v-if="col.id === 'image' && itemImages.length > 0" />
                 </div>
             </div>
         </template>
@@ -57,7 +57,8 @@ export default defineComponent({
         onForm: {
             type: Boolean,
             default: false
-        }
+        },
+        itemImages: Array
     },
     setup(props, { root }) {
         const { report, onForm } = toRefs(props)
@@ -69,21 +70,21 @@ export default defineComponent({
 
         watch(() => report.value, (val) => {
             console.log("report changing")
-            val.inventoryImages.forEach((image) => {
+            /* val.inventoryImages.forEach((image) => {
                 var row = val.inventory.findIndex(i => i.cols[2].value === image.img.filename)
                 if (row >= 0) {
                     val.inventory[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
                 }
-            })
+            }) */
         })
         onMounted(() => {
             if (!onForm.value) {
-                report.value.inventoryImages.forEach((image) => {
+                /* report.value.inventoryImages.forEach((image) => {
                     var row = report.value.inventory.findIndex(i => i.cols[2].value === image.img.filename)
                     if (row >= 0) {
                         report.value.inventory[row].cols[2].value = `data:${image.img.contentType};base64,${image.img.data}`
                     }
-                })
+                }) */
             }
         })
 

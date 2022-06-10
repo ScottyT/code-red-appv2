@@ -33,8 +33,8 @@ module.exports = {
   },
   env: {
     gsutil: process.env.NODE_ENV !== 'production' ? 'http://localhost:8081' : process.env.GSUTIL_URL,
-    apiUrl: process.env.NODE_ENV !== 'production' ? 'http://localhost:8082' : process.env.API_URL,
-    functionsUrl: process.env.NODE_ENV !== 'production' ? 'http://192.168.1.117:8080' : process.env.FUNCTIONS_URL,
+    apiUrl: process.env.NODE_ENV !== 'production' ? 'http://localhost:8080' : process.env.API_URL,
+    functionsUrl: process.env.NODE_ENV !== 'production' ? 'http://192.168.1.117:8082' : process.env.FUNCTIONS_URL,
     mapboxKey: process.env.MAPBOX_API_KEY,
     userStorage: process.env.USER_STORAGE_BUCKET,
     defaultStorage: process.env.DEFAULT_STORAGE_BUCKET,

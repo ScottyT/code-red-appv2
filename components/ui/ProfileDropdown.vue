@@ -25,10 +25,6 @@
                 <v-icon>mdi-account</v-icon>
                 <p>Create Employee</p>
             </nuxt-link>
-            <nuxt-link class="profile-menu__dropdown-menu--item" to="/forms">
-                <v-icon>mdi-form-select</v-icon>
-                <p>Forms</p>
-            </nuxt-link>
             <nuxt-link class="profile-menu__dropdown-menu--item" to="/contracts">
                 <v-icon>mdi-form-select</v-icon>
                 <p>PDF viewable contracts</p>

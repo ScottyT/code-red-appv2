@@ -1,6 +1,6 @@
 <template>
     <div class="user-page px-5">
-        <v-card light color="white" max-width="250" max-height="250" elevation="2" class="user-card avatar-card">
+        <v-card light color="white" max-width="250" max-height="300" elevation="2" class="user-card avatar-card">
             <h4 class="user-card__name"></h4>
             <p class="text">{{userObj.email}}</p>
             <p class="text">{{userObj.role}}</p>
@@ -31,12 +31,13 @@
         </v-card>
         <v-card light elevation="2" class="user-card user-page__certifications">
             <h2>Certifications</h2>
-            <p>{{$certs.state.message}}</p>
-            <button type="button" class="button button--normal" v-if="$certs.state.certifications.length > 0" @click="deleteMode = !deleteMode">
+            <p>{{message}}</p>
+            <button type="button" class="button button--normal" @click="deleteMode = !deleteMode">
                 {{deleteMode ? 'Enter view mode' : 'Enter delete mode'}}
             </button>
-            <div class="user-page__certifications--content">
-                <div :ref="`certs-${i}`" class="user-page__certification" v-for="(cert, i) in $certs.state.certifications" :key="`cert-${i}`">
+            <div v-if="loading"><h3>Loading your certifications...</h3></div>
+            <div class="user-page__certifications--content" v-else>
+                <div :ref="`certs-${i}`" class="user-page__certification" v-for="(cert, i) in certifications" :key="`cert-${i}`">
                     <h3>{{cert.idNumber}}</h3>
                     <img v-if="cert.hasOwnProperty('badge')" :src="cert.badge.imageUrl" class="user-page__certification--image" />
                     <p>{{cert.description}}</p>
@@ -91,8 +92,8 @@
                                 
                                 <span class="form__input--error" v-bind="ariaMsg">{{ errors[0] }}</span>
                             </ValidationProvider>
-                            <div v-show="$certs.state.message !== ''">{{$certs.state.message}}</div>
-                            <button type="submit" class="button button--normal">{{ $certs.state.submitting ? 'Submitting' : 'Submit' }}</button>
+                            <div v-show="message !== ''">{{message}}</div>
+                            <button type="submit" class="button button--normal">{{ submitting ? 'Submitting' : 'Submit' }}</button>
                         </form>
                     </ValidationObserver>
                 </div>
@@ -108,8 +109,9 @@
 <script>
 import axios from 'axios';
 import 'animate.css'
-import { ref, computed, onMounted, defineComponent, useStore, useFetch, watch, useContext } from '@nuxtjs/composition-api'
+import { ref, computed, onMounted, defineComponent, useStore, watch, useContext } from '@nuxtjs/composition-api'
 import useUsers from "@/composable/users";
+import useCerts from "@/composable/useCerts";
 import { dateMask } from "@/data/masks";
 import { compress } from 'image-conversion';
 export default defineComponent({
@@ -117,6 +119,7 @@ export default defineComponent({
     setup(props, { root, refs }) {
         const { $gcs, $auth, $certs, $userReports, $api } = useContext()
         const store = useStore()
+        const { state, fetchCerts, addCert } = useCerts()
         //const { fetchUser, userObj } = useUsers()
         const saving = ref(false)
         const saved = ref(false)
@@ -124,12 +127,13 @@ export default defineComponent({
         const error = ref('')
         const selectedAvatar = ref(false)
         const avatarurl = computed(() => store.getters['users/getAvatar'])
-        const userObj = computed(() => $auth.user)
+        const userObj = computed(() => store.getters['users/getUser'])
+        const isLoggedIn = computed(() => store.state.users.loggedIn)
         const idNumber = ref(""); const description = ref(""); const expDate = ref(""); const badge = ref([]);
         const isAdding = ref(false); const deleteMode = ref(false);
-        const submitting = computed(() => $certs.state.submitting)
+        const submitting = ref("")
         const tempImage = ref({}) //has imageUrl and name property
-
+        const isFetching = ref(true)
 
         const refreshReports = async () => {
             await $userReports.fetchReports(userObj.value.email)
@@ -172,31 +176,49 @@ export default defineComponent({
         const uploadAvatar = async () => {
             await uploadFile().then((image) => {
                 store.commit('users/setAvatar', image.imageUrl)
-                $api.$put(`/api/employees/update/${userObj.value.sub}`, {picture: image.imageUrl, auth_id: userObj.value.sub}).then((res) => {
-                    console.log("Updated user")
-                })
+                //let userid = userObj.value.auth_id.substring(userObj.value.auth_id.indexOf('|')+1, userObj.value.auth_id.length)
+                $api.$put(`/api/employees/update/${userObj.value.auth_id}`, 
+                    {
+                        picture: image.imageUrl,
+                        auth_id: userObj.value.auth_id, 
+                        certifications: state.value.certifications,
+                        user_metadata: {
+                            role: userObj.value.role,
+                            id: userObj.value.id,
+                            name: userObj.value.name
+                        }
+                    }).then((res) => {
+                        $auth.fetchUser()
+                    })
                 saving.value = false
             })
-            animateCSS('uploadBtn', 'hinge').then((message) => {
+            animateCSS('uploadBtn', 'hinge').then(() => {
                 avatar.value = {}
                 selectedAvatar.value = false
             })
         }
         const uploadBadge = async() => {
             await uploadCertImage()
-            animateCSS('uploadBtn', 'hinge').then((message) => {
-            })
+            animateCSS('uploadBtn', 'hinge').then(() => { })
         }
         async function addCertification() {
             const post = {
                 idNumber: idNumber.value,
                 description: description.value,
-                expDate: expDate.value,
+                expiration: expDate.value,
                 user: userObj.value.email,
-                badge: tempImage.value
+                badge: tempImage.value,
+                teamMemberAuthId: $auth.user.sub
             }
-            $certs.addCert(post, userObj.value)
-            badge.value = []
+            await addCert(post, userObj.value, $auth.strategy.token.get().split(' ')[1]).then((result) => {
+                store.dispatch('users/fetchUser').then(() => {
+                    fetchCerts(userObj.value.certifications)
+                })
+                idNumber.value = ""
+                description.value = ""
+                expDate.value = ""
+                badge.value = []
+            })
         }
         async function uploadFile() {
             saving.value = true
@@ -205,13 +227,8 @@ export default defineComponent({
                     console.log(result)
                     result[0].formData.append('user', userObj.value.email)
                     result[0].formData.append('name', 'avatar')
-                    axios.post(`${process.env.gsutil}/upload/avatar`, result[0].formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            authorization: $auth.strategy.token.get()
-                        }
-                    }).then((res) => {
-                        resolve(res.data)
+                    $gcs.$post(`/upload/user`, result[0].formData).then((res) => {
+                        resolve(res)
                     }).catch((err) => {
                         error.value = err
                         reject(err)
@@ -223,25 +240,22 @@ export default defineComponent({
             badge.value[0].formData.append('user', userObj.value.email)
             saving.value = true
             return new Promise((resolve, reject) => {
-                $fire.auth.currentUser.getIdToken().then((idToken) => {
-                    axios.post(`${process.env.gsutil}/upload/cert`, badge.value[0].formData, {
-                        headers: {
-                            'Content-Type': 'multipart/form-data',
-                            authorization: `Bearer ${idToken}`
-                        }
-                    }).then((res) => {
-                        tempImage.value = {
-                            imageUrl: res.data.imageUrl,
-                            name: res.data.imageName
-                        }
-                        resolve(res.data)
-                        saving.value = false
-                    }).catch((err) => {
-                        error.value = err
-                        reject(err)
-                    })
-                }).catch((error) => {
-                    console.log(`Not authenticated: ${error}`)
+                $gcs.$post(`/upload/cert`, badge.value[0].formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }).then((res) => {
+                    tempImage.value = {
+                        imageUrl: res.imageUrl,
+                        name: res.imageName
+                    }
+                    resolve(res)
+                    saving.value = false
+                }).catch((err) => {
+                    if (err.response) {
+                        error.value = err.response.data
+                    }
+                    reject(err)
                 })
             })
         }
@@ -263,15 +277,26 @@ export default defineComponent({
                 animateCSS('uploadBtn', 'fadeInRight')
             }
         })
-        //$certs.fetchCerts(userObj.value)
         /* fetchUser($fire.auth.currentUser.email).then((result) => {
             $certs.fetchCerts(userObj.value)
         }) */
+        watch(() => isLoggedIn.value, (val) => {
+            fetchCerts(userObj.value.certifications)
+        })
+        onMounted(() => {
+            console.log("mounted")
+            if (state.value.certifications.length > 0) {
+                
+            }
+            fetchCerts(userObj.value.certifications)
+        })
         
         return {
             //loading,
            // reports: computed(() => reports.value),
             uploadAvatar,
+            isLoggedIn,
+            isFetching,
             userObj,
             uploadFile,
             avatar,
@@ -286,7 +311,13 @@ export default defineComponent({
             selectedAvatar,
             isAdding, deleteMode,
             deleteCert,
-            uploadBadge
+            uploadBadge,
+            addCert,
+            certifications: computed(() => state.value.certifications),
+            loading: computed(() => state.value.loading),
+            submitting: computed(() => state.value.submitting),
+            message: computed(() => state.value.message),
+            submitted: computed(() => state.value.submitted)
         }
     }
 })

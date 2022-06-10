@@ -3,7 +3,7 @@
      :class="{modalOpen: sigDialog}">
     <label class="form__label">{{name}}</label>
     <input v-if="!notrequired" type="hidden" v-model="signage" />
-    <v-dialog v-model="sigDialog" v-if="sigData.data.value === '' || sigType === 'customer'" :width="width" :height="height">
+    <v-dialog v-model="sigDialog" v-if="sigData.data === '' || sigType === 'customer'" :width="width" :height="height">
       <template v-slot:activator="{ on, attrs }">
         <div class="button--normal button" v-bind="attrs" v-on="on">{{!signed ? 'Click to sign' : 'Signed'}}</div>
       </template>
@@ -45,6 +45,7 @@
 <script>
 import { defineComponent, onMounted, watch, computed, ref, toRefs, useContext, useStore } from "@nuxtjs/composition-api";
 import axios from 'axios';
+import genericFuncs from "~/composable/utilityFunctions";
 export default defineComponent({
   props: {
     sigData: {
@@ -78,7 +79,8 @@ export default defineComponent({
   },
   setup(props, {refs, emit}) {
     const { sigData, sigRef, sigType, inputId, initial } = toRefs(props)
-    const { $fire, $fireModule } = useContext()
+    const { $gcs } = useContext()
+    const { dataURLtoFile } = genericFuncs()
     const store = useStore()
     const sigDialog = ref(false)
     const errors = ref({})
@@ -88,15 +90,14 @@ export default defineComponent({
     const sigImage = computed(() => store.getters["users/getSignature"])
     const initialImage = computed(() => store.getters["users/getInitial"])
 
-    const uploadFile = async (filename) => {
-      const storageRef = $fire.storage.refFromURL(`gs://${process.env.userStorage}`).child(`${user.value.email}/${filename}.jpg`);
-      const data = {
-        "teamMember": user.value.email,
-        "signature": sigData.value.data
-      }
-      
-      storageRef.putString(data.signature, 'data_url').then((snapshot) => {
-        store.dispatch('users/getSigOrInitialImage', snapshot.ref.name)
+    const uploadFile = (filename) => {
+      var formData = new FormData()
+      var sig = dataURLtoFile(sigData.value.data, "signature.jpg")
+      formData.append('user', user.value.email)
+      formData.append('name', filename)
+      formData.append("single", sig)
+      $gcs.$post(`/upload/user`, formData).then((res) => {
+        store.dispatch('users/getSigOrInitialImage', {signType: "signature.jpg", email: user.value.email})
       })
     }
     const fetchSigImages = () => {
@@ -104,7 +105,7 @@ export default defineComponent({
         sigData.value.data = initialImage
       } 
       if (sigType.value === 'employee') {
-        sigData.value.data = sigImage
+        sigData.value.data = sigImage.value
       }
     }
     const populateField = () => {
@@ -136,17 +137,16 @@ export default defineComponent({
     const onEnd = () => {
       sigData.value.isEmpty = false
     }
-    if (sigImage !== "") {
-      onMounted(fetchSigImages)
-    }
+    onMounted(fetchSigImages)
     // this might be breaking something but i don't know what it is
     watch(() => sigData.value.data, (val) => {
+      signage.value = val
       if (sigType.value == 'customer' && initial.value) {
         signage.value = val
       }
       if (sigType.value == 'customer' && !initial.value) {
         signage.value = val
-        //signed.value = true
+        signed.value = true
       }
     })
     return {

@@ -107,6 +107,10 @@ export default defineComponent({
             direction.value = 'data-list'
             currentPageView.value = newCurPage
         })
+        watch(() => items.value, (val) => {
+            pageChangeHandle({currentpage: 1, lastpage: 0})
+        })
+        
         return {
             reportsPerPage,
             currentPageView,

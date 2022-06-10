@@ -172,7 +172,7 @@
               sigRef="verifySignaturePad" name="Sign for Verification" />
             <ValidationProvider ref="jobimages" name="Job images" class="upload-group upload-group--lg">
               <label class="form__label">Containment job images</label>
-              <UiFilesUpload :singleImage="false" subDir="" path="containment-images" delimiter="/" :rootPath="selectedJobId" @sendDownloadUrl="uploadedImages = $event" />
+              <UiFilesUpload :singleImage="false" subDir="" path="case-file-containment" delimiter="/" :rootPath="selectedJobId" @sendDownloadUrl="uploadedImages = $event" />
             </ValidationProvider>
           </div>
         </div>

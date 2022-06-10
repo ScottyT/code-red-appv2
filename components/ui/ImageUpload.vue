@@ -19,7 +19,6 @@
 <script>
 // USE THIS FOR SINGLE IMAGE UPLOADS
 import { ref, toRefs } from '@nuxtjs/composition-api'
-import {compress, compressAccurately} from 'image-conversion';
 export default {
     props: {
         //value: Array,
@@ -46,8 +45,9 @@ export default {
                 let size = imageFile.size / maxSize.value / maxSize.value
                 if (namechanged.value !== undefined) {
                     var blob = imageFile.slice(0, imageFile.size, imageFile.type)
-                    var filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
-                    imageFile = new File([blob], `${namechanged.value}${filetype}`, {
+                    let filetype = imageFile.name.substring(imageFile.name.lastIndexOf('.'), imageFile.name.length)
+                    
+                    imageFile = new File([blob], `${namechanged.value}.jpg`, {
                         type: imageFile.type
                     })
                 }
@@ -58,7 +58,7 @@ export default {
                     errorDialog.value = true
                     errorText.value = 'Your file is too big!'
                 } else {
-                    var imagesArr = []
+                    let filesArr = []
                     var formData = new FormData()
                     const imageUrl = URL.createObjectURL(imageFile)
                     const imageName = imageFile.name
@@ -71,14 +71,30 @@ export default {
                     emit('getFiles', [{formData, ...additionalData.value, image: {imageUrl, imageName, image: imageFile}}])
                 }
             } else if (multipleFiles.value) {
-                var imagesArr = []
+                let filesArr = []
                 var formData = new FormData()
+                
                 for (var i = 0; i < file.length; i++) {
-                    const imageName = file[i].name
+                    let filetype = ""
+                    switch (file[i].type) {
+                        case "image/jpeg":
+                            filetype = ".jpg"
+                            break
+                        case "image/png":
+                            filetype = ".png"
+                            break
+                        default:
+                            filetype = file[i].name.substring(file[i].name.lastIndexOf('.'), file[i].name.length)
+                    }
+                    var imageName = file[i].name.substring(0, file[i].name.indexOf('.')) + filetype
                     var imageUrl = URL.createObjectURL(file[i])
-                    imagesArr.push({imageUrl, imageName, image: file[i]})
+                    var blob = file[i].slice(0, file[i].size, file[i].type)
+                    let newImageFile = new File([blob], imageName, {
+                        type: file[i].type
+                    })
+                    filesArr.push({imageUrl, imageName, file: newImageFile})
                 }
-                emit('getFiles', [{imagesArr}])
+                emit('getFiles', [{filesArr}])
             } else {
                 errorDialog.value = true
                 errorText.value = "No image found"

@@ -71,15 +71,18 @@
             <h4>{{actionSuccess}}</h4>
         </div>
         <div class="folder-contents__area">
-            <nuxt-link class="folder-contents__content folder-contents__content--subfolder" v-for="(subfolder, i) in report.folders" :key="`subfolder-${i}`" :to="`/storage/${subfolder.path}`">
+            <nuxt-link class="folder-contents__content folder-contents__content--subfolder" v-for="(subfolder, i) in folders" :key="`subfolder-${i}`" :to="`/storage/${subfolder.path}`">
                 <v-icon x-large>mdi-folder</v-icon>
                 <p>{{subfolder.name}}</p>
             </nuxt-link>
+            <!-- This displays the preview of the images about to be uploaded-->
             <div class="file-listing folder-contents__file-listing" v-for="(file, key) in uploadFilesArr" :key="`image-${key}`">
-                <img class="file-listing__preview" :src="file.imageUrl" />
+                <img v-if="file.file.type == 'application/pdf'" class="file-listing__preview" src="/pdf-icon.png" />
+                <img v-if="file.file.type.includes('image')" class="file-listing__preview" :src="file.imageUrl" />
                 <v-icon class="file-listing__remove-file" @click="removeFile(key)" tag="i" large>mdi-close-circle</v-icon>
+                <p>{{file.name}}</p>
             </div>
-            <UiLightbox v-if="report.images !== null" :selecting="editing" :images="report.images" :imagesPerPage="1" :dialog="sliderDialog">
+            <UiLightbox v-if="images !== null" :selecting="editing" :images="images" :imagesPerPage="1" :dialog="sliderDialog">
                 <template v-slot:image="slotProps">
                   <div class="folder-contents__item" :class="{'folder-contents__item--selected': selectedFiles.find(obj => obj.name === slotProps.image.name) && editing}">
                       <input type="checkbox" v-if="editing" :value="slotProps.image" v-model="selectedFiles" class="folder-contents__content--checkbox" />
@@ -87,7 +90,7 @@
                   </div>
                 </template>
             </UiLightbox>
-            <a class="folder-contents__content folder-contents__content--pdf" v-for="(pdf, i) in report.pdfs" :key="`pdf-${i}`" :href="pdf.imageUrl" target="_blank">
+            <a class="folder-contents__content folder-contents__content--pdf" v-for="(pdf, i) in pdfs" :key="`pdf-${i}`" :href="pdf.imageUrl" target="_blank">
               <img src="/pdf-icon.png" alt="pdf icon" />
               <p>{{pdf.name}}</p>
             </a>
@@ -111,7 +114,7 @@ export default defineComponent({
     const route = useRoute()
     const { jobid, folder, subPath, delimiter } = toRefs(props)
     const { $api, $gcs, $auth } = useContext()
-    const { getReportImagesPromise, report } = useReports()
+    const { getReportImagesPromise, report, images, folders, pdfs } = useReports()
     const subfolders = ref([])
     const uploadFilesArr = ref([])
     const uploading = ref(false)
@@ -135,13 +138,17 @@ export default defineComponent({
     })
   
     function afterUpload(param) {
-      if (report.value.images === null) {
-        report.value.images = param
-      } else {
-        param.forEach(item => {
-          report.value.images.push(item)
+      param.forEach(item => {
+          let extension = item.name.substring(item.name.lastIndexOf('.'), item.name.length)
+          if (extension == '.pdf') {
+            pdfs.value.push(item)
+            uploadFilesArr.value = []
+          }
+          if (extension == '.png' || extension == '.jpg' || extension == '.gif') {
+            images.value.push(item)
+          }
         })
-      }
+      
     }
     const folderCreation = () => {
       const post = {
@@ -212,8 +219,8 @@ export default defineComponent({
         })
       }
       report.value.images.forEach((file) => {
-        const promise = getFile(file.url).then(data => {
-          zip.file(file.name + file.extension, data, {binary: true});
+        const promise = getFile(file.imageUrl).then(data => {
+          zip.file(file.name, data, {binary: true});
           cache[file.name] = data;
         });
         promises.push(promise);
@@ -225,11 +232,11 @@ export default defineComponent({
         })
       })
     }
-    function filePreviews(param) {
+    function filePreviews(params) {
       uploadFilesArr.value = []
-      param[0].imagesArr.forEach((item) => {
+      params.forEach((item) => {
         uploadFilesArr.value.push(
-          { image: item.image, name: item.image.name, imageUrl: item.imageUrl }
+          { file: item.file, name: item.file.name, imageUrl: item.imageUrl }
         )
       })
     }
@@ -279,7 +286,10 @@ export default defineComponent({
       deleteFiles,
       job,
       afterUpload,
-      sliderDialog
+      sliderDialog,
+      images,
+      folders,
+      pdfs
     }
   }
 })
