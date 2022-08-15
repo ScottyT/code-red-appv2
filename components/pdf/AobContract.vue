@@ -1,7 +1,7 @@
 <template>
 <div>
-            <section v-if="contracts.ReportType === 'guardian-aob'" slot="pdf-content">
-                <h2 class="text-center">Guaridan Restoration</h2>
+            <section slot="pdf-content">
+                <h2 class="text-center">{{company}}</h2>
                 <div class="text-left pdf-first-section">
                     <p>
                         This Assignment of Claim Agreement (hereinafter referred to as “Assignment” and/or “Agreement”)

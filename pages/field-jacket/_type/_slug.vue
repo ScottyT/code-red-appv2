@@ -173,8 +173,11 @@ export default defineComponent({
         }
         
         getReport(`${reportType}/${jobId}`).fetchReport()
+        watch(report, (val) => {
+            fetchSignature("signature.jpg", val.teamMember.email)
+        })
         onMounted(() => {
-            fetchSignature("signature.jpg", store.getters["users/getUser"].email)
+            
         })
         
         

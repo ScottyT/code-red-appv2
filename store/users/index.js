@@ -47,7 +47,7 @@ const mutations = {
     }
 }
 const actions = {
-    async fetchUser({ commit, dispatch }) {
+    async fetchUser({ commit, dispatch, state }) {
         if (!this.$auth.loggedIn) {
             return;
         }
